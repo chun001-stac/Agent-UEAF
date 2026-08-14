@@ -1,7 +1,10 @@
 # ADR-009：采用生态共同进化与共享 Gene Pool
 
-- 状态：Accepted
+- 状态：Accepted Design Direction
 - 决策日期：2026-08-14
+- Architecture Generation：V2
+- Maturity：Planned
+- Implementation：Future
 
 ## 背景
 
@@ -9,24 +12,28 @@
 
 ## 决策
 
-UEAF 将“整个 Agent 生态共同进化”作为 Evolution Plane 的正式方向：
+UEAF 将“整个 Agent 生态共同进化”作为 **V2** 的正式方向：
 
-- 引入 `EcosystemGenome` 与 `SpeciesDefinition`；
-- Agent、Skill、Tool、Workflow 与 Strategy 可作为独立 Species 演化；
-- 建立受治理的 `GenePool` 保存已验证、可复用能力；
-- 允许通过 `CapabilityTransferProposal` 实现跨 Agent/Species 横向能力迁移；
+- 引入 Species / Population / Elite 的生态组织；
+- 建立受治理的 Gene Pool 能力复用机制；
+- 允许通过 V1 `MutationProposal(mutation_type=transfer)` 起步，并在有独立生命周期证据后再升级专门 Transfer 对象；
 - 优先修改最小有效 Gene，而不是默认重写整个 Agent；
-- Gene Pool 默认 tenant scoped，跨租户共享需要显式发布与重新治理。
+- Gene Pool 默认 tenant scoped，跨租户共享需要显式发布与重新治理；
+- V2 初期 Gene Pool SHOULD 优先作为 Artifact/Registry Projection，而不是独立真相源。
+
+本 ADR 不要求 V1 预建 Species Service、GenePool DB、Population Scheduler 或生态状态机。
 
 ## 后果
 
-- 演化成果可以被整个生态复用；
+- 演化成果未来可以被整个生态复用；
 - 降低重复生成、Token 和回归成本；
-- Lineage、兼容性和撤销管理更复杂；
-- 必须防止一个优秀 Gene 无审查传播成系统性单点风险。
+- V2 的 Lineage、兼容性、生态评测和撤销管理更复杂；
+- 必须防止优秀 Gene 无审查传播成系统性单点风险；
+- V1 只需要保留 provenance、compatibility metadata 与通用 GenomeManifest 的前向兼容性。
 
 ## 重审条件
 
-- 独立 Skill/Tool Genome 的管理成本显著高于复用收益；
-- Capability Transfer 无法形成可靠的目标侧兼容评测；
-- 生态规模不足以证明共享 Gene Pool 有价值。
+- V1 已稳定运行并证明多个 Agent 存在重复能力；
+- 独立 Skill/Tool 复用收益显著高于 Registry metadata 管理成本；
+- Capability Transfer 形成可靠目标侧兼容评测；
+- V2 正式进入 Current 实施阶段。
