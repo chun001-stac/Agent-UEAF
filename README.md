@@ -33,6 +33,7 @@ UEAF 不重复实现每一种 Agent Loop。LangGraph、Microsoft Agent Framework
 - [跨模块契约与事件规范](docs/01-核心规范/03-跨模块契约与事件规范.md)
 - [端口与适配器规范](docs/01-核心规范/04-端口与适配器规范.md)
 - [受控演化与递归自改规范](docs/01-核心规范/05-受控演化与递归自改规范.md)
+- [生态共同进化与演化授权规范](docs/01-核心规范/06-生态共同进化与演化授权规范.md)
 
 ### 功能模块
 
@@ -55,6 +56,7 @@ UEAF 不重复实现每一种 Agent Loop。LangGraph、Microsoft Agent Framework
 - [数据存储与一致性](docs/03-参考架构/03-数据存储与一致性.md)
 - [90 天 MVP 实施路线](docs/03-参考架构/04-90天MVP实施路线.md)
 - [演化闭环与成本控制](docs/03-参考架构/05-演化闭环与成本控制.md)
+- [生态共同进化与基因池](docs/03-参考架构/06-生态共同进化与基因池.md)
 
 ### 架构决策记录
 
@@ -66,6 +68,9 @@ UEAF 不重复实现每一种 Agent Loop。LangGraph、Microsoft Agent Framework
 - [ADR-006：治理内核不可递归修改，Subject 与 Judge 隔离](docs/04-决策记录/ADR-006-治理内核不可递归修改且Subject与Judge隔离.md)
 - [ADR-007：事件驱动稀疏演化与成本感知 Fitness](docs/04-决策记录/ADR-007-事件驱动稀疏演化与成本感知Fitness.md)
 - [ADR-008：演化记忆分层压缩与有界活跃集](docs/04-决策记录/ADR-008-演化记忆分层压缩与有界活跃集.md)
+- [ADR-009：采用生态共同进化与共享 Gene Pool](docs/04-决策记录/ADR-009-采用生态共同进化与共享Gene-Pool.md)
+- [ADR-010：默认开放演化，但分离 Experiment 与 Promote 权限](docs/04-决策记录/ADR-010-默认开放演化但分离Experiment与Promote权限.md)
+- [ADR-011：采用 Local 与 Ecosystem 双层 Fitness，并保留多样性](docs/04-决策记录/ADR-011-采用Local与Ecosystem双层Fitness并保留多样性.md)
 
 ## 核心运行主链
 
@@ -105,6 +110,26 @@ Production Evidence
 
 遗传算法只是 `EvolutionStrategy` 的一种实现。UEAF 同时允许 LLM-guided sparse mutation、Bayesian Optimization、RL、Population Search、Workflow/Tool/Topology Search 和 Human-guided Evolution。
 
+## 生态共同进化主链
+
+```text
+EcosystemGenome
+  → Agent / Skill / Tool / Workflow / Strategy Species
+  → smallest effective mutation unit
+  → EvolutionAuthorityPolicy
+      ↳ Observe / Propose / Experiment 默认开启
+      ↳ Promote 按风险 automatic / canary / gated / never
+  → Candidate / CapabilityTransferProposal
+  → Local Fitness
+  → Ecosystem Fitness
+  → DiversityPolicy
+  → Release Gates
+  → Gene Pool / Production Species
+  → Production Feedback
+```
+
+UEAF 允许纵向进化与横向能力迁移并存：一个 Agent/Species 中验证有效的 Skill、Tool、Workflow 或 Strategy 可以进入受治理 Gene Pool，并在目标 Species 重新评测后复用。
+
 ## 框架级不变量
 
 1. 模型只能提出候选决定，不能生成身份、授权、审批或业务事实。
@@ -125,3 +150,9 @@ Production Evidence
 16. 历史 Experience 可以增长，但 Active Evolution Working Set 必须有界；已固化为 Tool/Policy/Workflow/Skill 的知识应退出活跃文本记忆。
 17. 没有有效 `EvolutionTrigger` 时，稳定生产不得为了持续自我反思而追加强模型调用。
 18. 同一递归链不得自主修改 Governance Kernel，包括 Identity、Permission、Tool Gateway enforcement、Audit root、Evaluator root、Release Authority、Budget Enforcement、Secrets、删除与 kill switch。
+19. 对 mutable targets，`Observe`、`Propose`、`Experiment` 默认允许；`Promote` 必须独立授权并按风险分层。
+20. Governance Kernel 不属于 `EcosystemGenome`、Species 或 Gene Pool，普通配置不得将其变成可自主 Promote 的目标。
+21. Capability Transfer 必须在目标 Agent/Species 上重新评测，不得继承源 Species 的 Fitness 结论。
+22. Candidate 必须同时考虑 Local Fitness 与 Ecosystem Fitness；局部提升不得通过把 Token、延迟、容量竞争或故障风险转嫁给生态而自动晋升。
+23. 生态必须受 `DiversityPolicy` 约束，允许多个 Species 与 Elite Variant 并存，避免所有 Agent 收敛到同一隐藏故障路径。
+24. Gene Pool 默认 tenant scoped；跨租户共享必须显式授权、保留来源/分类证明并重新经过目标侧评测。
