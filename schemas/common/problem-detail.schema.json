@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/common/problem-detail.schema.json",
+  "title": "ProblemDetail",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "category", "message_safe", "retryability", "source", "correlation_refs", "observed_at"],
+  "properties": {
+    "code": {"type": "string", "minLength": 1},
+    "category": {"type": "string", "minLength": 1},
+    "message_safe": {"type": "string"},
+    "retryability": {"type": "string", "enum": ["never", "safe", "conditional", "after_reconciliation"]},
+    "source": {"type": "string", "minLength": 1},
+    "object_ref": {"type": ["string", "null"]},
+    "field_paths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "correlation_refs": {"type": "object"},
+    "cause_ref": {"type": ["string", "null"]},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "details_ref": {"type": ["string", "null"]}
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/profiles/evolution-strategy-profile.schema.json",
+  "title": "EvolutionStrategyProfile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["strategy_id", "strategy_type", "max_candidates", "max_fields_per_candidate", "max_components_per_candidate", "max_scopes_per_candidate", "allow_mixed_repair_levels", "require_single_hypothesis", "novelty_policy", "budget"],
+  "properties": {
+    "strategy_id": {"type": "string", "minLength": 1},
+    "strategy_type": {"type": "string", "enum": ["llm_guided_sparse_mutation", "genetic_search", "bayesian_optimization", "self_reflection", "workflow_tool_search", "human_guided"]},
+    "max_candidates": {"type": "integer", "minimum": 0},
+    "max_fields_per_candidate": {"type": "integer", "minimum": 1},
+    "max_components_per_candidate": {"type": "integer", "minimum": 1},
+    "max_scopes_per_candidate": {"type": "integer", "minimum": 1},
+    "allow_mixed_repair_levels": {"type": "boolean"},
+    "require_single_hypothesis": {"type": "boolean"},
+    "novelty_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reject_repeated_failed_without_new_evidence"],
+      "properties": {
+        "reject_repeated_failed_without_new_evidence": {"type": "boolean"},
+        "minimum_new_evidence_refs": {"type": "integer", "minimum": 0}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["budget_ref"],
+      "properties": {
+        "budget_ref": {"type": "string", "minLength": 1},
+        "max_strong_model_calls": {"type": "integer", "minimum": 0},
+        "max_wall_time_ms": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

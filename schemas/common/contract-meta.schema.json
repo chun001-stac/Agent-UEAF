@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/common/contract-meta.schema.json",
+  "title": "ContractMeta",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_name", "contract_version", "object_id", "tenant_id", "created_at", "producer", "producer_version", "classification", "purpose", "provenance"],
+  "properties": {
+    "contract_name": {"type": "string", "minLength": 1},
+    "contract_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"},
+    "object_id": {"type": "string", "minLength": 1},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "producer": {"type": "string", "minLength": 1},
+    "producer_version": {"type": "string", "minLength": 1},
+    "classification": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+    "purpose": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "provenance": {"type": "array", "items": {"type": "object"}},
+    "integrity_ref": {"type": ["string", "null"]},
+    "expires_at": {"type": ["string", "null"], "format": "date-time"},
+    "request_id": {"type": ["string", "null"]},
+    "task_id": {"type": ["string", "null"]},
+    "run_id": {"type": ["string", "null"]},
+    "turn_id": {"type": ["string", "null"]},
+    "trace_id": {"type": ["string", "null"]},
+    "release_id": {"type": ["string", "null"]},
+    "extensions": {"type": "object", "propertyNames": {"pattern": "^[A-Za-z0-9.-]+\\.[A-Za-z0-9._-]+$"}, "additionalProperties": true}
+  }
+}

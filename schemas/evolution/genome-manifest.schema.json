@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/evolution/genome-manifest.schema.json",
+  "title": "GenomeManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "genome_id", "subject_type", "subject_ref", "profile_ref", "component_refs", "parent_refs", "provenance_refs", "created_from_mutation_ref", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "genome_id": {"type": "string", "minLength": 1},
+    "subject_type": {"type": "string", "enum": ["agent", "skill", "tool", "workflow", "strategy"]},
+    "subject_ref": {"type": "string", "minLength": 1},
+    "profile_ref": {"type": "string", "minLength": 1},
+    "component_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "parent_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "provenance_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "created_from_mutation_ref": {"type": ["string", "null"]},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  }
+}

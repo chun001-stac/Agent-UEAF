@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/events/event-envelope.schema.json",
+  "title": "EventEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "event_name", "event_version", "occurred_at", "recorded_at", "tenant_id", "aggregate_type", "aggregate_id", "aggregate_version", "sequence", "producer", "producer_version", "correlation_id", "trace_id", "payload_schema_ref", "payload", "classification", "purpose"],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "event_name": {"type": "string", "pattern": "^ueaf\\.[a-z0-9_]+\\.[a-z0-9_]+$"},
+    "event_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "aggregate_type": {"type": "string", "minLength": 1},
+    "aggregate_id": {"type": "string", "minLength": 1},
+    "aggregate_version": {"type": "integer", "minimum": 0},
+    "sequence": {"type": "integer", "minimum": 1},
+    "producer": {"type": "string", "minLength": 1},
+    "producer_version": {"type": "string", "minLength": 1},
+    "correlation_id": {"type": "string", "minLength": 1},
+    "causation_id": {"type": ["string", "null"]},
+    "trace_id": {"type": "string", "minLength": 1},
+    "principal_ref": {"type": ["string", "null"]},
+    "release_id": {"type": ["string", "null"]},
+    "payload_schema_ref": {"type": "string", "minLength": 1},
+    "payload": {"type": "object"},
+    "classification": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+    "purpose": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "integrity_ref": {"type": ["string", "null"]}
+  }
+}

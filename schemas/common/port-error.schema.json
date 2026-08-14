@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/common/port-error.schema.json",
+  "title": "PortError",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "category", "retryability", "certainty", "observed_at"],
+  "properties": {
+    "code": {"type": "string", "minLength": 1},
+    "category": {"type": "string", "minLength": 1},
+    "retryability": {"type": "string", "enum": ["never", "safe", "conditional", "after_reconciliation"]},
+    "certainty": {"type": "string", "enum": ["certain_success", "certain_failure", "unknown", "not_applicable"]},
+    "message_ref": {"type": ["string", "null"]},
+    "provider_error_ref": {"type": ["string", "null"]},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "details_schema_ref": {"type": ["string", "null"]}
+  }
+}

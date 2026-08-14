@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/evolution/mutation-proposal.schema.json",
+  "title": "MutationProposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "mutation_proposal_id", "subject_ref", "baseline_genome_ref", "trigger_ref", "evidence_refs", "strategy_ref", "mutation_type", "mutable_scope", "change_summary", "changes", "hypothesis", "expected_gain", "expected_cost", "risk_refs", "created_by", "created_at"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "mutation_proposal_id": {"type": "string", "minLength": 1},
+    "subject_ref": {"type": "string", "minLength": 1},
+    "baseline_genome_ref": {"type": "string", "minLength": 1},
+    "trigger_ref": {"type": "string", "minLength": 1},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "strategy_ref": {"type": "string", "minLength": 1},
+    "mutation_type": {"type": "string", "enum": ["modify", "add", "remove", "replace", "transfer"]},
+    "mutable_scope": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "change_summary": {"type": "object"},
+    "changes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target_ref", "path", "operation", "constraint_profile_ref"],
+        "properties": {
+          "target_ref": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1},
+          "operation": {"type": "string", "enum": ["replace", "add", "remove"]},
+          "before": {},
+          "after": {},
+          "constraint_profile_ref": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "hypothesis": {"type": "string", "minLength": 1},
+    "expected_gain": {"type": "object"},
+    "expected_cost": {"type": "object"},
+    "risk_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "created_by": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "diagnosis_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "repair_level": {"type": "string", "enum": ["r1", "r2", "r3", "r4"]},
+    "repair_target_scope": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "repair_reason_codes": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+  }
+}

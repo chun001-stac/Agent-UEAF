@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/security/principal-context.schema.json",
+  "title": "PrincipalContext",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "principal_id", "principal_type", "tenant_id", "roles", "scopes", "delegation_chain", "authentication_strength", "data_regions", "consent_refs", "issued_at", "expires_at"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "principal_id": {"type": "string", "minLength": 1},
+    "principal_type": {"type": "string", "enum": ["end_user", "calling_service", "agent", "workload", "human_approver"]},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "roles": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "scopes": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "delegation_chain": {"type": "array", "items": {"type": "object"}},
+    "authentication_strength": {"type": "string", "minLength": 1},
+    "credential_ref": {"type": ["string", "null"]},
+    "data_regions": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "consent_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "issued_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "revocation_ref": {"type": ["string", "null"]}
+  }
+}

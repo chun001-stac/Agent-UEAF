@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/evolution/evolution-trigger.schema.json",
+  "title": "EvolutionTrigger",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "evolution_trigger_id", "subject_ref", "trigger_class", "trigger_type", "response_priority", "window_ref", "evidence_refs", "gate_evidence_refs", "operational_response_refs", "threshold_profile_ref", "observed_at", "expires_at"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "evolution_trigger_id": {"type": "string", "minLength": 1},
+    "subject_ref": {"type": "string", "minLength": 1},
+    "trigger_class": {"type": "string", "enum": ["reactive", "opportunistic"]},
+    "trigger_type": {"type": "string", "enum": ["anomaly", "failure_cluster", "cost_drift", "quality_drift", "latency_drift", "security_regression", "new_model", "new_tool", "new_provider_capability", "business_change", "scheduled_review", "human_request"]},
+    "response_priority": {"type": "string", "enum": ["p0", "p1", "p2", "p3"]},
+    "window_ref": {"type": "string", "minLength": 1},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "gate_evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "operational_response_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "threshold_profile_ref": {"type": "string", "minLength": 1},
+    "cooldown_key": {"type": ["string", "null"]},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  }
+}

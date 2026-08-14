@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/evolution/evolution-run.schema.json",
+  "title": "EvolutionRun",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "evolution_run_id", "subject_ref", "baseline_genome_ref", "trigger_ref", "phase", "disposition", "budget_ref", "mutable_scope", "strategy_ref", "active_working_set_ref", "revision", "created_at", "updated_at"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "evolution_run_id": {"type": "string", "minLength": 1},
+    "subject_ref": {"type": "string", "minLength": 1},
+    "baseline_genome_ref": {"type": "string", "minLength": 1},
+    "trigger_ref": {"type": "string", "minLength": 1},
+    "phase": {"type": "string", "enum": ["queued", "collecting", "analyzing", "generating", "evaluating", "selecting", "waiting", "terminal"]},
+    "disposition": {"type": ["string", "null"], "enum": ["improved", "no_evolution_needed", "plateau", "budget_exhausted", "no_valid_candidate", "regression", "safety_blocked", "novelty_exhausted", "manual_stop", "failed", null]},
+    "budget_ref": {"type": "string", "minLength": 1},
+    "mutable_scope": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "strategy_ref": {"type": "string", "minLength": 1},
+    "active_working_set_ref": {"type": "string", "minLength": 1},
+    "revision": {"type": "integer", "minimum": 0},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {"if": {"properties": {"phase": {"const": "terminal"}}}, "then": {"properties": {"disposition": {"not": {"type": "null"}}}}},
+    {"if": {"properties": {"phase": {"not": {"const": "terminal"}}}}, "then": {"properties": {"disposition": {"type": "null"}}}}
+  ]
+}

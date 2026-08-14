@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/release/release-manifest.schema.json",
+  "title": "ReleaseManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "release_id", "environment", "lifecycle_status", "agent_versions", "prompt_versions", "schema_versions", "model_route_versions", "capability_versions", "adapter_versions", "knowledge_index_versions", "memory_policy_versions", "policy_versions", "quality_gate_decision_ref", "security_gate_decision_ref", "operational_readiness_decision_ref", "release_decision_ref", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "release_id": {"type": "string", "minLength": 1},
+    "environment": {"type": "string", "minLength": 1},
+    "lifecycle_status": {"type": "string", "minLength": 1},
+    "agent_versions": {"$ref": "#/$defs/versionRefs"},
+    "prompt_versions": {"$ref": "#/$defs/versionRefs"},
+    "schema_versions": {"$ref": "#/$defs/versionRefs"},
+    "model_route_versions": {"$ref": "#/$defs/versionRefs"},
+    "capability_versions": {"$ref": "#/$defs/versionRefs"},
+    "adapter_versions": {"$ref": "#/$defs/versionRefs"},
+    "knowledge_index_versions": {"$ref": "#/$defs/versionRefs"},
+    "memory_policy_versions": {"$ref": "#/$defs/versionRefs"},
+    "policy_versions": {"$ref": "#/$defs/versionRefs"},
+    "contract_version_ranges": {"type": "object"},
+    "compatibility_matrix_ref": {"type": ["string", "null"]},
+    "migration_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "quality_gate_decision_ref": {"type": "string", "minLength": 1},
+    "security_gate_decision_ref": {"type": "string", "minLength": 1},
+    "operational_readiness_decision_ref": {"type": "string", "minLength": 1},
+    "release_decision_ref": {"type": "string", "minLength": 1},
+    "rollout": {"type": "object"},
+    "rollback": {"type": "object"},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "versionRefs": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/evolution/evolution-authority-policy.schema.json",
+  "title": "EvolutionAuthorityPolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "evolution_authority_policy_id", "defaults", "targets", "policy_version", "issued_by", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "evolution_authority_policy_id": {"type": "string", "minLength": 1},
+    "defaults": {"$ref": "#/$defs/authority"},
+    "targets": {"type": "object", "additionalProperties": {"$ref": "#/$defs/authority"}},
+    "policy_version": {"type": "string", "minLength": 1},
+    "issued_by": {"type": "string", "minLength": 1},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observe", "propose", "experiment", "promote"],
+      "properties": {
+        "observe": {"type": "string", "enum": ["allow", "deny"]},
+        "propose": {"type": "string", "enum": ["allow", "deny"]},
+        "experiment": {"type": "string", "enum": ["allow", "deny", "gated"]},
+        "promote": {"type": "string", "enum": ["automatic_after_gates", "canary", "gated", "risk_based", "never"]}
+      }
+    }
+  }
+}
