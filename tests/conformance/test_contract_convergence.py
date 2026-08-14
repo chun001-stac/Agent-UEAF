@@ -10,7 +10,11 @@ SCHEMAS = ROOT / "schemas"
 
 
 def public_methods(cls: type[object]) -> set[str]:
-    return {name for name, value in cls.__dict__.items() if callable(value) and not name.startswith("_")}
+    return {
+        name
+        for name, value in cls.__dict__.items()
+        if callable(value) and not name.startswith("_")
+    }
 
 
 def schema_titles() -> list[str]:
@@ -68,6 +72,7 @@ def test_evolution_canonical_object_count_is_five() -> None:
 
 
 def test_con_011_mutation_schema_requires_genome_compatible_inputs() -> None:
-    mutation = json.loads((SCHEMAS / "evolution/mutation-proposal.schema.json").read_text(encoding="utf-8"))
+    mutation_path = SCHEMAS / "evolution/mutation-proposal.schema.json"
+    mutation = json.loads(mutation_path.read_text(encoding="utf-8"))
     required = set(mutation["required"])
     assert {"baseline_genome_ref", "changes", "trigger_ref", "subject_ref"} <= required
