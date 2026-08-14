@@ -55,6 +55,7 @@ External Agent Runtimes
 - [端口与适配器规范](docs/01-核心规范/04-端口与适配器规范.md)
 - [V1 受控演化与递归自改规范](docs/01-核心规范/05-受控演化与递归自改规范.md)
 - [V2 生态共同进化与演化授权规范](docs/01-核心规范/06-生态共同进化与演化授权规范.md)
+- [V1 最小 Evidence 采集规范](docs/01-核心规范/07-V1最小Evidence采集规范.md)
 
 ### 功能模块
 
@@ -78,6 +79,7 @@ External Agent Runtimes
 - [90 天 MVP 实施路线](docs/03-参考架构/04-90天MVP实施路线.md)
 - [V1 演化闭环与成本控制](docs/03-参考架构/05-演化闭环与成本控制.md)
 - [V2 生态共同进化与基因池](docs/03-参考架构/06-生态共同进化与基因池.md)
+- [V1 Evidence 采集与 Trigger 数据流](docs/03-参考架构/07-V1证据采集与触发数据流.md)
 
 ### 架构决策记录
 
@@ -94,6 +96,7 @@ External Agent Runtimes
 - [ADR-011：采用 Local 与 Ecosystem 双层 Fitness，并保留多样性](docs/04-决策记录/ADR-011-采用Local与Ecosystem双层Fitness并保留多样性.md)
 - [ADR-012：采用 V1/V2/V3 架构代际并限制当前实现范围](docs/04-决策记录/ADR-012-采用V1-V2-V3架构代际并限制当前实现范围.md)
 - [ADR-013：分离即时运行响应与 EvolutionTrigger](docs/04-决策记录/ADR-013-分离即时运行响应与EvolutionTrigger.md)
+- [ADR-014：采用分层 Evidence 漏斗与按需扩展](docs/04-决策记录/ADR-014-采用分层Evidence漏斗与按需扩展.md)
 
 ## 核心运行主链
 
@@ -138,6 +141,30 @@ Observed Signal / Opportunity
 - Operational Response 解决“现在怎么办”；
 - Evolution Response 解决“以后是否值得改变自己”。
 
+## V1 Evidence 采集主链
+
+```text
+Module 02..08 domain facts
+  → non-blocking TelemetryPort
+  → Module 09 sampling / aggregation / retention
+  → Run Summary / rolling windows / Error Fingerprint
+  → Trigger Candidate Detector
+  → Trigger Gate
+       ↳ enough evidence → decide
+       ↳ unclear → bounded Evidence Expansion
+  → EvolutionTrigger or no_trigger
+```
+
+Evidence 使用三级漏斗：
+
+```text
+L0 Always-on Minimal Evidence
+  → L1 Conditionally Sampled Evidence
+  → L2 On-demand Evidence Expansion
+```
+
+**AI 不持续监控 AI。** 正常采集、Fingerprint、聚合和 Trigger Candidate 检测目标为 `0 LLM Token`；只有确定性证据不足时才升级到 Cheap/Strong Model。模块 11 不复制 Trace/Log/Metric/Eval/Action 成为第二数据平台。
+
 ## V1 受控演化主链
 
 ```text
@@ -165,7 +192,7 @@ MutationProposal
 EvolutionAuthorityPolicy
 ```
 
-Candidate、Eval、Budget、Release、Artifact 均复用现有 UEAF 语义。Experience/Lesson、Fitness、Lineage、P0-P3、cooldown、novelty 等默认作为内部记录、Projection、Policy/Config 或 Eval dimension，而不是新的权威对象。
+Candidate、Eval、Budget、Release、Artifact 均复用现有 UEAF 语义。Experience/Lesson、Fitness、Lineage、P0-P3、cooldown、novelty、RunSummary、ErrorFingerprint、AggregateWindow、TriggerCandidate 等默认作为内部记录、Projection、Policy/Config 或 Eval dimension，而不是新的权威对象。
 
 Trigger 支持两类：
 
@@ -232,3 +259,10 @@ V2/V3 设计可以继续完善，但不属于 V1 Current 实现要求。
 26. `EvolutionTrigger` 只能由 Trigger Gate 形成；普通异常、告警和单次失败不是 Trigger 的同义词。
 27. `EvolutionTrigger` 只表示“值得受控分析”，不要求必须产生 Mutation；`no_evolution_needed` 是合法终态。
 28. Trigger Gate 默认优先确定性规则/统计，模型只用于无法可靠分类的根因或价值判断。
+29. V1 Evidence 采用“L0 全量小指标、L1 条件采样、L2 按需扩展”；不得默认全量复制大 Payload。
+30. 模块 02–08 在事实产生位置输出结构化观测；模块 09 负责采集/采样/聚合；模块 11 只消费 Projection 与按需引用。
+31. 正常 Evidence Collection / Aggregation / Trigger Candidate 路径目标为 0 LLM Token。
+32. `run_id`、`trace_id`、用户/文档/Prompt 等高基数字段不得作为常规 Metric label。
+33. Error Fingerprint 优先确定性去重；只有无法归类的剩余错误才进入 semantic clustering。
+34. Telemetry 背压时优先保留 Audit/Security/ActionReceipt/P0-P1 和最小 Run Summary，优先降低 success trace 与 verbose debug。
+35. Evidence gap 必须可观测；禁止把“没有采到数据”解释为“系统正常”。
