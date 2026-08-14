@@ -93,6 +93,7 @@ External Agent Runtimes
 - [ADR-010：默认开放演化，但分离 Experiment 与 Promote 权限](docs/04-决策记录/ADR-010-默认开放演化但分离Experiment与Promote权限.md)
 - [ADR-011：采用 Local 与 Ecosystem 双层 Fitness，并保留多样性](docs/04-决策记录/ADR-011-采用Local与Ecosystem双层Fitness并保留多样性.md)
 - [ADR-012：采用 V1/V2/V3 架构代际并限制当前实现范围](docs/04-决策记录/ADR-012-采用V1-V2-V3架构代际并限制当前实现范围.md)
+- [ADR-013：分离即时运行响应与 EvolutionTrigger](docs/04-决策记录/ADR-013-分离即时运行响应与EvolutionTrigger.md)
 
 ## 核心运行主链
 
@@ -113,14 +114,40 @@ RequestEnvelope + PrincipalContext
   → AuditEvent / EvalResult / Release Evidence
 ```
 
+## V1 两条反馈链
+
+```text
+Observed Signal / Opportunity
+  ├─ P0/P1 urgent
+  │    → Operational Response
+  │    → rollback / fallback / isolate / degrade / kill
+  │
+  └─ Trigger Gate
+       → evidence sufficient?
+       → still relevant?
+       → mutable surface match?
+       → existing mitigation insufficient?
+       → novelty sufficient?
+       → expected value positive?
+       → cooldown satisfied?
+       → EvolutionTrigger
+```
+
+**异常 ≠ EvolutionTrigger；EvolutionTrigger ≠ 必须修改。**
+
+- Operational Response 解决“现在怎么办”；
+- Evolution Response 解决“以后是否值得改变自己”。
+
 ## V1 受控演化主链
 
 ```text
-Production Evidence
+Production Evidence / Opportunity
+  → Operational Response if urgent
   → Dedup / Statistics / Clustering
+  → Trigger Gate
   → EvolutionTrigger
   → bounded EvolutionRun
-  → sparse MutationProposal
+  → sparse MutationProposal when justified
   → GenomeManifest Candidate
   → Module 10 ReleaseCandidate
   → Module 08 Eval + 07/09 Gates
@@ -138,7 +165,16 @@ MutationProposal
 EvolutionAuthorityPolicy
 ```
 
-Candidate、Eval、Budget、Release、Artifact 均复用现有 UEAF 语义。Experience/Lesson、Fitness、Lineage 默认作为内部记录、Projection 或 Eval dimension，而不是新的权威对象。
+Candidate、Eval、Budget、Release、Artifact 均复用现有 UEAF 语义。Experience/Lesson、Fitness、Lineage、P0-P3、cooldown、novelty 等默认作为内部记录、Projection、Policy/Config 或 Eval dimension，而不是新的权威对象。
+
+Trigger 支持两类：
+
+```text
+Reactive      failure / drift / regression
+Opportunistic new model / tool / provider / cost / business opportunity
+```
+
+EvolutionRun MAY 正常结束为 `no_evolution_needed`，例如问题来自已恢复的 Provider 暂态、用户数据、不可修改范围，或已有 mitigation 已足够。
 
 ## V2 / V3
 
@@ -192,3 +228,7 @@ V2/V3 设计可以继续完善，但不属于 V1 Current 实现要求。
 22. **Minimum Semantic Surface**：能通过 existing object + ref、Projection、Registry metadata 或 Eval dimension 表达时，不新增 Canonical Object。
 23. V2/V3 Future/Research 能力不得驱动 V1 预建服务、数据库、状态机或消息主题。
 24. 任何 V2/V3 能力进入 Current 实施范围前，必须通过 ADR 更新其代际状态和最小实现边界。
+25. P0/P1 严重问题的即时保护不得等待 EvolutionRun；Evolution Plane 不替代 Safety/SRE/Release Control。
+26. `EvolutionTrigger` 只能由 Trigger Gate 形成；普通异常、告警和单次失败不是 Trigger 的同义词。
+27. `EvolutionTrigger` 只表示“值得受控分析”，不要求必须产生 Mutation；`no_evolution_needed` 是合法终态。
+28. Trigger Gate 默认优先确定性规则/统计，模型只用于无法可靠分类的根因或价值判断。
