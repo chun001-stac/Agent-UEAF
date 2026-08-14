@@ -4,17 +4,37 @@ UEAF（Unified Enterprise Agent Framework）是一套面向企业 Agent 系统�
 
 UEAF 不重复实现每一种 Agent Loop。LangGraph、Microsoft Agent Framework、OpenAI Agents SDK、Google ADK、CrewAI 等框架通过 Runtime Adapter 接入；企业身份、任务状态、工具授权、副作用收据、审计、发布治理和 Evolution Governance 仍由 UEAF 统一管理。
 
+## 当前架构代际
+
+```text
+V3  Recursive Adaptive Ecosystem      Research
+        ▲
+V2  Adaptive Agent Ecosystem          Planned / Future
+        ▲
+V1  Unified Agent + Evolution Kernel  Current
+        ▲
+External Agent Runtimes
+```
+
+**当前代码、实施和验收默认只针对 V1。** V2/V3 设计继续保留，但不得被解释为 V1 当前必须实现的服务、数据库、状态机或对象。
+
+- V1：统一 Agent Runtime + 小型受控演化内核；
+- V2：Species、Gene Pool、Capability Transfer、Ecosystem Fitness；
+- V3：Meta Evolution、Dynamic Niche/Species、Ecosystem Topology、ModelEvolutionPort 等研究方向。
+
+详见：[UEAF 架构代际与实施范围](docs/00-总览/06-UEAF架构代际与实施范围.md)。
+
 ## 文档层级
 
 | 层级 | 约束力 | 内容 |
 |---|---|---|
 | 总体设计 | 规范性 | 产品边界、架构原则、模块职责、唯一所有权 |
-| 核心规范 | 规范性 | 对象、状态、事件、端口、兼容规则和受控演化边界 |
+| 核心规范 | 规范性 | 对象、状态、事件、端口、兼容规则和演化边界 |
 | 功能模块 | 规范性 | 每个模块的组件、流程、接口、故障与验收条件 |
 | 参考架构 | 参考性 | 端到端时序、部署拓扑、存储、演化闭环和实施路径 |
 | ADR | 规范性 | 已接受的关键架构决策及重审条件 |
 
-发生冲突时，优先级依次为：核心规范、总体设计、ADR、功能模块、参考架构。任何实现不得以底层 SDK 的对象或默认行为覆盖 UEAF 的身份、租户、状态、授权、动作、发布和演化治理语义。
+发生冲突时，优先级依次为：核心规范、总体设计、ADR、功能模块、参考架构。V2/V3 文档的 Future/Research 内容不覆盖 V1 Current 范围。
 
 ## 文档入口
 
@@ -25,6 +45,7 @@ UEAF 不重复实现每一种 Agent Loop。LangGraph、Microsoft Agent Framework
 - [总体架构](docs/00-总览/03-总体架构.md)
 - [功能模块全景](docs/00-总览/04-功能模块全景.md)
 - [外部 Agent 框架整合策略](docs/00-总览/05-外部Agent框架整合策略.md)
+- [V1/V2/V3 架构代际与实施范围](docs/00-总览/06-UEAF架构代际与实施范围.md)
 
 ### 核心规范
 
@@ -32,8 +53,8 @@ UEAF 不重复实现每一种 Agent Loop。LangGraph、Microsoft Agent Framework
 - [状态机与终态规范](docs/01-核心规范/02-状态机与终态规范.md)
 - [跨模块契约与事件规范](docs/01-核心规范/03-跨模块契约与事件规范.md)
 - [端口与适配器规范](docs/01-核心规范/04-端口与适配器规范.md)
-- [受控演化与递归自改规范](docs/01-核心规范/05-受控演化与递归自改规范.md)
-- [生态共同进化与演化授权规范](docs/01-核心规范/06-生态共同进化与演化授权规范.md)
+- [V1 受控演化与递归自改规范](docs/01-核心规范/05-受控演化与递归自改规范.md)
+- [V2 生态共同进化与演化授权规范](docs/01-核心规范/06-生态共同进化与演化授权规范.md)
 
 ### 功能模块
 
@@ -47,7 +68,7 @@ UEAF 不重复实现每一种 Agent Loop。LangGraph、Microsoft Agent Framework
 8. [评测与发布治理](docs/02-功能模块/08-评测与发布治理.md)
 9. [生产运行与可观测性](docs/02-功能模块/09-生产运行与可观测性.md)
 10. [开发者平台与框架适配](docs/02-功能模块/10-开发者平台与框架适配.md)
-11. [经验记忆与受控递归进化](docs/02-功能模块/11-经验记忆与受控递归进化.md)
+11. [V1 经验记忆与受控递归进化](docs/02-功能模块/11-经验记忆与受控递归进化.md)
 
 ### 参考架构
 
@@ -55,8 +76,8 @@ UEAF 不重复实现每一种 Agent Loop。LangGraph、Microsoft Agent Framework
 - [部署拓扑与多租户](docs/03-参考架构/02-部署拓扑与多租户.md)
 - [数据存储与一致性](docs/03-参考架构/03-数据存储与一致性.md)
 - [90 天 MVP 实施路线](docs/03-参考架构/04-90天MVP实施路线.md)
-- [演化闭环与成本控制](docs/03-参考架构/05-演化闭环与成本控制.md)
-- [生态共同进化与基因池](docs/03-参考架构/06-生态共同进化与基因池.md)
+- [V1 演化闭环与成本控制](docs/03-参考架构/05-演化闭环与成本控制.md)
+- [V2 生态共同进化与基因池](docs/03-参考架构/06-生态共同进化与基因池.md)
 
 ### 架构决策记录
 
@@ -71,6 +92,7 @@ UEAF 不重复实现每一种 Agent Loop。LangGraph、Microsoft Agent Framework
 - [ADR-009：采用生态共同进化与共享 Gene Pool](docs/04-决策记录/ADR-009-采用生态共同进化与共享Gene-Pool.md)
 - [ADR-010：默认开放演化，但分离 Experiment 与 Promote 权限](docs/04-决策记录/ADR-010-默认开放演化但分离Experiment与Promote权限.md)
 - [ADR-011：采用 Local 与 Ecosystem 双层 Fitness，并保留多样性](docs/04-决策记录/ADR-011-采用Local与Ecosystem双层Fitness并保留多样性.md)
+- [ADR-012：采用 V1/V2/V3 架构代际并限制当前实现范围](docs/04-决策记录/ADR-012-采用V1-V2-V3架构代际并限制当前实现范围.md)
 
 ## 核心运行主链
 
@@ -91,68 +113,82 @@ RequestEnvelope + PrincipalContext
   → AuditEvent / EvalResult / Release Evidence
 ```
 
-## 受控演化主链
+## V1 受控演化主链
 
 ```text
 Production Evidence
   → Dedup / Statistics / Clustering
-  → EvolutionTrigger（只有值得进化时）
-  → EvolutionExperience / EvolutionLesson
-  → EvolutionStrategy
-  → MutationProposal
-  → AgentGenome / CandidateRelease
-  → Deterministic / Statistical / Model / Human Eval
-  → FitnessRecord
-  → Quality / Security / Operational Gates
+  → EvolutionTrigger
+  → bounded EvolutionRun
+  → sparse MutationProposal
+  → GenomeManifest Candidate
+  → Module 10 ReleaseCandidate
+  → Module 08 Eval + 07/09 Gates
   → ReleaseDecision / ReleaseManifest
   → Production Feedback
 ```
 
-遗传算法只是 `EvolutionStrategy` 的一种实现。UEAF 同时允许 LLM-guided sparse mutation、Bayesian Optimization、RL、Population Search、Workflow/Tool/Topology Search 和 Human-guided Evolution。
-
-## 生态共同进化主链
+V1 Evolution Kernel 只新增五个核心 Canonical Object：
 
 ```text
-EcosystemGenome
-  → Agent / Skill / Tool / Workflow / Strategy Species
-  → smallest effective mutation unit
-  → EvolutionAuthorityPolicy
-      ↳ Observe / Propose / Experiment 默认开启
-      ↳ Promote 按风险 automatic / canary / gated / never
-  → Candidate / CapabilityTransferProposal
-  → Local Fitness
-  → Ecosystem Fitness
-  → DiversityPolicy
-  → Release Gates
-  → Gene Pool / Production Species
-  → Production Feedback
+EvolutionTrigger
+EvolutionRun
+GenomeManifest
+MutationProposal
+EvolutionAuthorityPolicy
 ```
 
-UEAF 允许纵向进化与横向能力迁移并存：一个 Agent/Species 中验证有效的 Skill、Tool、Workflow 或 Strategy 可以进入受治理 Gene Pool，并在目标 Species 重新评测后复用。
+Candidate、Eval、Budget、Release、Artifact 均复用现有 UEAF 语义。Experience/Lesson、Fitness、Lineage 默认作为内部记录、Projection 或 Eval dimension，而不是新的权威对象。
+
+## V2 / V3
+
+### V2 Planned
+
+```text
+Species / Population / Elite
+Gene Pool
+Capability Transfer
+Local + Ecosystem Fitness
+Diversity / Monoculture Risk
+Ecosystem Funnel Evaluation
+```
+
+### V3 Research
+
+```text
+Meta Evolution
+Dynamic Niche / Species
+Ecosystem Topology Evolution
+Pareto Frontier
+Evolution Debt / Systemic Risk
+ModelEvolutionPort
+```
+
+V2/V3 设计可以继续完善，但不属于 V1 Current 实现要求。
 
 ## 框架级不变量
 
 1. 模型只能提出候选决定，不能生成身份、授权、审批或业务事实。
 2. 每一种权威状态只有一个语义所有者；缓存、投影和物理存储不得成为第二真相源。
-3. `RunPhase` 与 `CompletionDisposition` 相互独立，等待态和业务终态不得混为一个枚举。
-4. 所有有副作用动作都经过 Tool Gateway，并可追溯到主体、策略、审批、幂等身份和收据。
-5. 工具超时不表示动作未发生；结果不确定时必须进入对账，不得盲目重试。
+3. `RunPhase` 与 `CompletionDisposition` 相互独立。
+4. 所有有副作用动作都经过 Tool Gateway。
+5. 工具结果不确定时必须进入对账，不得盲目重试。
 6. 权限过滤先于 RAG、记忆和能力相关性排序。
 7. Trace、Log、Metric、Audit 和 Eval 各自独立治理。
-8. 长运行任务绑定不可变 `ReleaseManifest`；升级、恢复和迁移不得静默改变语义。
-9. Runtime Adapter 只转换运行时能力，不得丢弃租户、安全、来源、预算或版本字段。
-10. 不支持的底层框架能力必须显式拒绝，不能静默降级。
-11. 任何 Agent 不得直接修改自身当前 `ReleaseManifest`；所有自改必须产生新的 Candidate。
-12. Candidate 不得修改用于评估自身的 EvaluationSuite、阈值根、保留集答案、Release Authority 或 EvolutionBudget Enforcement。
-13. Evolution Subject、Proposer/Builder、Evaluator/Judge 和 Release Authority 必须逻辑隔离。
-14. 所有 EvolutionRun 必须有预算、停止条件和明确终态；不存在无限代、无限 Token 的规范模式。
-15. 能力提升不能单独构成晋升理由；Token、费用、延迟、复杂度、回归和安全必须同时评估。
-16. 历史 Experience 可以增长，但 Active Evolution Working Set 必须有界；已固化为 Tool/Policy/Workflow/Skill 的知识应退出活跃文本记忆。
-17. 没有有效 `EvolutionTrigger` 时，稳定生产不得为了持续自我反思而追加强模型调用。
-18. 同一递归链不得自主修改 Governance Kernel，包括 Identity、Permission、Tool Gateway enforcement、Audit root、Evaluator root、Release Authority、Budget Enforcement、Secrets、删除与 kill switch。
-19. 对 mutable targets，`Observe`、`Propose`、`Experiment` 默认允许；`Promote` 必须独立授权并按风险分层。
-20. Governance Kernel 不属于 `EcosystemGenome`、Species 或 Gene Pool，普通配置不得将其变成可自主 Promote 的目标。
-21. Capability Transfer 必须在目标 Agent/Species 上重新评测，不得继承源 Species 的 Fitness 结论。
-22. Candidate 必须同时考虑 Local Fitness 与 Ecosystem Fitness；局部提升不得通过把 Token、延迟、容量竞争或故障风险转嫁给生态而自动晋升。
-23. 生态必须受 `DiversityPolicy` 约束，允许多个 Species 与 Elite Variant 并存，避免所有 Agent 收敛到同一隐藏故障路径。
-24. Gene Pool 默认 tenant scoped；跨租户共享必须显式授权、保留来源/分类证明并重新经过目标侧评测。
+8. 长运行任务绑定不可变 `ReleaseManifest`。
+9. Runtime Adapter 只转换运行时能力，不得覆盖 UEAF 企业语义。
+10. 不支持的底层框架能力必须显式拒绝。
+11. 任何 Agent 不得直接修改自身当前 `ReleaseManifest`。
+12. Candidate 不得修改自身 Eval root、保留集答案、Release Authority 或 Budget Enforcement。
+13. Evolution Subject、Builder、Judge 和 Release Authority 必须逻辑隔离。
+14. 所有 EvolutionRun 必须有预算、停止条件和明确终态。
+15. 能力提升必须同时考虑 Token、费用、延迟、复杂度、回归和安全。
+16. 历史可以增长，但 Active Evolution Working Set 必须有界。
+17. 没有有效 `EvolutionTrigger` 时，不进行持续强模型自我反思。
+18. Governance Kernel 不进入同一递归链。
+19. mutable targets 默认 `Observe/Propose/Experiment=allow`；`Promote` 单独按风险授权。
+20. V1 使用统一 `GenomeManifest`，不默认建立多种 Genome 基础生命周期。
+21. V1 Candidate/Eval/Budget/Release 必须复用既有 UEAF 语义，不建立第二套真相源。
+22. **Minimum Semantic Surface**：能通过 existing object + ref、Projection、Registry metadata 或 Eval dimension 表达时，不新增 Canonical Object。
+23. V2/V3 Future/Research 能力不得驱动 V1 预建服务、数据库、状态机或消息主题。
+24. 任何 V2/V3 能力进入 Current 实施范围前，必须通过 ADR 更新其代际状态和最小实现边界。
