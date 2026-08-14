@@ -1,6 +1,6 @@
 # UEAF V1 参考实现与 Codex 开发规范
 
-版本：`0.1.0-draft`  
+版本：`0.2.0-draft`  
 规范状态：Draft  
 Architecture Generation: `V1`  
 Maturity: `Required for Reference Implementation`  
@@ -14,26 +14,32 @@ Implementation: `Current`
 
 ## 2. 首个 Reference Implementation Profile
 
-首版推荐：
+首版默认采用：
 
 ```text
-Language             Python 3.12+
-API                   FastAPI
-Data validation       Pydantic v2 + generated JSON Schema
-Persistence           PostgreSQL 16+
-ORM / SQL              SQLAlchemy 2.x
-Migration              Alembic
-Async jobs / queue     durable broker adapter; first implementation chooses one and hides behind Port
-Telemetry              OpenTelemetry
-Artifact storage       S3-compatible object storage
-Secret provider        adapter abstraction; local dev uses non-production backend
-Runtime Adapter #1     LangGraph
-Runtime Adapter #2     minimal read-only adapter for conformance proof
-Tests                  pytest + contract/integration suites
-Packaging              pyproject.toml
+Language                 Python 3.12+
+API                      FastAPI
+Data validation          Pydantic v2 + canonical JSON Schema
+Persistence              PostgreSQL 16+
+ORM                       SQLAlchemy 2.x
+Migration                 Alembic
+Durable broker            NATS JetStream, hidden behind Queue/Event adapter
+Telemetry                 OpenTelemetry
+Artifact storage          S3-compatible; local dev default MinIO
+Secret provider           adapter abstraction; local dev only uses environment/test secret backend
+Runtime Adapter #1        LangGraph
+Runtime Adapter #2        OpenAI Agents SDK read-only conformance adapter
+Model provider in CI      deterministic fake/recorded adapter; no live provider required for CI correctness
+Tests                     pytest + contract/integration/conformance/failure-injection suites
+Lint / format             Ruff
+Type checking             mypy
+CI                        GitHub Actions
+Packaging                 pyproject.toml + lock file
 ```
 
 版本范围在实际初始化代码时冻结到 lock file；文档不要求永久绑定具体 minor version。
+
+上述选择是 **Reference Implementation Default**，不是 UEAF 规范依赖。替换 broker、对象存储、模型 Provider 或第二 Runtime Adapter 不得改变 Port/Event/Schema/状态语义。
 
 ## 3. 为什么 Python-first
 
@@ -54,7 +60,20 @@ AGENTS.md
 README.md
 pyproject.toml
 schemas/
-  ...
+  common/
+  admission/
+  runtime/
+  model/
+  context/
+  tool/
+  workflow/
+  security/
+  eval/
+  release/
+  telemetry/
+  evolution/
+  profiles/
+  events/
 src/ueaf/
   common/
   admission/
@@ -73,6 +92,7 @@ src/ueaf/
     models/
     tools/
     storage/
+    queue/
   infrastructure/
     db/
     queue/
@@ -99,11 +119,11 @@ docs/
 推荐依赖方向：
 
 ```text
-common contracts
-   ↑
-module domain/application
-   ↑
-adapters/infrastructure
+canonical schemas / common contracts
+        ↑
+module domain + application
+        ↑
+adapters + infrastructure
 ```
 
 具体禁止：
@@ -115,6 +135,7 @@ evolution -> release DB writer directly  forbidden
 evolution -> raw telemetry tables scan   forbidden
 judge -> business tool adapter            forbidden
 adapter -> redefine UEAF state enum       forbidden
+module -> another module ORM model        forbidden
 ```
 
 ## 6. Domain 与 ORM 分离
@@ -124,13 +145,13 @@ adapter -> redefine UEAF state enum       forbidden
 建议：
 
 ```text
-schemas generated model
+canonical schema / generated transport model
   -> application/domain object
   -> repository mapping
   -> ORM row
 ```
 
-ORM 的 `created_at`, internal sequence, DB FK 等字段不得无意泄漏进公共契约。
+ORM 的 `created_at`、internal sequence、DB FK 等实现字段不得无意泄漏进公共契约。反向也一样：核心 `ContractMeta` 不能因为 ORM 不方便而被省略。
 
 ## 7. Port-first 开发
 
@@ -148,6 +169,8 @@ Normative docs
 
 禁止先写具体 Provider SDK，然后反向定义 UEAF 契约。
 
+公共 Port 名称和方法以 `docs/01-核心规范/04-端口与适配器规范.md` 为唯一最小 SPI。功能模块中的 convenience method 只能是实现扩展，不能替代核心 SPI。
+
 ## 8. V1 开发 Phase
 
 ### Phase 0 — Repository Skeleton
@@ -160,8 +183,10 @@ src layout
 schemas layout
 test layout
 DB migration harness
+NATS JetStream dev container/fixture
+MinIO dev container/fixture
 CI
-lint/type/test commands
+Ruff / mypy / pytest commands
 AGENTS.md
 ```
 
@@ -170,6 +195,7 @@ AGENTS.md
 交付：
 
 ```text
+ContractMeta / CommandEnvelope / EventEnvelope / ProblemDetail
 RequestEnvelope
 TaskState
 RunRecord
@@ -185,13 +211,16 @@ RUN-* acceptance tests
 交付：
 
 ```text
-RuntimeAdapter SPI
+RuntimeAdapter core SPI
 LangGraph Adapter
 ModelStepPort
-ContextPort
+ContextBuildPort
 PromptContract
 read-only vertical slice
+OpenAI Agents SDK read-only conformance adapter skeleton
 ```
+
+CI 的行为正确性使用 deterministic fake/recorded model adapter；live model Provider 只用于显式 integration profile，不成为基础测试前置条件。
 
 ### Phase 3 — Tool Gateway / Action
 
@@ -227,7 +256,7 @@ REL/EVAL tests
 交付：
 
 ```text
-TelemetryEvent
+L0 structured observation mapping through core TelemetryPort
 RunSummary projection
 rolling windows
 ErrorFingerprint
@@ -235,6 +264,8 @@ TriggerCandidate detector
 L0/L1/L2 evidence flow
 EVD-* tests
 ```
+
+不得创建与核心 `TelemetryPort` 同名但签名不同的 `emit(TelemetryEvent)` 公共 Port。
 
 ### Phase 6 — Evolution V1
 
@@ -253,7 +284,16 @@ llm_guided_sparse_mutation Strategy
 Evolution Vertical Slice
 ```
 
-首版 Evolution 只要求 Single-Candidate First。
+首版 Evolution 只要求 Single-Candidate First，并保持：
+
+```text
+MutationProposal
+-> GenomeManifest candidate
+-> ReleaseCandidate
+-> Eval
+```
+
+禁止从 Mutation 直接跳过 Genome candidate。
 
 ## 9. 不允许 Codex 提前实现
 
@@ -325,7 +365,8 @@ Codex MUST NOT 自主决定：
 - 增加 V2/V3 Current 范围；
 - 把 Projection 提升为 authority；
 - 改变 Tool timeout outcome semantics；
-- 删除/放宽 normative acceptance tests。
+- 删除/放宽 normative acceptance tests；
+- 建立核心规范已有对象/Port/Event 的同义替代名称。
 
 出现以上需求，必须先回到文档/ADR。
 
@@ -398,18 +439,20 @@ CandidateRelease   -> ReleaseCandidate
 EvolutionBudget    -> existing Budget domain / budget_ref
 FitnessRecord      -> Eval/Objectives projection
 LineageGraph truth -> Projection
+ErrorEnvelope      -> ProblemDetail (cross-process) / PortError (Port)
 ```
 
 ## 16. Local Development Profile
 
-本地可使用简化基础设施，但不能改变语义：
+本地默认：
 
 ```text
-single PostgreSQL instance
-local object storage emulator
-local broker/container
+PostgreSQL container
+NATS JetStream container
+MinIO container
+deterministic fake model provider
 mock external business API
-mock/recorded model provider where appropriate
+non-production secret backend
 ```
 
 Mock 不能绕过 Tool Gateway、ActionRecord、Policy、Eval 或 Release 边界。
@@ -449,32 +492,49 @@ Codex/工程师发现以下情况必须停止扩大实现：
 4. Port timeout/outcome 语义冲突；
 5. 必须扩大 mutable surface 才能完成任务；
 6. 需要放宽 Governance/Security；
-7. V2/V3 概念成为实现依赖。
+7. V2/V3 概念成为实现依赖；
+8. 需要新增未注册 `ueaf.*` public event。
 
 此时先形成文档问题或 ADR，而不是代码 workaround。
 
-## 20. V1 Code-Ready Gate
+## 20. V1 Documentation Code-Ready Gate
 
-正式进入大规模 Codex 开发前应满足：
+在“文档可以交给 Codex 开始 Phase 0”之前应满足：
 
 ```text
-[ ] Machine Schema skeleton exists
-[ ] API/Port/Event contracts exist
-[ ] Persistence mapping exists
-[ ] Acceptance Test IDs exist
-[ ] Reference implementation profile fixed
-[ ] root AGENTS.md points to normative docs
-[ ] CI can run schema/unit/contract tests
-[ ] first read-only vertical slice task is scoped
-[ ] Evolution Vertical Slice fixture is defined
+[x] Machine Schema package specification exists
+[x] API/Port/Event contract specification exists
+[x] Persistence mapping specification exists
+[x] Acceptance Test IDs exist
+[x] Reference implementation profile fixed
+[x] root AGENTS.md points to normative docs
+[x] first read-only vertical slice scope is defined by phases/tests
+[x] Evolution Vertical Slice fixture is defined in acceptance spec
 ```
 
-## 21. 完成定义
+这表示 **文档准备度**，不表示仓库已经存在实际 `schemas/*.json`、迁移、CI 或代码。
+
+## 21. Phase 0 Exit Gate
+
+Codex 完成 Phase 0 后才应满足：
+
+```text
+[ ] canonical Machine Schema skeleton exists
+[ ] pyproject + lock exists
+[ ] migrations harness exists
+[ ] GitHub Actions CI exists
+[ ] Ruff/mypy/pytest commands green
+[ ] NATS/PostgreSQL/MinIO local profile starts
+[ ] RUN/ACT/EVO/MUT/REL test file skeleton exists
+[ ] first read-only vertical slice task can start
+```
+
+## 22. 完成定义
 
 当本文及前四份实施规范落地后，V1 文档应足以让 Codex：
 
 - 创建项目骨架；
 - 按阶段实现模块；
-- 不自行发明核心对象和状态；
+- 不自行发明核心对象、错误契约、Port 和状态；
 - 通过机器 Schema 和测试发现偏差；
 - 在真正遇到规范缺口时明确回到文档，而不是把猜测写进代码。
