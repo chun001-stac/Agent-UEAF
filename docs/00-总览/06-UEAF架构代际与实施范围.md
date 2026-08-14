@@ -12,7 +12,7 @@
 - **V2**：Adaptive Agent Ecosystem。未来计划架构。
 - **V3**：Recursive Adaptive Ecosystem。研究与远期架构。
 
-V1/V2/V3 表达产品与架构能力代际，不替代对象、API、事件和 Schema 自身的 SemVer。某个 `0.1.0-draft` 契约可以属于 UEAF V1；未来 UEAF V2 仍可继续使用独立的契约版本号。
+V1/V2/V3 表达产品与架构能力代际，不替代对象、API、事件和 Schema 自身的 SemVer。
 
 ## 2. 成熟度标记
 
@@ -24,8 +24,6 @@ Maturity: Required | Planned | Research
 Implementation: Current | Future | Not Required
 ```
 
-含义：
-
 | 标记 | 含义 |
 |---|---|
 | `V1 / Required / Current` | 当前实现与验收范围 |
@@ -36,10 +34,12 @@ Implementation: Current | Future | Not Required
 
 ### 3.1 目标
 
-V1 首先证明两件事：
+V1 首先证明：
 
 1. 不同 Agent Runtime 可以通过 Runtime Adapter 进入统一 UEAF 企业契约；
-2. 一个 Agent 或其局部能力可以依据真实生产证据，安全地产生、评测并发布改进候选。
+2. 一个 Agent 或其局部能力可以依据真实生产证据，安全地产生、评测并发布改进候选；
+3. 严重生产问题可以先通过现有运行/安全/发布机制止血，而不是等待自我进化；
+4. 普通噪声、暂态故障和低价值机会不会频繁触发 EvolutionRun。
 
 V1 不以构建完整 Agent 生态、Population 或 Meta Evolution 为目标。
 
@@ -49,7 +49,7 @@ V1 Evolution Kernel 只新增以下一等规范对象：
 
 | 对象 | 独立语义 |
 |---|---|
-| `EvolutionTrigger` | 为什么现在值得启动一次演化 |
+| `EvolutionTrigger` | 通过 Trigger Gate 后，为什么现在值得启动一次演化 |
 | `EvolutionRun` | 一次有预算、可停止的演化生命周期 |
 | `GenomeManifest` | 被演化对象的不可变版本化能力描述 |
 | `MutationProposal` | 改什么、为什么改、允许改变哪些范围 |
@@ -65,6 +65,7 @@ V1 Evolution Kernel 只新增以下一等规范对象：
 | 发布 | `ReleaseDecision` / `ReleaseManifest` |
 | 工件存储 | Artifact / Registry |
 | Trace、Metric、Cost、Action | 原始权威域，只以引用进入 Evolution |
+| 即时止血 | Runtime / Module 07 / Module 09 / Release Control / Tool Gateway |
 
 ### 3.3 V1 非 Canonical 概念
 
@@ -73,6 +74,7 @@ V1 Evolution Kernel 只新增以下一等规范对象：
 - Experience / Lesson：内部结构化记录或分析投影；
 - Fitness：EvalResult 的比较视图或选择维度；
 - LineageGraph：由 parent/provenance/event refs 构建的 Projection；
+- Trigger Policy / P0-P3 / cooldown / novelty / expected-value：Policy/Config；
 - Gene Pool：V1 仅保留兼容元数据，不建设独立 GenePool Domain；
 - Species：V1 可用标签或 Registry metadata 表达；
 - Diversity：V1 可作为 Eval/Policy 维度，不建设独立生命周期。
@@ -95,14 +97,56 @@ integrity_ref: string
 
 不同 `subject_type` 通过 `profile_ref` 约束必需组件和兼容规则。
 
-### 3.5 V1 运行闭环
+### 3.5 V1 两条反馈链
+
+V1 明确分离：
 
 ```text
-Production Evidence
+Operational Response
+  解决“现在怎么办”
+  rollback / fallback / isolate / degrade / kill
+
+Evolution Response
+  解决“以后是否要改变自己”
+  Trigger Gate -> EvolutionTrigger -> EvolutionRun
+```
+
+异常、告警或单次失败不是 `EvolutionTrigger`。P0/P1 严重问题可以先止血，再把证据和 mitigation 引用送入 Trigger Gate。
+
+### 3.6 V1 Trigger Gate
+
+除 P0 快速路径外，默认检查：
+
+```text
+evidence_sufficient
+  -> still_relevant
+  -> mutable_surface_match
+  -> existing_mitigation_insufficient
+  -> novelty_sufficient
+  -> expected_value_positive
+  -> cooldown_satisfied
+  -> EvolutionTrigger
+```
+
+Trigger Gate 应优先使用规则、统计、Projection、索引和确定性查询；只有难以确定根因/价值时才升级到模型。
+
+V1 同时支持：
+
+- `reactive` Trigger：失败、质量/成本/延迟退化、安全回归；
+- `opportunistic` Trigger：新模型、新 Tool、新 Provider、新业务能力或成本优化机会。
+
+因此系统无故障也可以进化；同时 Trigger 也不代表必须发生 Mutation。
+
+### 3.7 V1 运行闭环
+
+```text
+Production Evidence / Opportunity
+  -> Operational Response if urgent
   -> deterministic aggregation / dedup / statistics
+  -> Trigger Gate
   -> EvolutionTrigger
   -> EvolutionRun
-  -> sparse MutationProposal
+  -> sparse MutationProposal when justified
   -> GenomeManifest candidate
   -> Module 10 ReleaseCandidate
   -> cheap/local Eval funnel
@@ -111,9 +155,9 @@ Production Evidence
   -> Production Feedback
 ```
 
-没有有效 `EvolutionTrigger` 时，不得为了持续自我反思对每个生产任务追加演化模型调用。
+EvolutionRun MAY 正常结束为 `no_evolution_needed`。没有有效 `EvolutionTrigger` 时，不得为了持续自我反思对每个生产任务追加演化模型调用。
 
-### 3.6 V1 权限默认值
+### 3.8 V1 权限默认值
 
 对 V1 支持的 mutable targets：
 
@@ -125,6 +169,22 @@ Promote     risk-based
 ```
 
 实验自治与生产晋升必须分离。Governance Kernel 不属于 mutable target。
+
+### 3.9 V1 首个闭环建议
+
+首个可运行版本 SHOULD 优先证明：
+
+```text
+1 Trigger
+  -> 1 EvolutionRun
+  -> 1 MutationProposal
+  -> 1 GenomeManifest candidate
+  -> 1 ReleaseCandidate
+  -> Eval
+  -> Accept / Reject
+```
+
+先证明 Single-Candidate Evolution，再扩展有限多 Candidate；Population/Tournament 不属于 V1 首个实现要求。
 
 ## 4. V2：Adaptive Agent Ecosystem
 
@@ -198,8 +258,13 @@ new Canonical Object
 | 能力 | V1 | V2 | V3 |
 |---|---|---|---|
 | Runtime Adapter / Tool Gateway / State / Eval / Release | Required | Required | Required |
+| Operational Response 与 Evolution Response 分离 | Required | Required | Required |
+| P0-P3 Trigger Priority | Required | Extended | Extended |
+| Trigger Gate | Required | Extended | Extended |
+| Reactive + Opportunistic Trigger | Required | Required | Required |
 | Event-driven Evolution | Required | Required | Required |
 | Sparse Mutation | Required | Required | Required |
+| Single-Candidate First | Recommended | Optional | Optional |
 | `GenomeManifest` | Required | Required | Required |
 | EvolutionAuthorityPolicy | Required | Required | Required |
 | Active Working Set 有界 | Required | Required | Required |
@@ -221,4 +286,5 @@ new Canonical Object
 2. V2/V3 文档可以继续细化，但必须标记 `Future` 或 `Research`。
 3. V1 不为未被实际需求证明的 V2/V3 对象预建数据库、服务、状态机或消息主题。
 4. V1 的物理实现继续遵守 ADR-004：模块化单体优先，按证据拆分。
-5. 任何 V2/V3 能力进入 Current 实施范围前，必须通过 ADR 更新其代际状态和最小实现边界。
+5. P0/P1 的即时保护必须复用现有安全/运行/发布能力，不新建第二套 Evolution Incident 系统。
+6. 任何 V2/V3 能力进入 Current 实施范围前，必须通过 ADR 更新其代际状态和最小实现边界。
