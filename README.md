@@ -46,6 +46,7 @@ External Agent Runtimes
 - [功能模块全景](docs/00-总览/04-功能模块全景.md)
 - [外部 Agent 框架整合策略](docs/00-总览/05-外部Agent框架整合策略.md)
 - [V1/V2/V3 架构代际与实施范围](docs/00-总览/06-UEAF架构代际与实施范围.md)
+- [V1 问题诊断与修复机制](docs/00-总览/07-V1问题诊断与修复机制.md)
 
 ### 核心规范
 
@@ -56,6 +57,7 @@ External Agent Runtimes
 - [V1 受控演化与递归自改规范](docs/01-核心规范/05-受控演化与递归自改规范.md)
 - [V2 生态共同进化与演化授权规范](docs/01-核心规范/06-生态共同进化与演化授权规范.md)
 - [V1 最小 Evidence 采集规范](docs/01-核心规范/07-V1最小Evidence采集规范.md)
+- [V1 问题诊断与最小修复规范](docs/01-核心规范/08-V1问题诊断与最小修复规范.md)
 
 ### 功能模块
 
@@ -80,6 +82,7 @@ External Agent Runtimes
 - [V1 演化闭环与成本控制](docs/03-参考架构/05-演化闭环与成本控制.md)
 - [V2 生态共同进化与基因池](docs/03-参考架构/06-生态共同进化与基因池.md)
 - [V1 Evidence 采集与 Trigger 数据流](docs/03-参考架构/07-V1证据采集与触发数据流.md)
+- [V1 问题诊断与修复路由](docs/03-参考架构/08-V1问题诊断与修复路由.md)
 
 ### 架构决策记录
 
@@ -97,6 +100,7 @@ External Agent Runtimes
 - [ADR-012：采用 V1/V2/V3 架构代际并限制当前实现范围](docs/04-决策记录/ADR-012-采用V1-V2-V3架构代际并限制当前实现范围.md)
 - [ADR-013：分离即时运行响应与 EvolutionTrigger](docs/04-决策记录/ADR-013-分离即时运行响应与EvolutionTrigger.md)
 - [ADR-014：采用分层 Evidence 漏斗与按需扩展](docs/04-决策记录/ADR-014-采用分层Evidence漏斗与按需扩展.md)
+- [ADR-015：采用分层诊断与最小有效修复路由](docs/04-决策记录/ADR-015-采用分层诊断与最小有效修复路由.md)
 
 ## 核心运行主链
 
@@ -165,6 +169,30 @@ L0 Always-on Minimal Evidence
 
 **AI 不持续监控 AI。** 正常采集、Fingerprint、聚合和 Trigger Candidate 检测目标为 `0 LLM Token`；只有确定性证据不足时才升级到 Cheap/Strong Model。模块 11 不复制 Trace/Log/Metric/Eval/Action 成为第二数据平台。
 
+## V1 问题诊断与修复主链
+
+```text
+EvolutionTrigger
+  → bounded Evidence Expansion
+  → Diagnosis
+  → Repair Router
+       ↳ NO_EVOLUTION / OPERATIONAL_ONLY
+       ↳ R5 → Independent Governance
+       ↳ R1 Parameter / Config
+       ↳ R2 Component / Routing
+       ↳ R3 Workflow / Composition
+       ↳ R4 Artifact / Code
+  → MutationProposal
+  → GenomeManifest Candidate
+  → ReleaseCandidate
+  → Eval / Gates
+  → Release / Production Feedback
+```
+
+V1 采用 **Smallest Effective Repair**：能用更小修复范围解决时，不无证据扩大修改面。`observed_problem_scope`、`likely_root_cause_scope` 与 `repair_target_scope` 允许不同；RAG/Tool/Workflow 等基层模块只负责发现事实和即时止血，不拥有长期原地自改权。
+
+Repair Router、Diagnosis、RepairLevel 和 RepairHistory 都是内部策略/Projection/metadata，不新增第六个 Evolution Canonical Object。
+
 ## V1 受控演化主链
 
 ```text
@@ -174,6 +202,7 @@ Production Evidence / Opportunity
   → Trigger Gate
   → EvolutionTrigger
   → bounded EvolutionRun
+  → Diagnosis / Repair Router
   → sparse MutationProposal when justified
   → GenomeManifest Candidate
   → Module 10 ReleaseCandidate
@@ -192,7 +221,7 @@ MutationProposal
 EvolutionAuthorityPolicy
 ```
 
-Candidate、Eval、Budget、Release、Artifact 均复用现有 UEAF 语义。Experience/Lesson、Fitness、Lineage、P0-P3、cooldown、novelty、RunSummary、ErrorFingerprint、AggregateWindow、TriggerCandidate 等默认作为内部记录、Projection、Policy/Config 或 Eval dimension，而不是新的权威对象。
+Candidate、Eval、Budget、Release、Artifact 均复用现有 UEAF 语义。Experience/Lesson、Fitness、Lineage、P0-P3、cooldown、novelty、RunSummary、ErrorFingerprint、AggregateWindow、TriggerCandidate、Diagnosis、RepairLevel 等默认作为内部记录、Projection、Policy/Config 或 Eval dimension，而不是新的权威对象。
 
 Trigger 支持两类：
 
@@ -266,3 +295,9 @@ V2/V3 设计可以继续完善，但不属于 V1 Current 实现要求。
 33. Error Fingerprint 优先确定性去重；只有无法归类的剩余错误才进入 semantic clustering。
 34. Telemetry 背压时优先保留 Audit/Security/ActionReceipt/P0-P1 和最小 Run Summary，优先降低 success trace 与 verbose debug。
 35. Evidence gap 必须可观测；禁止把“没有采到数据”解释为“系统正常”。
+36. 基层 RAG/Model/Tool/Workflow/Memory/Runtime 模块可以检测与止血，但不得因检测到问题原地修改长期 Genome 或当前 Release。
+37. V1 长期修复必须通过 Diagnosis/Repair Router 选择修复目标，再形成 R1–R4 `MutationProposal`；问题发生层不等于修复层。
+38. 修复默认遵循 Smallest Effective Repair；修复失败不能自动成为扩大 mutable scope 的理由。
+39. Tool timeout/unknown 必须先遵守 reconciliation/outcome certainty 语义，不能机械演化为更多 retry。
+40. R5 Governance Boundary 不允许同一递归链自动修复；“权限不足”不能被转换成自动提升权限。
+41. Repair Router、Diagnosis、RepairLevel、RepairHistory 不新增 Canonical Object；V1 Evolution Canonical Object 总数保持五个。
