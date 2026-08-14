@@ -2,6 +2,9 @@
 
 - 状态：Accepted
 - 决策日期：2026-08-14
+- Architecture Generation：V1
+- Maturity：Required
+- Implementation：Current
 
 ## 背景
 
@@ -9,9 +12,9 @@
 
 ## 决策
 
-UEAF 定义 `EvolutionAuthorityPolicy`，对每类可演化目标分别控制：
+UEAF V1 定义 `EvolutionAuthorityPolicy`，对每类可演化目标分别控制：
 
-- `Observe`：读取允许的证据与 Lineage；
+- `Observe`：读取允许的证据与版本信息；
 - `Propose`：提出 Mutation、Transfer 或 Replacement；
 - `Experiment`：在隔离环境构建和评测 Candidate；
 - `Promote`：推进 Candidate 到 Canary 或 Production。
@@ -21,18 +24,20 @@ UEAF 定义 `EvolutionAuthorityPolicy`，对每类可演化目标分别控制：
 推荐默认：
 
 - Prompt、Model Routing、Context Policy、Memory Policy：通过独立门禁后可自动 Promote；
-- Workflow、Skill、Agent Topology：默认 Canary；
-- Tool、Ecosystem Topology、Evolution Strategy、Meta Evolution：默认 Gated；
+- Workflow、Skill：默认 Canary；
+- Tool：默认 Gated；
+- V2/V3 才出现的 Ecosystem Topology、Meta Evolution 等 target 在其代际启用前不属于 V1 Current；
 - Governance Kernel：Propose/Experiment/Promote 永久禁止。
 
 企业可以收紧 mutable targets，但普通配置不能把 Governance Kernel 改为可自主进化。
 
 ## 后果
 
-- AI 默认拥有充分的实验空间；
+- AI 默认拥有充分实验空间；
 - 自治实验与生产风险被解耦；
 - 不同企业可配置自治程度；
-- 权限模型和审计事件需要区分四类行为。
+- 权限模型和审计事件需要区分四类行为；
+- V1 不需要为未来 target 预建大量配置项，只在 target 进入 Current 后启用其 Profile。
 
 ## 重审条件
 
