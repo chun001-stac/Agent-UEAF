@@ -30,11 +30,23 @@ External Agent Runtimes
 |---|---|---|
 | 总体设计 | 规范性 | 产品边界、架构原则、模块职责、唯一所有权 |
 | 核心规范 | 规范性 | 对象、状态、事件、端口、兼容规则和演化边界 |
-| 功能模块 | 规范性 | 每个模块的组件、流程、接口、故障与验收条件 |
-| 参考架构 | 参考性 | 端到端时序、部署拓扑、存储、演化闭环和实施路径 |
 | ADR | 规范性 | 已接受的关键架构决策及重审条件 |
+| 功能模块 | 规范性 | 每个模块的组件、流程、接口、故障与验收条件 |
+| 实施规范 | 实施约束 | 把既有 V1 语义机器化为 Schema、Port/Event、存储事务、验收测试和 Reference Profile；不得覆盖上层规范 |
+| 参考架构 | 参考性 | 端到端时序、部署拓扑、存储、演化闭环和实施路径 |
 
-发生冲突时，优先级依次为：核心规范、总体设计、ADR、功能模块、参考架构。V2/V3 文档的 Future/Research 内容不覆盖 V1 Current 范围。
+发生冲突时，优先级依次为：
+
+```text
+核心规范
+> 总体设计
+> ADR
+> 功能模块
+> 实施规范
+> 参考架构
+```
+
+V2/V3 文档的 Future/Research 内容不覆盖 V1 Current 范围。实施规范只能把上层语义机器化，不能通过工程便利修改 Canonical Object、状态机、Port、Event、治理边界或演化范围。
 
 ## 文档入口
 
@@ -74,6 +86,15 @@ External Agent Runtimes
 10. [开发者平台与框架适配](docs/02-功能模块/10-开发者平台与框架适配.md)
 11. [V1 经验记忆与受控递归进化](docs/02-功能模块/11-经验记忆与受控递归进化.md)
 
+### 实施规范
+
+- [V1 实施规范入口](docs/05-实施规范/README.md)
+- [V1 机器 Schema 包规范](docs/05-实施规范/01-V1机器Schema包规范.md)
+- [V1 API、Port 与事件契约](docs/05-实施规范/02-V1-API端口与事件契约.md)
+- [V1 持久化与事务映射](docs/05-实施规范/03-V1持久化与事务映射.md)
+- [V1 验收与一致性测试规范](docs/05-实施规范/04-V1验收与一致性测试规范.md)
+- [V1 参考实现与 Codex 开发规范](docs/05-实施规范/05-V1参考实现与Codex开发规范.md)
+
 ### 参考架构
 
 - [端到端时序](docs/03-参考架构/01-端到端时序.md)
@@ -104,6 +125,12 @@ External Agent Runtimes
 - [ADR-015：采用分层诊断与最小有效修复路由](docs/04-决策记录/ADR-015-采用分层诊断与最小有效修复路由.md)
 - [ADR-016：V1 以 Profile 定义可变操作面、演化目标与策略契约](docs/04-决策记录/ADR-016-V1以Profile定义可变操作面演化目标与策略契约.md)
 
+## Codex 开工入口
+
+Codex 或工程团队开始 V1 Reference Implementation 前，先读取根目录 [AGENTS.md](AGENTS.md) 和 [V1 实施规范入口](docs/05-实施规范/README.md)。首个 Reference Profile 当前固定为 Python/FastAPI/PostgreSQL/NATS JetStream/OpenTelemetry/S3-compatible（本地 MinIO），首个 Runtime Adapter 为 LangGraph，第二个只读 Conformance Adapter 为 OpenAI Agents SDK；这些是参考实现选择，不改变 UEAF 的供应商无关契约。
+
+文档已进入 **Documentation Code-Ready** 状态时，只表示可以开始 Phase 0（机器 Schema、项目骨架、迁移框架、CI、测试骨架），不表示实际 `schemas/*.json`、代码、迁移和 CI 已经存在或通过。
+
 ## 核心运行主链
 
 ```text
@@ -120,7 +147,7 @@ RequestEnvelope + PrincipalContext
   → PolicyDecision / ApprovalRequest
   → ActionRecord / ActionReceipt
   → CompletionDisposition
-  → AuditEvent / EvalResult / Release Evidence
+  → Audit / EvalResult / Release Evidence
 ```
 
 ## V1 两条反馈链
@@ -151,7 +178,7 @@ Observed Signal / Opportunity
 
 ```text
 Module 02..08 domain facts
-  → non-blocking TelemetryPort
+  → core TelemetryPort / module-local non-blocking buffer
   → Module 09 sampling / aggregation / retention
   → Run Summary / rolling windows / Error Fingerprint
   → Trigger Candidate Detector
@@ -210,7 +237,7 @@ GenomeManifest.profile_ref
        → mutation limits
 ```
 
-`MutationProposal.change_summary` 用于摘要；机器执行 SHOULD 使用结构化 `changes[]`，每个 path 必须同时满足 Profile、`EvolutionRun.mutable_scope` 和 `EvolutionAuthorityPolicy`。
+`MutationProposal.change_summary` 用于摘要；机器执行使用结构化 `changes[]`，每个 path 必须同时满足 Profile、`EvolutionRun.mutable_scope`、`EvolutionAuthorityPolicy`、Repair Target 和风险 Profile。
 
 V1 不新增 `FitnessRecord` 真相源。版本化 Evolution Objective / Fitness Profile 解释既有 `EvalResult`、业务 KPI、成本、Token、延迟、复杂度和安全/回归证据，明确：
 
@@ -224,7 +251,7 @@ tie-break rules
 
 Gate 回答“候选能否接受”，Objective 回答“在可接受候选里哪个相对 baseline 更值得推进”。安全和治理硬失败不得被加权分数抵消。
 
-V1 `EvolutionStrategy` 必须有稳定的有界输入输出。首个 `llm_guided_sparse_mutation` SHOULD 从 Single-Candidate 开始，限制 Candidate 数、每个 Candidate 修改字段数/组件数、novelty、重复提案和 Budget；Strategy MAY 返回 0 Candidate。
+V1 `EvolutionStrategy` 必须有稳定的有界输入输出。首个 `llm_guided_sparse_mutation` 从 Single-Candidate 开始，限制 Candidate 数、每个 Candidate 修改字段数/组件数、novelty、重复提案和 Budget；Strategy MAY 返回 0 Candidate。
 
 ## V1 受控演化主链
 
@@ -360,3 +387,8 @@ V2/V3 设计可以继续完善，但不属于 V1 Current 实现要求。
 47. Evolution Evidence 视为不可信输入；必须防范 Evidence poisoning、延迟 Prompt Injection、Trigger flooding、Eval/Repair-history poisoning、Candidate supply-chain 和伪装成修复的自提权。
 48. Evolution Kernel 自身健康通过模块 09/SRE 的结构化 meta-metrics 观察，不建设递归“AI 监控 AI”链。
 49. V1 90 天 MVP 必须至少证明一次 Single-Candidate `Trigger -> EvolutionRun -> Diagnosis -> Mutation -> Genome -> ReleaseCandidate -> Eval -> Accept/Reject` 闭环；Candidate 被拒绝仍是合法验收结果。
+50. 所有跨模块持久化对象继承 `ContractMeta`；领域文档只列增量字段时不得被解释为可以省略公共 meta。
+51. 跨模块权威 Event 只使用核心 `EventEnvelope` 与 `ueaf.<domain>.<past_tense_fact>` 命名；实施层不得创建同义 Event Envelope 或未登记 public event。
+52. 公共 Port 最小 SPI 以核心端口规范为唯一来源；功能/实施文档中的 convenience method 只能是可选实现扩展。
+53. V1 错误契约统一为跨进程/API `ProblemDetail` 与 Port `PortResult<T>/PortError`；早期 `ErrorEnvelope` 不再是新实现的公共对象。
+54. Evolution Candidate 构建保持 `MutationProposal -> GenomeManifest candidate -> ReleaseCandidate`，不得为工程便利跳过 Genome candidate。
