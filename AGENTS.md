@@ -20,11 +20,9 @@ docs/01-核心规范/09-V1可变操作面演化目标与策略契约.md
 docs/05-实施规范/README.md
 ```
 
-然后再读取当前任务对应的功能模块、ADR 和参考架构。
+然后再读当前任务对应功能模块、V1 ADR、实施规范和必要参考架构。V2/V3 文档只用于确认边界，不用于推导 Current 实现。
 
 ## 2. 文档优先级
-
-冲突时：
 
 ```text
 核心规范
@@ -35,11 +33,11 @@ docs/05-实施规范/README.md
 > 参考架构
 ```
 
-V2/V3 Future/Research 文档不得覆盖 V1 Current。
+实施规范只机器化上层语义，不能覆盖它。
 
-## 3. V1 严格范围
+## 3. V1 Evolution 严格范围
 
-V1 Evolution Canonical Object 只有：
+只有五个 Evolution Canonical Object：
 
 ```text
 EvolutionTrigger
@@ -49,7 +47,7 @@ MutationProposal
 EvolutionAuthorityPolicy
 ```
 
-不得新增或恢复：
+不得新增/恢复：
 
 ```text
 AgentGenome
@@ -67,81 +65,177 @@ Ecosystem Fitness
 Meta Evolution
 ```
 
-除非先更新规范/ADR。
+## 4. 审计后强制收敛规则
 
-## 4. 不变量
+### 4.1 Canonical Meta
 
-- 每种权威事实只有一个 Semantic Owner。
-- `RunPhase` 与 `CompletionDisposition` 正交。
-- Runtime Adapter 不能绕过 UEAF Model/Tool/Context/Telemetry Port。
-- 所有企业副作用经过 Tool Gateway。
-- Tool timeout/unknown 必须先 reconciliation，不得盲目 retry。
-- 当前 `ReleaseManifest` 不得原地自改。
-- Subject/Builder/Judge/Release Authority 逻辑隔离。
-- Governance Kernel 不进入同一自动递归链。
-- Mutation 必须通过 Subject Profile 和 Effective Mutation Surface 机器校验。
-- Candidate/Eval/Budget/Release 复用既有 UEAF 语义。
-- 正常 Evidence Collection/Aggregation/Trigger Candidate 路径目标为 0 LLM Token。
+所有跨模块持久化对象继承核心 `ContractMeta`。功能文档只列领域字段时视为增量字段，不可省略 `meta`。
 
-## 5. 开发顺序
+### 4.2 Event
 
-每个规范行为必须按以下顺序：
+只有一套公共 `EventEnvelope`，字段和命名来自核心规范 03：
+
+```text
+ueaf.<domain>.<past_tense_fact>
+```
+
+不得创建简化 Event Envelope 或未登记 public `ueaf.*` event。当前 Evolution lifecycle event 未注册时只能是 Module 11 internal metadata/event。
+
+### 4.3 Error
+
+```text
+API / cross-process -> ProblemDetail
+Port               -> PortResult<T> / PortError
+```
+
+不得新建公共 `ErrorEnvelope`。
+
+### 4.4 Port
+
+公共最小 SPI 以核心规范 04 为唯一来源。特别是：
+
+```text
+RuntimeAdapter:
+DescribeRuntime / StartRun / AdvanceRun / SuspendRun / ResumeRun / CancelRun / InspectRun
+
+RuntimeExecutionContext:
+ContextBuildPort / ModelStepPort / ToolIntentPort / HandoffPort / TelemetryPort
+
+TelemetryPort:
+EmitTrace / EmitMetric / EmitLog / EmitAudit
+```
+
+convenience method 只能是可选私有扩展。
+
+### 4.5 PrincipalContext
+
+只使用核心字段。不得再造 `subject_id/identity_provider/assurance_level/...` 版第二 `PrincipalContext`。
+
+### 4.6 Risk type
+
+```text
+TaskEnvelope.risk_class:
+compute_only | read_only | reversible_write | high_risk_write
+
+Evolution RepairLevel:
+R0 | R1 | R2 | R3 | R4 | R5
+```
+
+不得混用。
+
+### 4.7 ReleaseManifest
+
+线级版本字段使用 plural version-set 语义：
+
+```text
+agent_versions / prompt_versions / schema_versions / model_route_versions /
+capability_versions / adapter_versions / knowledge_index_versions /
+memory_policy_versions / policy_versions
+```
+
+### 4.8 Evolution build chain
+
+```text
+MutationProposal
+-> machine validation
+-> GenomeManifest candidate
+-> ReleaseCandidate
+-> Eval / Gates / Release
+```
+
+不得跳过 Genome candidate。
+
+## 5. 通用不变量
+
+- 每种权威事实只有一个 Semantic Owner；
+- `RunPhase` 与 `CompletionDisposition` 正交；
+- Runtime Adapter 不绕过 Model/Tool/Context/Telemetry；
+- 所有企业副作用经过 Tool Gateway；
+- action identity 在 Policy 前稳定，side effect 在 Policy/Approval/Reservation 后执行；
+- Tool timeout/unknown 先 reconciliation；
+- 当前 `ReleaseManifest` 不原地自改；
+- Subject/Builder/Judge/Release Authority 隔离；
+- Governance Kernel 不进入同一自动递归链；
+- Mutation 通过 Subject Profile + Effective Mutation Surface 校验；
+- Candidate/Eval/Budget/Release 复用既有语义；
+- 正常 Evidence Collection/Aggregation/Trigger Candidate 目标 0 LLM Token。
+
+## 6. 开发顺序
 
 ```text
 read normative docs
--> identify Test IDs
--> define/update machine Schema
--> define Port/Event contract
--> add failing test
+-> identify CON-* + domain Test IDs
+-> define/update canonical machine Schema
+-> define core Port/Event mapping
+-> add failing tests
 -> implement minimum behavior
 -> run targeted tests
--> run relevant contract/integration/conformance tests
+-> run contract/integration/conformance tests
 ```
 
-禁止先大量写实现再回头改变规范以适配代码。
+每个涉及公共契约的 PR 必须运行相关 `CON-*`。
 
-## 6. Codex 可自主决定
+## 7. Codex MAY 自主决定
 
-允许：
-
-- 私有函数、类、文件拆分；
+- 私有函数/类/文件拆分；
 - 不改变公共语义的内部重构；
-- 测试 fixture 组织；
-- 局部算法与性能优化；
-- 实现细节命名，只要不改变规范对象/字段/事件。
+- fixture 组织；
+- 局部算法和性能优化；
+- 私有 convenience method。
 
-## 7. Codex 不得自主决定
+## 8. Codex MUST NOT 自主决定
 
-不得：
+- 新 Canonical Object；
+- 新未登记 public Event/Decision；
+- 第二套同义 Schema/Port/Event/Error；
+- 状态机语义改变；
+- Security/Governance/Release Gate 放宽；
+- Projection 升格 authority；
+- Evolution mutable surface 扩大；
+- V2/V3 变 Current；
+- Runtime/Adapter 直连企业副作用；
+- 删除/放宽 normative tests；
+- 用更多 retry 掩盖 unknown；
+- 用参考架构旧示例覆盖更高优先级契约。
 
-- 新增 Canonical Object；
-- 新增未登记 public Event/Decision；
-- 修改状态机语义；
-- 放宽 Security/Governance/Release Gate；
-- 把 Projection 变成第二 authority；
-- 扩大 Evolution mutable surface；
-- 实现 V2/V3 为 Current；
-- 让 Runtime/Adapter 直连企业副作用；
-- 删除或放宽 normative acceptance tests；
-- 通过新增 retry 掩盖 `outcome_unknown`。
+遇到以上需求，停止扩大代码，先回文档/ADR。
 
-遇到上述需求，停止扩大代码并先回文档/ADR。
+## 9. Reference Implementation Default
 
-## 8. PR / Task Definition of Done
+首版默认：
 
-每个任务必须明确：
+```text
+Python 3.12+
+FastAPI
+Pydantic v2 + canonical JSON Schema
+PostgreSQL 16+
+SQLAlchemy 2.x + Alembic
+NATS JetStream
+OpenTelemetry
+S3-compatible / local MinIO
+LangGraph Adapter #1
+OpenAI Agents SDK read-only Adapter #2
+deterministic fake/recorded model in CI
+pytest + Ruff + mypy + GitHub Actions
+```
+
+这是 Reference Profile，不是 UEAF 供应商绑定。
+
+## 10. Task / PR Definition of Done
+
+任务必须明确：
 
 ```text
 Scope
 Normative docs
 Relevant Schema
-Relevant Test IDs
+Relevant CON-* / domain Test IDs
 Allowed modules/files
 Non-goals
 Definition of Done
 ```
 
-完成时报告：
+完成报告：
 
 ```text
 Tests passed
@@ -150,7 +244,7 @@ DB migration changes
 Port/Event changes
 Security impact
 Known gaps
-Whether any normative semantics changed
+Whether normative semantics changed
 ```
 
-若规范语义发生变化，不能仅提交代码，必须同步文档/ADR。
+若规范语义发生变化，代码和文档/ADR 必须同步。
