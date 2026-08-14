@@ -58,6 +58,7 @@ External Agent Runtimes
 - [V2 生态共同进化与演化授权规范](docs/01-核心规范/06-生态共同进化与演化授权规范.md)
 - [V1 最小 Evidence 采集规范](docs/01-核心规范/07-V1最小Evidence采集规范.md)
 - [V1 问题诊断与最小修复规范](docs/01-核心规范/08-V1问题诊断与最小修复规范.md)
+- [V1 可变操作面、演化目标与策略契约](docs/01-核心规范/09-V1可变操作面演化目标与策略契约.md)
 
 ### 功能模块
 
@@ -101,6 +102,7 @@ External Agent Runtimes
 - [ADR-013：分离即时运行响应与 EvolutionTrigger](docs/04-决策记录/ADR-013-分离即时运行响应与EvolutionTrigger.md)
 - [ADR-014：采用分层 Evidence 漏斗与按需扩展](docs/04-决策记录/ADR-014-采用分层Evidence漏斗与按需扩展.md)
 - [ADR-015：采用分层诊断与最小有效修复路由](docs/04-决策记录/ADR-015-采用分层诊断与最小有效修复路由.md)
+- [ADR-016：V1 以 Profile 定义可变操作面、演化目标与策略契约](docs/04-决策记录/ADR-016-V1以Profile定义可变操作面演化目标与策略契约.md)
 
 ## 核心运行主链
 
@@ -193,6 +195,37 @@ V1 采用 **Smallest Effective Repair**：能用更小修复范围解决时，�
 
 Repair Router、Diagnosis、RepairLevel 和 RepairHistory 都是内部策略/Projection/metadata，不新增第六个 Evolution Canonical Object。
 
+## V1 可变操作面、目标函数与 Strategy
+
+V1 的 Sparse Mutation 必须从“允许改某个模块”继续下钻到机器可验证字段：
+
+```text
+GenomeManifest.profile_ref
+  → Subject Profile / Mutation Surface Contract
+       → mutable fields
+       → allowed operations
+       → value/ref constraints
+       → frozen fields
+       → cross-field constraints
+       → mutation limits
+```
+
+`MutationProposal.change_summary` 用于摘要；机器执行 SHOULD 使用结构化 `changes[]`，每个 path 必须同时满足 Profile、`EvolutionRun.mutable_scope` 和 `EvolutionAuthorityPolicy`。
+
+V1 不新增 `FitnessRecord` 真相源。版本化 Evolution Objective / Fitness Profile 解释既有 `EvalResult`、业务 KPI、成本、Token、延迟、复杂度和安全/回归证据，明确：
+
+```text
+primary objectives
+hard constraints
+guardrails / acceptable degradation
+evidence confidence
+tie-break rules
+```
+
+Gate 回答“候选能否接受”，Objective 回答“在可接受候选里哪个相对 baseline 更值得推进”。安全和治理硬失败不得被加权分数抵消。
+
+V1 `EvolutionStrategy` 必须有稳定的有界输入输出。首个 `llm_guided_sparse_mutation` SHOULD 从 Single-Candidate 开始，限制 Candidate 数、每个 Candidate 修改字段数/组件数、novelty、重复提案和 Budget；Strategy MAY 返回 0 Candidate。
+
 ## V1 受控演化主链
 
 ```text
@@ -203,10 +236,14 @@ Production Evidence / Opportunity
   → EvolutionTrigger
   → bounded EvolutionRun
   → Diagnosis / Repair Router
+  → resolve Subject Profile + Objective Profile
+  → bounded EvolutionStrategy
   → sparse MutationProposal when justified
+  → machine validate changes
   → GenomeManifest Candidate
   → Module 10 ReleaseCandidate
   → Module 08 Eval + 07/09 Gates
+  → Objective comparison against baseline
   → ReleaseDecision / ReleaseManifest
   → Production Feedback
 ```
@@ -221,7 +258,7 @@ MutationProposal
 EvolutionAuthorityPolicy
 ```
 
-Candidate、Eval、Budget、Release、Artifact 均复用现有 UEAF 语义。Experience/Lesson、Fitness、Lineage、P0-P3、cooldown、novelty、RunSummary、ErrorFingerprint、AggregateWindow、TriggerCandidate、Diagnosis、RepairLevel 等默认作为内部记录、Projection、Policy/Config 或 Eval dimension，而不是新的权威对象。
+Candidate、Eval、Budget、Release、Artifact 均复用现有 UEAF 语义。Experience/Lesson、Fitness、Lineage、P0-P3、cooldown、novelty、RunSummary、ErrorFingerprint、AggregateWindow、TriggerCandidate、Diagnosis、RepairLevel、Subject Profile、Objective Profile 和 Strategy Profile 等默认作为内部记录、Projection、Policy/Config 或 Registry metadata，而不是新的权威对象。
 
 Trigger 支持两类：
 
@@ -231,6 +268,20 @@ Opportunistic new model / tool / provider / cost / business opportunity
 ```
 
 EvolutionRun MAY 正常结束为 `no_evolution_needed`，例如问题来自已恢复的 Provider 暂态、用户数据、不可修改范围，或已有 mitigation 已足够。
+
+## V1 经验复用边界
+
+V1 允许：
+
+```text
+validated Mutation
+  → stable Artifact / Profile / Policy / Skill / Tool / Workflow
+  → Registry + provenance / compatibility metadata
+  → another Agent MAY reference it through normal MutationProposal(transfer)
+  → target-side Eval / Release Governance
+```
+
+V1 不做自动跨 Agent 发现、自动传播、Species、Population、Gene Pool lifecycle 或 Ecosystem Fitness；这些属于 V2。
 
 ## V2 / V3
 
@@ -301,3 +352,11 @@ V2/V3 设计可以继续完善，但不属于 V1 Current 实现要求。
 39. Tool timeout/unknown 必须先遵守 reconciliation/outcome certainty 语义，不能机械演化为更多 retry。
 40. R5 Governance Boundary 不允许同一递归链自动修复；“权限不足”不能被转换成自动提升权限。
 41. Repair Router、Diagnosis、RepairLevel、RepairHistory 不新增 Canonical Object；V1 Evolution Canonical Object 总数保持五个。
+42. 每个可执行 Mutation path 必须由版本化 Subject Profile 声明并通过类型、范围、引用、跨字段和 frozen-field 机器校验；自由 `change_summary` 不能作为执行授权。
+43. V1 Candidate 选择必须使用版本化 Evolution Objective/Fitness Profile 解释既有 Eval/业务/成本/延迟/安全证据；禁止用不可解释的单一 Fitness Score 覆盖硬失败。
+44. Gate 与 Optimization Objective 正交：先满足安全/质量/运行硬门禁，再在允许候选中比较相对 baseline 的业务价值与 trade-off。
+45. EvolutionStrategy 必须有有界输入、候选数、修改字段/组件数、novelty 和 Budget 限制；Strategy 可以合法输出 0 Candidate。
+46. 成功 Mutation 可以沉淀为既有 Registry/Artifact 资产并由其他 Agent 通过普通 transfer Mutation 复用；V1 不自动跨 Agent 传播，不建设 Gene Pool。
+47. Evolution Evidence 视为不可信输入；必须防范 Evidence poisoning、延迟 Prompt Injection、Trigger flooding、Eval/Repair-history poisoning、Candidate supply-chain 和伪装成修复的自提权。
+48. Evolution Kernel 自身健康通过模块 09/SRE 的结构化 meta-metrics 观察，不建设递归“AI 监控 AI”链。
+49. V1 90 天 MVP 必须至少证明一次 Single-Candidate `Trigger -> EvolutionRun -> Diagnosis -> Mutation -> Genome -> ReleaseCandidate -> Eval -> Accept/Reject` 闭环；Candidate 被拒绝仍是合法验收结果。
