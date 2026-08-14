@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from jsonschema import validators
 from referencing import Registry, Resource
 
 
 def load_schema(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError(f"schema root must be an object: {path}")
+    return cast(dict[str, Any], raw)
 
 
 def build_schema_registry(schema_root: Path) -> Registry[Any]:
