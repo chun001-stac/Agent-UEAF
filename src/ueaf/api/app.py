@@ -117,7 +117,7 @@ def _runs_router() -> APIRouter:
         budget = _budget_envelope(body, ctx)
         ctx.task_envelopes[task.task_id] = task
         ctx.budget_envelopes[task.task_id] = budget
-        record = ctx.coordinator.create_run(
+        record = await ctx.coordinator.create_run(
             RunCreateInput(
                 task_envelope=task,
                 agent_ref=body.agent_ref,
@@ -134,19 +134,23 @@ def _runs_router() -> APIRouter:
     @router.get("/{run_id}", response_model=RunOut)
     async def get_run(run_id: str, request: Request) -> RunOut:
         ctx: ApiContext = request.app.state.ctx
-        return _run_out(ctx.coordinator.require_run(run_id))
+        return _run_out(await ctx.coordinator.require_run(run_id))
 
     @router.post("/{run_id}/admission", response_model=AdmissionResultOut)
     async def admit_run(
         run_id: str, body: AdmissionIn, request: Request
     ) -> AdmissionResultOut:
         ctx: ApiContext = request.app.state.ctx
-        run = ctx.coordinator.begin_admission(run_id, actor_ref=body.actor_ref)
+        run = await ctx.coordinator.begin_admission(
+            run_id, actor_ref=body.actor_ref
+        )
         task = ctx.task_envelopes[run.task_id]
         budget = ctx.budget_envelopes[run.task_id]
         principal = _principal(body, ctx)
         result = ctx.admission.evaluate(run, task, budget, principal)
-        ctx.coordinator.apply_admission(run_id, result, actor_ref=body.actor_ref)
+        await ctx.coordinator.apply_admission(
+            run_id, result, actor_ref=body.actor_ref
+        )
         return AdmissionResultOut(
             run_admission_result_id=result.run_admission_result_id,
             run_id=result.run_id,
@@ -163,18 +167,18 @@ def _runs_router() -> APIRouter:
         run_id: str, body: CommandIn, request: Request
     ) -> RunOut:
         ctx: ApiContext = request.app.state.ctx
-        record = _dispatch_command(ctx.coordinator, run_id, body)
+        record = await _dispatch_command(ctx.coordinator, run_id, body)
         return _run_out(record)
 
     return router
 
 
-def _dispatch_command(
+async def _dispatch_command(
     coordinator: RunCoordinator, run_id: str, body: CommandIn
 ) -> RunRecord:
     payload: dict[str, Any] = body.payload
     if body.command_name == "ueaf.run.commit_terminal":
-        return coordinator.commit_terminal(
+        return await coordinator.commit_terminal(
             run_id,
             disposition=payload["disposition"],
             reason_codes=tuple(payload.get("reason_codes", [])),
@@ -183,9 +187,9 @@ def _dispatch_command(
             actor_ref=body.actor_ref,
         )
     if body.command_name == "ueaf.run.cancel":
-        return coordinator.cancel(run_id, actor_ref=body.actor_ref)
+        return await coordinator.cancel(run_id, actor_ref=body.actor_ref)
     if body.command_name == "ueaf.run.pause":
-        return coordinator.pause(
+        return await coordinator.pause(
             run_id,
             reason_codes=tuple(payload.get("reason_codes", ["paused"])),
             checkpoint_ref=payload.get("checkpoint_ref"),
