@@ -43,6 +43,8 @@ required-version = "==0.11.32"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 markers = [
   "test_id(*ids): map a test family to one or more registered UEAF acceptance Test IDs",
 ]

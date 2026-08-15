@@ -66,6 +66,8 @@ jobs:
           uv run --no-sync alembic upgrade head --sql
           uv run --no-sync alembic upgrade head
       - name: Pytest
+        env:
+          UEAF_DATABASE_URL: postgresql+asyncpg://ueaf:ueaf@127.0.0.1:5432/ueaf
         run: uv run --no-sync pytest --junitxml=pytest-results.xml
       - name: Upload pytest traceability report
         if: always()
