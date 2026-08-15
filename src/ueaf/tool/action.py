@@ -97,6 +97,13 @@ class ActionReceipt:
     reconciliation: Mapping[str, object] | None = None
     integrity_ref: str | None = None
 
+    def __post_init__(self) -> None:
+        # ACT-010: only the public outcome vocabulary is exposed.
+        if self.status not in {"succeeded", "failed", "unknown"}:
+            raise ValueError(f"invalid ActionReceipt.status {self.status!r}")
+        if self.attempt < 1:
+            raise ValueError("ActionReceipt.attempt must be >= 1")
+
 
 @dataclass(frozen=True, slots=True)
 class ExecutionAttempt:
@@ -133,6 +140,7 @@ class ActionCoordinator:
         self._records: dict[str, ActionRecord] = {}
         self._by_key: dict[str, str] = {}  # action_key -> action_id
         self._receipts: dict[str, ActionReceipt] = {}
+        self._deadlines: dict[str, datetime] = {}  # action_id -> absolute_deadline
         self._producer_version = producer_version
 
     # -- TX-A: stable identity before policy (ACT-001) ----------------------
@@ -239,12 +247,87 @@ class ActionCoordinator:
     # -- execution (outside the DB transaction) ------------------------------
 
     def begin_execution(
-        self, action: ActionRecord, *, fencing_token: int | None = None
+        self,
+        action: ActionRecord,
+        *,
+        fencing_token: int | None = None,
+        now: datetime | None = None,
     ) -> ActionRecord:
         self._require(action)
         self._check_fencing(action, fencing_token)
+        self._check_deadline(action, now or _now())  # ACT-012
         _validate_transition(action.phase, "executing")
         return self._transition(action, "executing", lease_fencing_token=fencing_token)
+
+    def renew_lease(
+        self,
+        action: ActionRecord,
+        *,
+        fencing_token: int,
+        now: datetime | None = None,
+    ) -> ActionRecord:
+        """Renew the execution lease, never past the absolute deadline (ACT-012)."""
+        self._require(action)
+        self._check_fencing(action, fencing_token)
+        moment = now or _now()
+        self._check_deadline(action, moment)  # expired worker cannot advance
+        return self._transition(
+            action,
+            "executing",
+            lease_fencing_token=max(fencing_token, action.lease_fencing_token or 0),
+        )
+
+    def set_deadline(self, action: ActionRecord, deadline: datetime) -> None:
+        """Bind an absolute deadline after which no worker may advance the action."""
+        self._require(action)
+        self._deadlines[action.action_id] = deadline
+
+    # -- retry (ACT-014) -----------------------------------------------------
+
+    def retry(
+        self,
+        action: ActionRecord,
+        *,
+        retryable: bool,
+        budget_remaining: int,
+        evidence_ref: str,
+        now: datetime | None = None,
+    ) -> ActionRecord:
+        """Start the next attempt only with a proven `failed` receipt.
+
+        ACT-014: the previous attempt must have terminally failed with a
+        receipt/evidence proving non-occurrence or definite failure; the action
+        must be retryable, budgeted and within its deadline. ``action_key`` is
+        unchanged — the next attempt is the same logical side effect.
+        """
+        self._require(action)
+        moment = now or _now()
+        if action.phase != "terminal" or action.disposition != "failed":
+            raise ActionStateError(
+                "retry requires a terminal ActionRecord with disposition 'failed'"
+            )
+        if not retryable:
+            raise ActionStateError("retry not allowed: action is not retryable")
+        if budget_remaining < 1:
+            raise ActionStateError("retry not allowed: budget exhausted")
+        self._check_deadline(action, moment)
+        if not evidence_ref:
+            raise ValueError("retry requires an evidence_ref proving the failed outcome")
+
+        updated = replace(
+            action,
+            phase="reserved",
+            disposition=None,
+            reconciliation_state=None,
+            terminal_reason_codes=(),
+            receipt_refs=(),
+            latest_receipt_ref=None,
+            attempt=action.attempt + 1,
+            revision=action.revision + 1,
+            updated_at=moment,
+        )
+        self._records[action.action_id] = updated
+        return updated
 
     # -- TX-C: record observation --------------------------------------------
 
@@ -328,6 +411,12 @@ class ActionCoordinator:
             return
         if action.lease_fencing_token is not None and fencing_token < action.lease_fencing_token:
             raise ValueError(f"stale_fencing_token: {fencing_token}")
+
+    def _check_deadline(self, action: ActionRecord, moment: datetime) -> None:
+        """Reject advancement once the absolute deadline has passed (ACT-012)."""
+        deadline = self._deadlines.get(action.action_id)
+        if deadline is not None and moment > deadline:
+            raise ActionStateError(f"action deadline passed: {deadline.isoformat()}")
 
     def _transition(
         self,

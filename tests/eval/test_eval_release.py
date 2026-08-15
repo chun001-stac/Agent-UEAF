@@ -212,16 +212,23 @@ def test_manifest_is_immutable_and_binding_stable() -> None:
 def _approved_manifest(controller: ReleaseController):
     candidate = controller.build_candidate(environment="prod")
     quality = QualityGateDecision(
-        meta=_meta("QualityGateDecision", "qg:ok"), quality_gate_decision_id="qg:ok",
-        outcome="pass", scope="prod", eval_result_ref="eval-result:1",
+        meta=_meta("QualityGateDecision", "qg:ok"),
+        quality_gate_decision_id="qg:ok",
+        outcome="pass",
+        scope="prod",
+        eval_result_ref="eval-result:1",
     )
     security = SecurityGateDecision(
-        meta=_meta("SecurityGateDecision", "sec:ok"), security_gate_decision_id="sec:ok",
-        outcome="pass", scope="prod",
+        meta=_meta("SecurityGateDecision", "sec:ok"),
+        security_gate_decision_id="sec:ok",
+        outcome="pass",
+        scope="prod",
     )
     operational = OperationalReadinessDecision(
         meta=_meta("OperationalReadinessDecision", "ops:ok"),
-        operational_readiness_decision_id="ops:ok", outcome="pass", scope="prod",
+        operational_readiness_decision_id="ops:ok",
+        outcome="pass",
+        scope="prod",
     )
     decision = ReleaseDecision(
         meta=_meta("ReleaseDecision", "rel:ok"),
@@ -257,26 +264,38 @@ def test_activation_chain_fails_closed_on_any_violation() -> None:
     controller = ReleaseController(ReleaseActivationVerifier())
     candidate = controller.build_candidate(environment="prod")
     quality = QualityGateDecision(
-        meta=_meta("QualityGateDecision", "qg:fail"), quality_gate_decision_id="qg:fail",
-        outcome="fail", scope="prod", eval_result_ref="eval-result:1",
+        meta=_meta("QualityGateDecision", "qg:fail"),
+        quality_gate_decision_id="qg:fail",
+        outcome="fail",
+        scope="prod",
+        eval_result_ref="eval-result:1",
     )
     security = SecurityGateDecision(
-        meta=_meta("SecurityGateDecision", "sec:ok"), security_gate_decision_id="sec:ok",
-        outcome="pass", scope="prod",
+        meta=_meta("SecurityGateDecision", "sec:ok"),
+        security_gate_decision_id="sec:ok",
+        outcome="pass",
+        scope="prod",
     )
     operational = OperationalReadinessDecision(
         meta=_meta("OperationalReadinessDecision", "ops:ok"),
-        operational_readiness_decision_id="ops:ok", outcome="pass", scope="prod",
+        operational_readiness_decision_id="ops:ok",
+        outcome="pass",
+        scope="prod",
     )
     decision = ReleaseDecision(
         meta=_meta("ReleaseDecision", "rel:ok"),
-        release_decision_id="rel:ok", outcome="approved",
+        release_decision_id="rel:ok",
+        outcome="approved",
         manifest_candidate_ref=candidate.release_candidate_id,
     )
     with pytest.raises(ReleaseActivationError, match="quality gate not pass"):
         controller.activate(
-            candidate=candidate, quality=quality, security=security,
-            operational=operational, release_decision=decision, environment="prod",
+            candidate=candidate,
+            quality=quality,
+            security=security,
+            operational=operational,
+            release_decision=decision,
+            environment="prod",
         )
 
 
@@ -284,9 +303,15 @@ def test_activation_chain_fails_closed_on_any_violation() -> None:
 def test_manifest_uses_plural_version_set_and_closed_lifecycle() -> None:
     manifest = _approved_manifest(ReleaseController(ReleaseActivationVerifier()))
     for field_name in (
-        "agent_versions", "prompt_versions", "schema_versions", "model_route_versions",
-        "capability_versions", "adapter_versions", "knowledge_index_versions",
-        "memory_policy_versions", "policy_versions",
+        "agent_versions",
+        "prompt_versions",
+        "schema_versions",
+        "model_route_versions",
+        "capability_versions",
+        "adapter_versions",
+        "knowledge_index_versions",
+        "memory_policy_versions",
+        "policy_versions",
     ):
         assert isinstance(getattr(manifest, field_name), tuple), field_name
     assert manifest.lifecycle in ("draft", "approved", "activated", "rolled_back", "withdrawn")

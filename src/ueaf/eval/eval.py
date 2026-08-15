@@ -176,9 +176,10 @@ class DeterministicHardGrader:
     def evaluate(self, case: EvalCase, candidate_output: Mapping[str, object]) -> HardGraderResult:
         failed_conditions = []
         for condition in self._conditions:
-            if (
-                condition not in candidate_output
-                or candidate_output[condition] in (None, "", False)
+            if condition not in candidate_output or candidate_output[condition] in (
+                None,
+                "",
+                False,
             ):
                 failed_conditions.append(condition)
         return HardGraderResult(bool(failed_conditions), tuple(failed_conditions))
@@ -210,9 +211,7 @@ class EvalRunner:
         candidate_outputs: Mapping[str, Mapping[str, object]],
     ) -> EvalResult:
         if len(bundle.dataset.cases) < bundle.config.min_sample_size:
-            return self._result(
-                bundle, [], outcome="inconclusive", metric={"low_sample": 1.0}
-            )
+            return self._result(bundle, [], outcome="inconclusive", metric={"low_sample": 1.0})
         verdicts: list[CaseVerdict] = []
         hard_fails = 0
         passed = 0
@@ -225,13 +224,15 @@ class EvalRunner:
                 hard_fails += 1
             if ok:
                 passed += 1
-            verdicts.append(CaseVerdict(
-                eval_case_id=case.eval_case_id,
-                hard_fail=hard.failed,
-                judge_score=score,
-                passed=ok,
-                reason_codes=hard.reason_codes,
-            ))
+            verdicts.append(
+                CaseVerdict(
+                    eval_case_id=case.eval_case_id,
+                    hard_fail=hard.failed,
+                    judge_score=score,
+                    passed=ok,
+                    reason_codes=hard.reason_codes,
+                )
+            )
         if hard_fails:
             return self._result(
                 bundle, verdicts, outcome="fail", metric={"hard_fails": float(hard_fails)}
@@ -245,9 +246,7 @@ class EvalRunner:
             outcome = "inconclusive"
         else:
             outcome = "fail"
-        return self._result(
-            bundle, verdicts, outcome=outcome, metric={"pass_rate": pass_rate}
-        )
+        return self._result(bundle, verdicts, outcome=outcome, metric={"pass_rate": pass_rate})
 
     def _result(
         self,

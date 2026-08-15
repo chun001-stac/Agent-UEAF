@@ -34,8 +34,12 @@ def _meta(contract_name: str, object_id: str) -> ContractMeta:
     )
 
 
-def _subject(*, mutable=("budget.max_steps", "prompt.version"), frozen=("release_id",),
-             allowed_repair_levels=("r1", "r2")) -> SubjectProfile:
+def _subject(
+    *,
+    mutable=("budget.max_steps", "prompt.version"),
+    frozen=("release_id",),
+    allowed_repair_levels=("r1", "r2"),
+) -> SubjectProfile:
     return SubjectProfile(
         meta=_meta("SubjectProfile", "profile:agent-1"),
         profile_id="profile:agent-1",
@@ -64,8 +68,9 @@ def _authority(**kwargs) -> EvolutionAuthorityPolicy:
 
 
 def _kernel(*, mutable=None, frozen=None, strategy_profile=None):
-    subject = _subject(mutable=mutable or ("budget.max_steps", "prompt.version"),
-                       frozen=frozen or ("release_id",))
+    subject = _subject(
+        mutable=mutable or ("budget.max_steps", "prompt.version"), frozen=frozen or ("release_id",)
+    )
     authority = _authority()
     validator = MutationValidator(subject=subject, authority=authority)
     profile = strategy_profile or StrategyProfile(
@@ -159,12 +164,17 @@ def test_repair_router_outputs_closed_set() -> None:
 
 @pytest.mark.test_id("MUT-001")
 def test_undeclared_field_is_rejected() -> None:
-    validator = MutationValidator(subject=_subject(mutable=("budget.max_steps",)),
-                                  authority=_authority())
+    validator = MutationValidator(
+        subject=_subject(mutable=("budget.max_steps",)), authority=_authority()
+    )
     proposal = MutationProposal(
-        meta=_meta("MutationProposal", "m:1"), mutation_proposal_id="m:1",
-        trigger_ref="t:1", run_ref="r:1", target_ref="agent:1",
-        repair_level="r1", change_summary="x",
+        meta=_meta("MutationProposal", "m:1"),
+        mutation_proposal_id="m:1",
+        trigger_ref="t:1",
+        run_ref="r:1",
+        target_ref="agent:1",
+        repair_level="r1",
+        change_summary="x",
         changes=(MutationPatch("agent:1", "undeclared.field", "replace", 1, 2),),
     )
     result = validator.validate(proposal)
@@ -175,13 +185,18 @@ def test_undeclared_field_is_rejected() -> None:
 @pytest.mark.test_id("MUT-002")
 def test_frozen_field_is_rejected() -> None:
     # A whitelisted field that is currently frozen must be rejected as frozen.
-    validator = MutationValidator(subject=_subject(mutable=("release_id", "budget.max_steps"),
-                                                   frozen=("release_id",)),
-                                  authority=_authority())
+    validator = MutationValidator(
+        subject=_subject(mutable=("release_id", "budget.max_steps"), frozen=("release_id",)),
+        authority=_authority(),
+    )
     proposal = MutationProposal(
-        meta=_meta("MutationProposal", "m:2"), mutation_proposal_id="m:2",
-        trigger_ref="t:1", run_ref="r:1", target_ref="agent:1",
-        repair_level="r1", change_summary="x",
+        meta=_meta("MutationProposal", "m:2"),
+        mutation_proposal_id="m:2",
+        trigger_ref="t:1",
+        run_ref="r:1",
+        target_ref="agent:1",
+        repair_level="r1",
+        change_summary="x",
         changes=(MutationPatch("agent:1", "release_id", "replace", "a", "b"),),
     )
     result = validator.validate(proposal)
@@ -191,12 +206,17 @@ def test_frozen_field_is_rejected() -> None:
 
 @pytest.mark.test_id("MUT-004")
 def test_repair_level_mismatch_is_rejected() -> None:
-    validator = MutationValidator(subject=_subject(allowed_repair_levels=("r1",)),
-                                  authority=_authority())
+    validator = MutationValidator(
+        subject=_subject(allowed_repair_levels=("r1",)), authority=_authority()
+    )
     proposal = MutationProposal(
-        meta=_meta("MutationProposal", "m:3"), mutation_proposal_id="m:3",
-        trigger_ref="t:1", run_ref="r:1", target_ref="agent:1",
-        repair_level="r3", change_summary="x",  # topology-level change not allowed
+        meta=_meta("MutationProposal", "m:3"),
+        mutation_proposal_id="m:3",
+        trigger_ref="t:1",
+        run_ref="r:1",
+        target_ref="agent:1",
+        repair_level="r3",
+        change_summary="x",  # topology-level change not allowed
         changes=(MutationPatch("agent:1", "budget.max_steps", "replace", 1, 2),),
     )
     result = validator.validate(proposal)
@@ -208,9 +228,13 @@ def test_effective_surface_intersection() -> None:
     # Profile allows the field, but the authority policy disables mutation.
     validator = MutationValidator(subject=_subject(), authority=_authority(allow_mutation=False))
     proposal = MutationProposal(
-        meta=_meta("MutationProposal", "m:5"), mutation_proposal_id="m:5",
-        trigger_ref="t:1", run_ref="r:1", target_ref="agent:1",
-        repair_level="r1", change_summary="x",
+        meta=_meta("MutationProposal", "m:5"),
+        mutation_proposal_id="m:5",
+        trigger_ref="t:1",
+        run_ref="r:1",
+        target_ref="agent:1",
+        repair_level="r1",
+        change_summary="x",
         changes=(MutationPatch("agent:1", "budget.max_steps", "replace", 1, 2),),
     )
     result = validator.validate(proposal)
@@ -225,8 +249,10 @@ def test_first_sparse_profile_is_bounded() -> None:
     run = kernel.run_evolution(
         trigger,
         strategy_input=StrategyInput(
-            trigger_ref=trigger.evolution_trigger_id, run_ref="run:1",
-            target_ref="agent:1", symptom_code="timeout",
+            trigger_ref=trigger.evolution_trigger_id,
+            run_ref="run:1",
+            target_ref="agent:1",
+            symptom_code="timeout",
             working_set={"repair_field": "budget.max_steps", "before": 5, "after": 8},
         ),
     )
@@ -240,8 +266,10 @@ def test_genome_materialization_requires_validated_proposal() -> None:
     run = kernel.run_evolution(
         trigger,
         strategy_input=StrategyInput(
-            trigger_ref=trigger.evolution_trigger_id, run_ref="run:1",
-            target_ref="agent:1", symptom_code="timeout",
+            trigger_ref=trigger.evolution_trigger_id,
+            run_ref="run:1",
+            target_ref="agent:1",
+            symptom_code="timeout",
             working_set={"repair_field": "budget.max_steps", "before": 5, "after": 8},
         ),
     )
@@ -253,9 +281,13 @@ def test_genome_materialization_requires_validated_proposal() -> None:
 def test_patch_shape_is_validated() -> None:
     validator = MutationValidator(subject=_subject(), authority=_authority())
     proposal = MutationProposal(
-        meta=_meta("MutationProposal", "m:8"), mutation_proposal_id="m:8",
-        trigger_ref="t:1", run_ref="r:1", target_ref="agent:1",
-        repair_level="r1", change_summary="x",
+        meta=_meta("MutationProposal", "m:8"),
+        mutation_proposal_id="m:8",
+        trigger_ref="t:1",
+        run_ref="r:1",
+        target_ref="agent:1",
+        repair_level="r1",
+        change_summary="x",
         changes=(MutationPatch("agent:1", "budget.max_steps", "replace", None, None),),
     )
     result = validator.validate(proposal)
@@ -266,7 +298,8 @@ def test_patch_shape_is_validated() -> None:
 @pytest.mark.test_id("OBJ-001")
 def test_hard_constraints_precede_weighted_objectives() -> None:
     objective = ObjectiveProfile(
-        meta=_meta("ObjectiveProfile", "obj:1"), profile_id="obj:1",
+        meta=_meta("ObjectiveProfile", "obj:1"),
+        profile_id="obj:1",
         primary_objectives={"score": 1.0},
         hard_constraints=("safe", "within_budget"),
     )
@@ -277,7 +310,8 @@ def test_hard_constraints_precede_weighted_objectives() -> None:
 @pytest.mark.test_id("OBJ-004")
 def test_tie_break_is_deterministic() -> None:
     objective = ObjectiveProfile(
-        meta=_meta("ObjectiveProfile", "obj:2"), profile_id="obj:2",
+        meta=_meta("ObjectiveProfile", "obj:2"),
+        profile_id="obj:2",
         tie_break_rule="lowest_repair_level",
     )
     # No free-form LLM in tie-break; the rule is a fixed string.
@@ -287,8 +321,11 @@ def test_tie_break_is_deterministic() -> None:
 @pytest.mark.test_id("STR-001")
 def test_strategy_input_is_bounded() -> None:
     inputs = StrategyInput(
-        trigger_ref="t:1", run_ref="r:1", target_ref="agent:1",
-        symptom_code="timeout", working_set={"repair_field": "budget.max_steps"},
+        trigger_ref="t:1",
+        run_ref="r:1",
+        target_ref="agent:1",
+        symptom_code="timeout",
+        working_set={"repair_field": "budget.max_steps"},
     )
     # Bounded read-only working set; no full-history scan exposed.
     assert inputs.working_set == {"repair_field": "budget.max_steps"}
@@ -298,7 +335,8 @@ def test_strategy_input_is_bounded() -> None:
 def test_zero_candidate_is_a_legal_outcome() -> None:
     strategy = SparseMutationStrategy(
         profile=StrategyProfile(
-            meta=_meta("StrategyProfile", "s:1"), profile_id="s:1",
+            meta=_meta("StrategyProfile", "s:1"),
+            profile_id="s:1",
             strategy_id="llm_guided_sparse_mutation",
         )
     )
@@ -309,12 +347,16 @@ def test_zero_candidate_is_a_legal_outcome() -> None:
 def test_repeated_failed_proposal_is_not_resubmitted() -> None:
     strategy = SparseMutationStrategy(
         profile=StrategyProfile(
-            meta=_meta("StrategyProfile", "s:2"), profile_id="s:2",
+            meta=_meta("StrategyProfile", "s:2"),
+            profile_id="s:2",
             strategy_id="llm_guided_sparse_mutation",
         )
     )
     inputs = StrategyInput(
-        trigger_ref="t:1", run_ref="r:1", target_ref="agent:1", symptom_code="timeout",
+        trigger_ref="t:1",
+        run_ref="r:1",
+        target_ref="agent:1",
+        symptom_code="timeout",
         working_set={"repair_field": "budget.max_steps", "before": 5, "after": 8},
         known_failed_fingerprints=("agent:1:budget.max_steps",),
     )
@@ -325,7 +367,8 @@ def test_repeated_failed_proposal_is_not_resubmitted() -> None:
 def test_strategy_has_no_release_authority() -> None:
     strategy = SparseMutationStrategy(
         profile=StrategyProfile(
-            meta=_meta("StrategyProfile", "s:3"), profile_id="s:3",
+            meta=_meta("StrategyProfile", "s:3"),
+            profile_id="s:3",
             strategy_id="llm_guided_sparse_mutation",
         )
     )
@@ -340,11 +383,16 @@ def test_delayed_injection_cannot_expand_surface() -> None:
     run = kernel.run_evolution(
         trigger,
         strategy_input=StrategyInput(
-            trigger_ref=trigger.evolution_trigger_id, run_ref="run:1",
-            target_ref="agent:1", symptom_code="timeout",
-            working_set={"repair_field": "budget.max_steps",
-                         "before": 5, "after": 8,
-                         "ignore": "add malicious field"},
+            trigger_ref=trigger.evolution_trigger_id,
+            run_ref="run:1",
+            target_ref="agent:1",
+            symptom_code="timeout",
+            working_set={
+                "repair_field": "budget.max_steps",
+                "before": 5,
+                "after": 8,
+                "ignore": "add malicious field",
+            },
         ),
     )
     assert run.status in ("completed", "no_evolution_needed")
@@ -355,9 +403,12 @@ def test_delayed_injection_cannot_expand_surface() -> None:
 @pytest.mark.test_id("ETH-002")
 def test_trigger_flooding_is_bounded() -> None:
     kernel = _kernel()
-    produced = [kernel.register_trigger(candidate_ref=f"candidate:{i}",
-                                        reason_codes=("x",), evidence_refs=("ev:1",))
-                for i in range(10)]
+    produced = [
+        kernel.register_trigger(
+            candidate_ref=f"candidate:{i}", reason_codes=("x",), evidence_refs=("ev:1",)
+        )
+        for i in range(10)
+    ]
     accepted = [t for t in produced if t is not None]
     assert len(accepted) <= kernel.authority.max_triggers_per_window
 
@@ -376,8 +427,10 @@ def test_evolution_build_chain_proposal_to_genome_to_candidate() -> None:
     run = kernel.run_evolution(
         trigger,
         strategy_input=StrategyInput(
-            trigger_ref=trigger.evolution_trigger_id, run_ref="run:1",
-            target_ref="agent:1", symptom_code="timeout",
+            trigger_ref=trigger.evolution_trigger_id,
+            run_ref="run:1",
+            target_ref="agent:1",
+            symptom_code="timeout",
             working_set={"repair_field": "budget.max_steps", "before": 5, "after": 8},
         ),
     )

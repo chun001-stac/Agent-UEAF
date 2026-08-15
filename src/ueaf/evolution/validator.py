@@ -68,14 +68,25 @@ class MutationValidator:
                 return MutationValidation("rejected", ("governance_kernel_frozen",))
             # MUT-001 undeclared field reject.
             if patch.path not in declared:
-                return MutationValidation(
-                    "rejected", (f"undeclared_field:{patch.path}",)
-                )
+                return MutationValidation("rejected", (f"undeclared_field:{patch.path}",))
+            # MUT-003 range reject: out-of-range values are rejected.
+            range_error = self._range_error(patch)
+            if range_error:
+                return MutationValidation("rejected", (range_error,))
             # MUT-008 patch shape.
             shape = self._shape_error(patch)
             if shape:
                 return MutationValidation("rejected", (shape,))
         return MutationValidation("valid", ("sparse_and_in_scope",))
+
+    def _range_error(self, patch: MutationPatch) -> str | None:
+        bounds = self._subject.field_ranges.get(patch.path)
+        if bounds is None or patch.after is None or not isinstance(patch.after, (int, float)):
+            return None
+        low, high = bounds
+        if isinstance(patch.after, bool) or patch.after < low or patch.after > high:
+            return f"out_of_range:{patch.path}"
+        return None
 
     @staticmethod
     def _shape_error(patch: MutationPatch) -> str | None:

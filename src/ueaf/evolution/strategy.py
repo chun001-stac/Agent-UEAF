@@ -27,6 +27,7 @@ class ProposalDraft:
     change_summary: str
     changes: tuple[MutationPatch, ...]
 
+
 @dataclass(frozen=True, slots=True)
 class StrategyInput:
     """Bounded read-only working set; never scans full history (STR-001)."""

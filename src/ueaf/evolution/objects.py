@@ -131,6 +131,8 @@ class SubjectProfile:
     frozen_fields: tuple[str, ...] = ()
     allowed_repair_levels: tuple[MutationRepairLevel, ...] = ("r1", "r2")
     max_patch_fields: int = 2
+    # Numeric bounds for declared mutable fields (MUT-003 range reject).
+    field_ranges: Mapping[str, tuple[float, float]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.profile_id != self.meta.object_id:

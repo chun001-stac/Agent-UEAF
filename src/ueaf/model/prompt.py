@@ -51,6 +51,12 @@ class PromptCompileRequest:
     output_schema_ref: str
     variables: Mapping[str, Any] = field(default_factory=dict)
     max_prompt_tokens: int = 8192
+    # Reserves that input may never crowd out (PRM-005): output, capability,
+    # provider-wrapper and safety reserves are reserved for later stages.
+    output_reserve_tokens: int = 0
+    capability_reserve_tokens: int = 0
+    provider_wrapper_reserve_tokens: int = 0
+    safety_reserve_tokens: int = 0
     submitted_at: datetime | None = None
 
 
@@ -67,9 +73,7 @@ def _estimate_tokens(variables: Mapping[str, Any]) -> int:
 class PromptCompiler:
     """Compiles a prompt, enforcing instruction/data isolation and token budget."""
 
-    def __init__(
-        self, *, instruction_text: str, producer_version: str = "0.1.0"
-    ) -> None:
+    def __init__(self, *, instruction_text: str, producer_version: str = "0.1.0") -> None:
         self._instruction_text = instruction_text
         self._producer_version = producer_version
 
@@ -77,9 +81,17 @@ class PromptCompiler:
         if request.max_prompt_tokens <= 0:
             raise PromptTokenBudgetExceeded("max_prompt_tokens must be > 0")
         estimated = _estimate_tokens(request.variables)
-        if estimated > request.max_prompt_tokens:
+        total_reserve = (
+            request.output_reserve_tokens
+            + request.capability_reserve_tokens
+            + request.provider_wrapper_reserve_tokens
+            + request.safety_reserve_tokens
+        )
+        # PRM-005: input may never crowd out output/capability/safety reserves.
+        if estimated + total_reserve > request.max_prompt_tokens:
             raise PromptTokenBudgetExceeded(
-                f"estimated {estimated} tokens exceeds budget {request.max_prompt_tokens}"
+                "estimated {estimated + total_reserve} tokens (incl. reserves) "
+                f"exceeds budget {request.max_prompt_tokens}"
             )
         contract_id = f"prompt:{request.run_id}:{request.turn_id}"
         return PromptContract(
@@ -104,4 +116,3 @@ class PromptCompiler:
             text=self._instruction_text,
             default_variables=dict(request.variables),
         )
-

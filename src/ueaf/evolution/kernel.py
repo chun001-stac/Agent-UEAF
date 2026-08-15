@@ -76,9 +76,7 @@ class EvolutionKernel:
         if not evidence_refs:
             return None  # EVO-003: no evidence -> no evolution
         if cooldown_expires_at is None:
-            cooldown_expires_at = self._now() + timedelta(
-                seconds=self.authority.cooldown_seconds
-            )
+            cooldown_expires_at = self._now() + timedelta(seconds=self.authority.cooldown_seconds)
         trigger_id = new_object_id("trigger")
         trigger = EvolutionTrigger(
             meta=self._meta("EvolutionTrigger", trigger_id),

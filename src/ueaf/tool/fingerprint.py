@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -10,6 +11,22 @@ from decimal import Decimal
 from typing import Any
 
 from ueaf.common.identifiers import sha256_hex
+
+# Credential-like argument keys whose values must never enter the fingerprint
+# (ACT-017). Values are redacted before hashing.
+_SECRET_KEY_PATTERN = re.compile(
+    r"(password|passwd|secret|token|api[_-]?key|credential|"
+    r"access[_-]?key|private[_-]?key|authorization|client[_-]?secret)",
+    re.IGNORECASE,
+)
+
+
+def _redact_secret_values(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Replace values of credential-like keys with a stable placeholder."""
+    return {
+        key: ("[REDACTED]" if _SECRET_KEY_PATTERN.search(key) else value)
+        for key, value in arguments.items()
+    }
 
 
 def canonicalize_argument(value: Any) -> Any:
@@ -59,7 +76,12 @@ class ActionFingerprint:
 
     @property
     def canonical_arguments(self) -> dict[str, Any]:
-        return {str(k): canonicalize_argument(v) for k, v in sorted(self.arguments.items())}
+        canonical = {
+            str(k): canonicalize_argument(v)
+            for k, v in sorted(self.arguments.items())
+        }
+        # ACT-017: credential values never enter the fingerprint.
+        return _redact_secret_values(canonical)
 
     @property
     def action_fingerprint(self) -> str:
