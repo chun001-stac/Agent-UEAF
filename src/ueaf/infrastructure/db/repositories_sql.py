@@ -1,0 +1,330 @@
+"""SQLAlchemy-backed authoritative repositories with DB-level CAS/fencing.
+
+Each repository must be used inside ``Database.session_context()`` so state
+changes and outbox inserts share one transaction. CAS is enforced with a
+conditional ``UPDATE ... WHERE revision = expected`` and rowcount checks;
+stale fencing tokens are rejected against the persisted lease fencing token.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from typing import Any, cast
+
+from sqlalchemy import or_, select, update
+from sqlalchemy.engine import CursorResult
+
+from ueaf.admission.controller import RunAdmissionResult
+from ueaf.infrastructure.db.database import Database
+from ueaf.infrastructure.db.orm import (
+    OutboxEntryORM,
+    RunAdmissionResultORM,
+    RunRecordORM,
+    TaskStateORM,
+)
+from ueaf.infrastructure.db.repositories import (
+    RevisionConflict,
+    StaleFencing,
+)
+from ueaf.infrastructure.db.serialization import decode_value, encode_value
+from ueaf.runtime.objects import RunLease, RunRecord, TaskState
+from ueaf.runtime.outbox import OutboxEntry
+
+
+class SqlRunRecordRepository:
+    """RunRecord authority store with conditional-update CAS."""
+
+    def __init__(self, database: Database) -> None:
+        self._db = database
+
+    def get(self, run_id: str) -> RunRecord | None:
+        row = self._db.session().get(RunRecordORM, run_id)
+        return _record_from_row(row) if row is not None else None
+
+    def require(self, run_id: str) -> RunRecord:
+        record = self.get(run_id)
+        if record is None:
+            raise KeyError(f"RunRecord {run_id} not found")
+        return record
+
+    def create(self, record: RunRecord) -> RunRecord:
+        session = self._db.session()
+        if session.get(RunRecordORM, record.run_id) is not None:
+            raise ValueError(f"RunRecord {record.run_id} already exists")
+        session.add(_record_to_row(record))
+        return record
+
+    def update(
+        self,
+        current: RunRecord,
+        *,
+        expected_revision: int | None = None,
+        fencing_token: int | None = None,
+    ) -> RunRecord:
+        session = self._db.session()
+        conditions = [RunRecordORM.run_id == current.run_id]
+        if expected_revision is not None:
+            conditions.append(RunRecordORM.revision == expected_revision)
+        if fencing_token is not None:
+            conditions.append(
+                or_(
+                    RunRecordORM.lease_fencing_token.is_(None),
+                    RunRecordORM.lease_fencing_token <= fencing_token,
+                )
+            )
+        result = cast(
+            "CursorResult[Any]",
+            session.execute(
+                update(RunRecordORM)
+                .where(*conditions)
+                .values(
+                    task_id=current.task_id,
+                    phase=current.phase,
+                    completion_disposition=current.completion_disposition,
+                    attempt=current.attempt,
+                    revision=current.revision,
+                    sequence=current.sequence,
+                    lease_fencing_token=(
+                        current.lease.fencing_token
+                        if current.lease is not None
+                        else None
+                    ),
+                    release_id=current.release_id,
+                    runtime_adapter_ref=current.runtime_adapter_ref,
+                    updated_at=_utcnow(),
+                    payload=encode_value(current),
+                )
+            ),
+        )
+        if result.rowcount == 0:
+            existing = session.get(RunRecordORM, current.run_id)
+            if existing is None:
+                raise KeyError(f"RunRecord {current.run_id} not found")
+            if (
+                fencing_token is not None
+                and existing.lease_fencing_token is not None
+                and fencing_token < existing.lease_fencing_token
+            ):
+                raise StaleFencing(
+                    current.run_id, fencing_token, existing.lease_fencing_token
+                )
+            raise RevisionConflict(
+                current.run_id, expected_revision or 0, existing.revision
+            )
+        return current
+
+
+class SqlTaskStateRepository:
+    def __init__(self, database: Database) -> None:
+        self._db = database
+
+    def get(self, task_id: str) -> TaskState | None:
+        row = self._db.session().get(TaskStateORM, task_id)
+        return _task_state_from_row(row) if row is not None else None
+
+    def create(self, state: TaskState) -> TaskState:
+        session = self._db.session()
+        if session.get(TaskStateORM, state.task_id) is not None:
+            raise ValueError(f"TaskState {state.task_id} already exists")
+        session.add(
+            TaskStateORM(
+                task_id=state.task_id,
+                tenant_id=state.meta.tenant_id,
+                revision=state.revision,
+                updated_at=_utcnow(),
+                payload=encode_value(state),
+            )
+        )
+        return state
+
+    def update(self, state: TaskState, *, expected_revision: int | None = None) -> TaskState:
+        session = self._db.session()
+        conditions = [TaskStateORM.task_id == state.task_id]
+        if expected_revision is not None:
+            conditions.append(TaskStateORM.revision == expected_revision)
+        result = cast(
+            "CursorResult[Any]",
+            session.execute(
+                update(TaskStateORM)
+                .where(*conditions)
+                .values(
+                    revision=state.revision,
+                    updated_at=_utcnow(),
+                    payload=encode_value(state),
+                )
+            ),
+        )
+        if result.rowcount == 0:
+            existing = session.get(TaskStateORM, state.task_id)
+            if existing is None:
+                raise KeyError(f"TaskState {state.task_id} not found")
+            raise RevisionConflict(state.task_id, expected_revision or 0, existing.revision)
+        return state
+
+
+class SqlAdmissionResultRepository:
+    def __init__(self, database: Database) -> None:
+        self._db = database
+
+    def get(self, result_id: str) -> RunAdmissionResult | None:
+        row = self._db.session().get(RunAdmissionResultORM, result_id)
+        return _admission_from_row(row) if row is not None else None
+
+    def create(self, result: RunAdmissionResult) -> RunAdmissionResult:
+        session = self._db.session()
+        if session.get(RunAdmissionResultORM, result.run_admission_result_id) is not None:
+            raise ValueError(
+                f"RunAdmissionResult {result.run_admission_result_id} already exists"
+            )
+        session.add(
+            RunAdmissionResultORM(
+                run_admission_result_id=result.run_admission_result_id,
+                run_id=result.run_id,
+                tenant_id=result.meta.tenant_id,
+                outcome=result.outcome,
+                created_at=result.created_at or _utcnow(),
+                expires_at=result.expires_at,
+                payload=encode_value(result),
+            )
+        )
+        return result
+
+
+class SqlOutboxStore:
+    """Outbox store sharing the active transaction (CON-013)."""
+
+    def __init__(self, database: Database) -> None:
+        self._db = database
+
+    def append(self, entry: OutboxEntry) -> None:
+        session = self._db.session()
+        if session.get(OutboxEntryORM, entry.event_id) is not None:
+            raise ValueError(f"duplicate outbox event_id {entry.event_id}")
+        session.add(
+            OutboxEntryORM(
+                outbox_id=entry.outbox_id,
+                event_id=entry.event_id,
+                event_name=entry.event_name,
+                event_version=entry.event_version,
+                tenant_id=entry.tenant_id,
+                aggregate_type=entry.aggregate_type,
+                aggregate_id=entry.aggregate_id,
+                aggregate_version=entry.aggregate_version,
+                sequence=entry.sequence,
+                correlation_id=entry.correlation_id,
+                trace_id=entry.trace_id,
+                payload_schema_ref=entry.payload_schema_ref,
+                created_at=entry.created_at,
+                published_at=entry.published_at,
+                attempt_count=entry.attempt_count,
+                payload=encode_value(entry.payload),
+            )
+        )
+
+    def unpublished(self) -> list[OutboxEntry]:
+        session = self._db.session()
+        rows = (
+            session.execute(
+                select(OutboxEntryORM)
+                .where(OutboxEntryORM.published_at.is_(None))
+                .order_by(OutboxEntryORM.created_at)
+            )
+            .scalars()
+            .all()
+        )
+        return [_entry_from_row(row) for row in rows]
+
+    def mark_published(self, event_id: str, at: datetime | None = None) -> None:
+        session = self._db.session()
+        row = session.get(OutboxEntryORM, event_id)
+        if row is None:
+            raise KeyError(f"no outbox entry for {event_id}")
+        row.published_at = at or _utcnow()
+        row.attempt_count = row.attempt_count + 1
+
+    def dedupe_event_id(self, event_id: str) -> bool:
+        row = self._db.session().get(OutboxEntryORM, event_id)
+        return row is not None and row.published_at is not None
+
+
+# -- row <-> object mapping --------------------------------------------------
+
+
+def _utcnow() -> datetime:
+    return datetime.now(UTC)
+
+
+def _record_to_row(record: RunRecord) -> RunRecordORM:
+    return RunRecordORM(
+        run_id=record.run_id,
+        tenant_id=record.meta.tenant_id,
+        task_id=record.task_id,
+        phase=record.phase,
+        completion_disposition=record.completion_disposition,
+        attempt=record.attempt,
+        revision=record.revision,
+        sequence=record.sequence,
+        lease_fencing_token=record.lease.fencing_token if record.lease is not None else None,
+        release_id=record.release_id,
+        runtime_adapter_ref=record.runtime_adapter_ref,
+        created_at=record.created_at or _utcnow(),
+        updated_at=record.updated_at or _utcnow(),
+        payload=encode_value(record),
+    )
+
+
+def _record_from_row(row: RunRecordORM) -> RunRecord:
+    record = decode_value(row.payload)
+    if not isinstance(record, RunRecord):
+        raise ValueError(f"corrupt run_records payload for {row.run_id}")
+    return record
+
+
+def _task_state_from_row(row: TaskStateORM) -> TaskState:
+    state = decode_value(row.payload)
+    if not isinstance(state, TaskState):
+        raise ValueError(f"corrupt task_states payload for {row.task_id}")
+    return state
+
+
+def _admission_from_row(row: RunAdmissionResultORM) -> RunAdmissionResult:
+    result = decode_value(row.payload)
+    if not isinstance(result, RunAdmissionResult):
+        raise ValueError(f"corrupt run_admission_results payload for {row.run_admission_result_id}")
+    return result
+
+
+def _entry_from_row(row: OutboxEntryORM) -> OutboxEntry:
+    payload = decode_value(row.payload)
+    if not isinstance(payload, dict):
+        raise ValueError(f"corrupt outbox payload for {row.event_id}")
+    return OutboxEntry(
+        outbox_id=row.outbox_id,
+        event_id=row.event_id,
+        event_name=row.event_name,
+        event_version=row.event_version,
+        tenant_id=row.tenant_id,
+        aggregate_type=row.aggregate_type,
+        aggregate_id=row.aggregate_id,
+        aggregate_version=row.aggregate_version,
+        sequence=row.sequence,
+        correlation_id=row.correlation_id,
+        trace_id=row.trace_id,
+        payload_schema_ref=row.payload_schema_ref,
+        payload=payload,
+        created_at=row.created_at,
+        release_id=None,
+        principal_ref=None,
+        causation_id=None,
+        published_at=row.published_at,
+        attempt_count=row.attempt_count,
+    )
+
+
+__all__ = [
+    "RunLease",
+    "SqlRunRecordRepository",
+    "SqlTaskStateRepository",
+    "SqlAdmissionResultRepository",
+    "SqlOutboxStore",
+]

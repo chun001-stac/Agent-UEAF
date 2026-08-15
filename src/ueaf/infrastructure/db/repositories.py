@@ -55,6 +55,38 @@ class Repository[T]:
     """Minimal CAS repository contract."""
 
 
+class RunRecordRepository(Protocol):
+    """Common contract for in-memory and SQL RunRecord stores."""
+
+    def get(self, run_id: str) -> RunRecord | None: ...
+
+    def require(self, run_id: str) -> RunRecord: ...
+
+    def create(self, record: RunRecord) -> RunRecord: ...
+
+    def update(
+        self,
+        current: RunRecord,
+        *,
+        expected_revision: int | None = None,
+        fencing_token: int | None = None,
+    ) -> RunRecord: ...
+
+
+class TaskStateRepository(Protocol):
+    def get(self, task_id: str) -> TaskState | None: ...
+
+    def create(self, state: TaskState) -> TaskState: ...
+
+    def update(self, state: TaskState, *, expected_revision: int | None = None) -> TaskState: ...
+
+
+class AdmissionResultRepository(Protocol):
+    def get(self, result_id: str) -> RunAdmissionResult | None: ...
+
+    def create(self, result: RunAdmissionResult) -> RunAdmissionResult: ...
+
+
 @dataclass(slots=True)
 class InMemoryRunRecordRepository:
     """Authoritative store for RunRecord with revision CAS."""
