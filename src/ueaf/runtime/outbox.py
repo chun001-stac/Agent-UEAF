@@ -42,13 +42,13 @@ class OutboxEntry:
 
 
 class OutboxStore(Protocol):
-    def append(self, entry: OutboxEntry) -> None: ...
+    async def append(self, entry: OutboxEntry) -> None: ...
 
-    def unpublished(self) -> list[OutboxEntry]: ...
+    async def unpublished(self) -> list[OutboxEntry]: ...
 
-    def mark_published(self, event_id: str, at: datetime) -> None: ...
+    async def mark_published(self, event_id: str, at: datetime) -> None: ...
 
-    def dedupe_event_id(self, event_id: str) -> bool: ...
+    async def dedupe_event_id(self, event_id: str) -> bool: ...
 
 
 class InMemoryOutboxStore:
@@ -59,21 +59,23 @@ class InMemoryOutboxStore:
         self._by_event_id: set[str] = set()
         self._published: set[str] = set()
 
-    def append(self, entry: OutboxEntry) -> None:
+    async def append(self, entry: OutboxEntry) -> None:
         if entry.event_id in self._by_event_id:
             raise ValueError(f"duplicate outbox event_id {entry.event_id}")
         self._by_event_id.add(entry.event_id)
         self._entries.append(entry)
 
-    def unpublished(self) -> list[OutboxEntry]:
-        return [entry for entry in self._entries if entry.event_id not in self._published]
+    async def unpublished(self) -> list[OutboxEntry]:
+        return [
+            entry for entry in self._entries if entry.event_id not in self._published
+        ]
 
-    def mark_published(self, event_id: str, at: datetime | None = None) -> None:
+    async def mark_published(self, event_id: str, at: datetime | None = None) -> None:
         if event_id not in self._by_event_id:
             raise KeyError(f"no outbox entry for {event_id}")
         self._published.add(event_id)
 
-    def dedupe_event_id(self, event_id: str) -> bool:
+    async def dedupe_event_id(self, event_id: str) -> bool:
         return event_id in self._published
 
     def published_events(self) -> list[OutboxEntry]:

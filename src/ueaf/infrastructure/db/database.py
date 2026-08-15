@@ -1,31 +1,38 @@
-"""Database engine/session management.
+"""Async database engine/session management.
 
-A ``Database`` owns an engine and a session factory. Authoritative operations
-run inside ``session_context()`` which binds a single SQLAlchemy ``Session`` to
-a context-local slot, so the run repository and the outbox store participate in
-the same transaction (CON-013): commit on success, rollback on failure.
+A ``Database`` owns an async engine and an async session factory. Authoritative
+operations run inside ``async_session_context()`` which binds a single
+``AsyncSession`` to a context-local slot, so the run repository and the outbox
+store participate in the same transaction (CON-013): commit on success,
+rollback on failure.
+
+The runtime uses the same ``asyncpg`` driver as the migration harness
+(``migrations/env.py``), keeping a single PostgreSQL driver across the stack.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from contextlib import contextmanager
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from typing import Any
 
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from ueaf.infrastructure.db.orm import Base
 
-_current_session: ContextVar[Session | None] = ContextVar(
+_current_session: ContextVar[AsyncSession | None] = ContextVar(
     "ueaf_current_session", default=None
 )
 
 
 class Database:
-    """SQLAlchemy engine + session context for authoritative persistence."""
+    """SQLAlchemy async engine + session context for authoritative persistence."""
 
     def __init__(
         self,
@@ -36,62 +43,64 @@ class Database:
         poolclass: Any = None,
     ) -> None:
         self.url = url
-        kwargs: dict[str, Any] = {"echo": echo, "future": True}
+        kwargs: dict[str, Any] = {"echo": echo}
         if connect_args is not None:
             kwargs["connect_args"] = connect_args
         if poolclass is not None:
             kwargs["poolclass"] = poolclass
-        self._engine: Engine = create_engine(url, **kwargs)
-        self._session_factory = sessionmaker(
-            bind=self._engine, expire_on_commit=False, future=True
+        self._engine: AsyncEngine = create_async_engine(url, **kwargs)
+        self._session_factory = async_sessionmaker(
+            self._engine, expire_on_commit=False
         )
 
     @property
-    def engine(self) -> Engine:
+    def engine(self) -> AsyncEngine:
         return self._engine
 
-    def session(self) -> Session:
+    async def session(self) -> AsyncSession:
         session = _current_session.get()
         if session is None:
             raise RuntimeError(
-                "no active database session; use Database.session_context()"
+                "no active database session; use Database.async_session_context()"
             )
         return session
 
-    @contextmanager
-    def session_context(self) -> Iterator[Session]:
-        """Bind one Session for the duration of an authoritative operation."""
+    @asynccontextmanager
+    async def async_session_context(self) -> AsyncIterator[AsyncSession]:
+        """Bind one AsyncSession for the duration of an authoritative operation."""
         session = self._session_factory()
         token = _current_session.set(session)
         try:
             yield session
-            session.commit()
+            await session.commit()
         except Exception:
-            session.rollback()
+            await session.rollback()
             raise
         finally:
             _current_session.reset(token)
-            session.close()
+            await session.close()
 
-    def create_all(self) -> None:
+    async def create_all(self) -> None:
         """Create all tables from ORM metadata (tests / local bootstrap)."""
-        Base.metadata.create_all(self._engine)
+        async with self._engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
 
-    def dispose(self) -> None:
-        self._engine.dispose()
+    async def dispose(self) -> None:
+        await self._engine.dispose()
 
 
-def memory_database() -> Database:
-    """SQLite in-memory database sharing one connection (unit tests)."""
+async def memory_database() -> Database:
+    """SQLite in-memory async database sharing one connection (unit tests)."""
     from sqlalchemy.pool import StaticPool
 
     database = Database(
-        "sqlite://",
+        "sqlite+aiosqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    database.create_all()
+    await database.create_all()
     return database
 
 
-__all__ = ["Database", "memory_database", "Any"]
+__all__ = ["Database", "memory_database"]
+

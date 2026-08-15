@@ -37,31 +37,32 @@ class SqlRunRecordRepository:
     def __init__(self, database: Database) -> None:
         self._db = database
 
-    def get(self, run_id: str) -> RunRecord | None:
-        row = self._db.session().get(RunRecordORM, run_id)
+    async def get(self, run_id: str) -> RunRecord | None:
+        session = await self._db.session()
+        row = await session.get(RunRecordORM, run_id)
         return _record_from_row(row) if row is not None else None
 
-    def require(self, run_id: str) -> RunRecord:
-        record = self.get(run_id)
+    async def require(self, run_id: str) -> RunRecord:
+        record = await self.get(run_id)
         if record is None:
             raise KeyError(f"RunRecord {run_id} not found")
         return record
 
-    def create(self, record: RunRecord) -> RunRecord:
-        session = self._db.session()
-        if session.get(RunRecordORM, record.run_id) is not None:
+    async def create(self, record: RunRecord) -> RunRecord:
+        session = await self._db.session()
+        if await session.get(RunRecordORM, record.run_id) is not None:
             raise ValueError(f"RunRecord {record.run_id} already exists")
         session.add(_record_to_row(record))
         return record
 
-    def update(
+    async def update(
         self,
         current: RunRecord,
         *,
         expected_revision: int | None = None,
         fencing_token: int | None = None,
     ) -> RunRecord:
-        session = self._db.session()
+        session = await self._db.session()
         conditions = [RunRecordORM.run_id == current.run_id]
         if expected_revision is not None:
             conditions.append(RunRecordORM.revision == expected_revision)
@@ -74,7 +75,7 @@ class SqlRunRecordRepository:
             )
         result = cast(
             "CursorResult[Any]",
-            session.execute(
+            await session.execute(
                 update(RunRecordORM)
                 .where(*conditions)
                 .values(
@@ -97,7 +98,7 @@ class SqlRunRecordRepository:
             ),
         )
         if result.rowcount == 0:
-            existing = session.get(RunRecordORM, current.run_id)
+            existing = await session.get(RunRecordORM, current.run_id)
             if existing is None:
                 raise KeyError(f"RunRecord {current.run_id} not found")
             if (
@@ -118,13 +119,14 @@ class SqlTaskStateRepository:
     def __init__(self, database: Database) -> None:
         self._db = database
 
-    def get(self, task_id: str) -> TaskState | None:
-        row = self._db.session().get(TaskStateORM, task_id)
+    async def get(self, task_id: str) -> TaskState | None:
+        session = await self._db.session()
+        row = await session.get(TaskStateORM, task_id)
         return _task_state_from_row(row) if row is not None else None
 
-    def create(self, state: TaskState) -> TaskState:
-        session = self._db.session()
-        if session.get(TaskStateORM, state.task_id) is not None:
+    async def create(self, state: TaskState) -> TaskState:
+        session = await self._db.session()
+        if await session.get(TaskStateORM, state.task_id) is not None:
             raise ValueError(f"TaskState {state.task_id} already exists")
         session.add(
             TaskStateORM(
@@ -137,14 +139,16 @@ class SqlTaskStateRepository:
         )
         return state
 
-    def update(self, state: TaskState, *, expected_revision: int | None = None) -> TaskState:
-        session = self._db.session()
+    async def update(
+        self, state: TaskState, *, expected_revision: int | None = None
+    ) -> TaskState:
+        session = await self._db.session()
         conditions = [TaskStateORM.task_id == state.task_id]
         if expected_revision is not None:
             conditions.append(TaskStateORM.revision == expected_revision)
         result = cast(
             "CursorResult[Any]",
-            session.execute(
+            await session.execute(
                 update(TaskStateORM)
                 .where(*conditions)
                 .values(
@@ -155,10 +159,12 @@ class SqlTaskStateRepository:
             ),
         )
         if result.rowcount == 0:
-            existing = session.get(TaskStateORM, state.task_id)
+            existing = await session.get(TaskStateORM, state.task_id)
             if existing is None:
                 raise KeyError(f"TaskState {state.task_id} not found")
-            raise RevisionConflict(state.task_id, expected_revision or 0, existing.revision)
+            raise RevisionConflict(
+                state.task_id, expected_revision or 0, existing.revision
+            )
         return state
 
 
@@ -166,13 +172,17 @@ class SqlAdmissionResultRepository:
     def __init__(self, database: Database) -> None:
         self._db = database
 
-    def get(self, result_id: str) -> RunAdmissionResult | None:
-        row = self._db.session().get(RunAdmissionResultORM, result_id)
+    async def get(self, result_id: str) -> RunAdmissionResult | None:
+        session = await self._db.session()
+        row = await session.get(RunAdmissionResultORM, result_id)
         return _admission_from_row(row) if row is not None else None
 
-    def create(self, result: RunAdmissionResult) -> RunAdmissionResult:
-        session = self._db.session()
-        if session.get(RunAdmissionResultORM, result.run_admission_result_id) is not None:
+    async def create(self, result: RunAdmissionResult) -> RunAdmissionResult:
+        session = await self._db.session()
+        if (
+            await session.get(RunAdmissionResultORM, result.run_admission_result_id)
+            is not None
+        ):
             raise ValueError(
                 f"RunAdmissionResult {result.run_admission_result_id} already exists"
             )
@@ -196,9 +206,16 @@ class SqlOutboxStore:
     def __init__(self, database: Database) -> None:
         self._db = database
 
-    def append(self, entry: OutboxEntry) -> None:
-        session = self._db.session()
-        if session.get(OutboxEntryORM, entry.event_id) is not None:
+    async def append(self, entry: OutboxEntry) -> None:
+        session = await self._db.session()
+        existing = (
+            await session.execute(
+                select(OutboxEntryORM.event_id).where(
+                    OutboxEntryORM.event_id == entry.event_id
+                )
+            )
+        ).first()
+        if existing is not None:
             raise ValueError(f"duplicate outbox event_id {entry.event_id}")
         session.add(
             OutboxEntryORM(
@@ -221,29 +238,42 @@ class SqlOutboxStore:
             )
         )
 
-    def unpublished(self) -> list[OutboxEntry]:
-        session = self._db.session()
+    async def unpublished(self) -> list[OutboxEntry]:
+        session = await self._db.session()
         rows = (
-            session.execute(
-                select(OutboxEntryORM)
-                .where(OutboxEntryORM.published_at.is_(None))
-                .order_by(OutboxEntryORM.created_at)
+            (
+                await session.execute(
+                    select(OutboxEntryORM)
+                    .where(OutboxEntryORM.published_at.is_(None))
+                    .order_by(OutboxEntryORM.created_at)
+                )
             )
             .scalars()
             .all()
         )
         return [_entry_from_row(row) for row in rows]
 
-    def mark_published(self, event_id: str, at: datetime | None = None) -> None:
-        session = self._db.session()
-        row = session.get(OutboxEntryORM, event_id)
+    async def mark_published(
+        self, event_id: str, at: datetime | None = None
+    ) -> None:
+        session = await self._db.session()
+        row = (
+            await session.execute(
+                select(OutboxEntryORM).where(OutboxEntryORM.event_id == event_id)
+            )
+        ).scalar_one_or_none()
         if row is None:
             raise KeyError(f"no outbox entry for {event_id}")
         row.published_at = at or _utcnow()
         row.attempt_count = row.attempt_count + 1
 
-    def dedupe_event_id(self, event_id: str) -> bool:
-        row = self._db.session().get(OutboxEntryORM, event_id)
+    async def dedupe_event_id(self, event_id: str) -> bool:
+        session = await self._db.session()
+        row = (
+            await session.execute(
+                select(OutboxEntryORM).where(OutboxEntryORM.event_id == event_id)
+            )
+        ).scalar_one_or_none()
         return row is not None and row.published_at is not None
 
 

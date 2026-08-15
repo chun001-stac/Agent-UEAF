@@ -58,13 +58,13 @@ class Repository[T]:
 class RunRecordRepository(Protocol):
     """Common contract for in-memory and SQL RunRecord stores."""
 
-    def get(self, run_id: str) -> RunRecord | None: ...
+    async def get(self, run_id: str) -> RunRecord | None: ...
 
-    def require(self, run_id: str) -> RunRecord: ...
+    async def require(self, run_id: str) -> RunRecord: ...
 
-    def create(self, record: RunRecord) -> RunRecord: ...
+    async def create(self, record: RunRecord) -> RunRecord: ...
 
-    def update(
+    async def update(
         self,
         current: RunRecord,
         *,
@@ -74,17 +74,19 @@ class RunRecordRepository(Protocol):
 
 
 class TaskStateRepository(Protocol):
-    def get(self, task_id: str) -> TaskState | None: ...
+    async def get(self, task_id: str) -> TaskState | None: ...
 
-    def create(self, state: TaskState) -> TaskState: ...
+    async def create(self, state: TaskState) -> TaskState: ...
 
-    def update(self, state: TaskState, *, expected_revision: int | None = None) -> TaskState: ...
+    async def update(
+        self, state: TaskState, *, expected_revision: int | None = None
+    ) -> TaskState: ...
 
 
 class AdmissionResultRepository(Protocol):
-    def get(self, result_id: str) -> RunAdmissionResult | None: ...
+    async def get(self, result_id: str) -> RunAdmissionResult | None: ...
 
-    def create(self, result: RunAdmissionResult) -> RunAdmissionResult: ...
+    async def create(self, result: RunAdmissionResult) -> RunAdmissionResult: ...
 
 
 @dataclass(slots=True)
@@ -93,29 +95,31 @@ class InMemoryRunRecordRepository:
 
     _records: dict[str, RunRecord] = field(default_factory=dict)
 
-    def get(self, run_id: str) -> RunRecord | None:
+    async def get(self, run_id: str) -> RunRecord | None:
         return self._records.get(run_id)
 
-    def require(self, run_id: str) -> RunRecord:
+    async def require(self, run_id: str) -> RunRecord:
         record = self._records.get(run_id)
         if record is None:
             raise KeyError(f"RunRecord {run_id} not found")
         return record
 
-    def create(self, record: RunRecord) -> RunRecord:
+    async def create(self, record: RunRecord) -> RunRecord:
         if record.run_id in self._records:
             raise ValueError(f"RunRecord {record.run_id} already exists")
         self._records[record.run_id] = record
         return record
 
-    def update(
+    async def update(
         self,
         current: RunRecord,
         *,
         expected_revision: int | None = None,
         fencing_token: int | None = None,
     ) -> RunRecord:
-        existing = self.require(current.run_id)
+        existing = self._records.get(current.run_id)
+        if existing is None:
+            raise KeyError(f"RunRecord {current.run_id} not found")
         if expected_revision is not None and existing.revision != expected_revision:
             raise RevisionConflict(current.run_id, expected_revision, existing.revision)
         if fencing_token is not None:
@@ -130,16 +134,18 @@ class InMemoryRunRecordRepository:
 class InMemoryTaskStateRepository:
     _states: dict[str, TaskState] = field(default_factory=dict)
 
-    def get(self, task_id: str) -> TaskState | None:
+    async def get(self, task_id: str) -> TaskState | None:
         return self._states.get(task_id)
 
-    def create(self, state: TaskState) -> TaskState:
+    async def create(self, state: TaskState) -> TaskState:
         if state.task_id in self._states:
             raise ValueError(f"TaskState {state.task_id} already exists")
         self._states[state.task_id] = state
         return state
 
-    def update(self, state: TaskState, *, expected_revision: int | None = None) -> TaskState:
+    async def update(
+        self, state: TaskState, *, expected_revision: int | None = None
+    ) -> TaskState:
         existing = self._states.get(state.task_id)
         if existing is None:
             raise KeyError(f"TaskState {state.task_id} not found")
@@ -153,10 +159,10 @@ class InMemoryTaskStateRepository:
 class InMemoryAdmissionResultRepository:
     _results: dict[str, RunAdmissionResult] = field(default_factory=dict)
 
-    def get(self, result_id: str) -> RunAdmissionResult | None:
+    async def get(self, result_id: str) -> RunAdmissionResult | None:
         return self._results.get(result_id)
 
-    def create(self, result: RunAdmissionResult) -> RunAdmissionResult:
+    async def create(self, result: RunAdmissionResult) -> RunAdmissionResult:
         if result.run_admission_result_id in self._results:
             raise ValueError(
                 f"RunAdmissionResult {result.run_admission_result_id} already exists"
