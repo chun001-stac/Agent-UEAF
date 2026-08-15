@@ -52,6 +52,23 @@ def _to_envelope(entry: OutboxEntry) -> EventEnvelope:
     )
 
 
+def _envelope_from_dict(data: dict[str, Any]) -> EventEnvelope:
+    """Rebuild an EventEnvelope from the JSON wire dict (datetime -> ISO strings)."""
+
+    kwargs: dict[str, Any] = {}
+    for key, value in data.items():
+        if isinstance(value, str):
+            try:
+                kwargs[key] = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                kwargs[key] = value
+        elif isinstance(value, list):
+            kwargs[key] = tuple(value)
+        else:
+            kwargs[key] = value
+    return EventEnvelope(**kwargs)
+
+
 class InMemoryOutboxPublisher:
     """Test/local publisher: dedupes by event_id, keeps delivered envelopes."""
 
@@ -91,9 +108,7 @@ class NatsJetStreamOutboxPublisher:
     async def publish(self, entry: OutboxEntry) -> bool:
         _import_nats()  # ensure the dependency is present before publishing
         subject = f"{self._subject_prefix}.{entry.event_name}"
-        body = json.dumps(
-            dataclasses.asdict(_to_envelope(entry)), default=str
-        ).encode("utf-8")
+        body = json.dumps(dataclasses.asdict(_to_envelope(entry)), default=str).encode("utf-8")
         ack = await self._js.publish(  # type: ignore[attr-defined]
             subject, body, headers={"Nats-Msg-Id": entry.event_id}
         )
@@ -117,7 +132,5 @@ def _import_nats() -> Any:
     try:
         import nats
     except ImportError as error:  # pragma: no cover
-        raise RuntimeError(
-            "nats-py is required for the NATS JetStream outbox publisher"
-        ) from error
+        raise RuntimeError("nats-py is required for the NATS JetStream outbox publisher") from error
     return nats

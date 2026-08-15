@@ -21,9 +21,7 @@ class ArtifactRef:
 
 
 class ArtifactStore(Protocol):
-    def put(
-        self, key: str, data: bytes, *, content_type: str | None = None
-    ) -> ArtifactRef: ...
+    def put(self, key: str, data: bytes, *, content_type: str | None = None) -> ArtifactRef: ...
 
     def get(self, key: str) -> bytes: ...
 
@@ -40,18 +38,14 @@ class InMemoryArtifactStore:
     def __init__(self) -> None:
         self._objects: dict[str, tuple[bytes, str | None]] = {}
 
-    def put(
-        self, key: str, data: bytes, *, content_type: str | None = None
-    ) -> ArtifactRef:
+    def put(self, key: str, data: bytes, *, content_type: str | None = None) -> ArtifactRef:
         if not key:
             raise ValueError("artifact key must not be empty")
         existing = self._objects.get(key)
         if existing is not None and existing[0] != data:
             raise ValueError(f"artifact {key} already exists with different content")
         self._objects[key] = (data, content_type)
-        return ArtifactRef(
-            key=key, size=len(data), digest=_digest(data), content_type=content_type
-        )
+        return ArtifactRef(key=key, size=len(data), digest=_digest(data), content_type=content_type)
 
     def get(self, key: str) -> bytes:
         try:
@@ -96,10 +90,14 @@ class S3ArtifactStore:
             self._client = boto3.client("s3", **kwargs)
         return self._client
 
-    def put(
-        self, key: str, data: bytes, *, content_type: str | None = None
-    ) -> ArtifactRef:
+    def put(self, key: str, data: bytes, *, content_type: str | None = None) -> ArtifactRef:
         object_key = f"{self._prefix}/{key}"
+        # Immutability (ACT-016): an existing object must not be silently
+        # replaced with different content.
+        if self.exists(key):
+            existing = self.get(key)
+            if existing != data:
+                raise ValueError(f"artifact {key} already exists with different content")
         extra = {"ContentType": content_type} if content_type else None
         self._boto.put_object(  # type: ignore[attr-defined]
             Bucket=self._bucket,
@@ -107,9 +105,7 @@ class S3ArtifactStore:
             Body=data,
             **(extra or {}),
         )
-        return ArtifactRef(
-            key=key, size=len(data), digest=_digest(data), content_type=content_type
-        )
+        return ArtifactRef(key=key, size=len(data), digest=_digest(data), content_type=content_type)
 
     def get(self, key: str) -> bytes:
         response = self._boto.get_object(  # type: ignore[attr-defined]
@@ -130,9 +126,7 @@ class S3ArtifactStore:
 
 def _import_boto3() -> Any:
     try:
-        import boto3
+        import boto3  # type: ignore[import-untyped]
     except ImportError as error:  # pragma: no cover
-        raise RuntimeError(
-            "boto3 is required for the S3/MinIO artifact store"
-        ) from error
+        raise RuntimeError("boto3 is required for the S3/MinIO artifact store") from error
     return boto3

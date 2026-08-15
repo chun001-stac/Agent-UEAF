@@ -89,3 +89,79 @@ class OutboxEntryORM(Base):
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     payload: Mapped[dict[str, Any]] = mapped_column(JSON_COLUMN, nullable=False)
+
+
+class ActionRecordORM(Base):
+    __tablename__ = "action_records"
+
+    action_id: Mapped[str] = mapped_column(String, primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    run_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    action_key: Mapped[str] = mapped_column(String, nullable=False)
+    capability_ref: Mapped[str] = mapped_column(String, nullable=False)
+    phase: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    disposition: Mapped[str | None] = mapped_column(String, nullable=True)
+    attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    lease_fencing_token: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON_COLUMN, nullable=False)
+
+
+class ActionReceiptORM(Base):
+    __tablename__ = "action_receipts"
+
+    action_receipt_id: Mapped[str] = mapped_column(String, primary_key=True)
+    action_key: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    action_fingerprint: Mapped[str] = mapped_column(String, nullable=False)
+    capability_ref: Mapped[str] = mapped_column(String, nullable=False)
+    executor_ref: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    attempt: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON_COLUMN, nullable=False)
+
+
+class ApprovalRequestORM(Base):
+    __tablename__ = "approval_requests"
+
+    approval_request_id: Mapped[str] = mapped_column(String, primary_key=True)
+    action_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    run_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    tenant_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    status: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON_COLUMN, nullable=False)
+
+
+class TurnRecordORM(Base):
+    __tablename__ = "turn_records"
+
+    turn_id: Mapped[str] = mapped_column(String, primary_key=True)
+    run_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    tenant_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    turn_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    outcome: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON_COLUMN, nullable=False)
+
+
+class MemoryRecordORM(Base):
+    __tablename__ = "memory_records"
+
+    record_id: Mapped[str] = mapped_column(String, primary_key=True)
+    subject_ref: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    tenant_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    scope: Mapped[str] = mapped_column(String, nullable=False)
+    sensitivity: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="active", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON_COLUMN, nullable=False)

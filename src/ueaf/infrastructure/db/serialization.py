@@ -14,7 +14,10 @@ from typing import Any
 
 from ueaf.admission.controller import RunAdmissionResult
 from ueaf.common.meta import ContractMeta, ProvenanceRef
+from ueaf.memory.objects import MemoryRecord
 from ueaf.runtime.objects import RunLease, RunRecord, TaskState
+from ueaf.runtime.turn import TurnRecord
+from ueaf.tool.action import ActionReceipt, ActionRecord
 
 _CLASS_REGISTRY: dict[str, type[Any]] = {
     cls.__name__: cls
@@ -25,6 +28,10 @@ _CLASS_REGISTRY: dict[str, type[Any]] = {
         RunRecord,
         TaskState,
         RunAdmissionResult,
+        ActionRecord,
+        ActionReceipt,
+        TurnRecord,
+        MemoryRecord,
     )
 }
 

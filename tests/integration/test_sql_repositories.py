@@ -51,6 +51,7 @@ requires_database = pytest.mark.skipif(
 @requires_database
 async def _sql_coordinator():
     database = await _make_database()
+    await support.clean_authoritative_tables(database)
     coordinator = RunCoordinator.sql(
         database, support.admission_controller(), clock=Clock(support.now())
     )

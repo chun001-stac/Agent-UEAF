@@ -12,6 +12,7 @@ from ueaf.admission.objects import (
     TaskEnvelope,
 )
 from ueaf.common.meta import ContractMeta, ProvenanceRef
+from ueaf.infrastructure.db.database import Database
 
 TENANT = "tenant-demo"
 PRODUCER = "ueaf-test"
@@ -150,3 +151,21 @@ def admission_controller(
         AllowAllReleaseGate(usable=usable_release),
         StubPolicySource(refs=policy_refs, denied=denied),
     )
+
+
+async def clean_authoritative_tables(database: Database) -> None:
+    """Delete all rows from authoritative tables (test isolation).
+
+    SQL integration tests assume a clean authority DB; a real PostgreSQL left
+    over from a previous run (or a shared CI DB) otherwise violates unique-key
+    assumptions (e.g. ``task-1``). Truncation restores hermeticity regardless of
+    driver/backing store.
+    """
+
+    from sqlalchemy import delete
+
+    from ueaf.infrastructure.db.orm import Base
+
+    async with database.engine.begin() as connection:
+        for table in reversed(Base.metadata.sorted_tables):
+            await connection.execute(delete(table))
