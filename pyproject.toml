@@ -20,7 +20,8 @@ dependencies = [
   "opentelemetry-api>=1.36,<2",
   "opentelemetry-sdk>=1.36,<2",
   "boto3>=1.40,<2",
-  "jsonschema>=4.25,<5",
+  "jsonschema[format]>=4.25,<5",
+  "referencing>=0.36,<1",
 ]
 
 [project.optional-dependencies]
@@ -36,9 +37,15 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/ueaf"]
 
+[tool.uv]
+required-version = "==0.11.32"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+markers = [
+  "test_id(*ids): map a test family to one or more registered UEAF acceptance Test IDs",
+]
 
 [tool.ruff]
 target-version = "py312"

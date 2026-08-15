@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/tool/tool-result.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ToolResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "tool_result_id",
+    "tool_intent_ref",
+    "action_ref",
+    "status",
+    "safe_summary",
+    "result_schema_ref",
+    "result_ref",
+    "citation_refs",
+    "retry_advice",
+    "observed_at"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "tool_result_id": {"type": "string", "minLength": 1},
+    "tool_intent_ref": {"type": "string", "minLength": 1},
+    "action_ref": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "enum": ["succeeded", "failed", "unknown", "denied"]},
+    "safe_summary": {"type": "string"},
+    "result_schema_ref": {"type": ["string", "null"], "minLength": 1},
+    "result_ref": {"type": ["string", "null"], "minLength": 1},
+    "citation_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "retry_advice": {"$ref": "#/$defs/retryAdvice"},
+    "observed_at": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "unknown"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "retry_advice": {
+            "allOf": [
+              {"$ref": "#/$defs/retryAdvice"},
+              {
+                "properties": {
+                  "retryability": {"const": "after_reconciliation"},
+                  "requires_reconciliation": {"const": true}
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "retryAdvice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["retryability", "requires_reconciliation", "next_action_ref"],
+      "properties": {
+        "retryability": {"type": "string", "enum": ["never", "safe", "conditional", "after_reconciliation"]},
+        "requires_reconciliation": {"type": "boolean"},
+        "next_action_ref": {"type": ["string", "null"], "minLength": 1}
+      }
+    }
+  }
+}

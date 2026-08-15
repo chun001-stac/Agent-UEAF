@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/security/policy-decision.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "PolicyDecision",
+  "type": "object",
+  "additionalProperties": false,
+  "$comment": "resource, environment, and constraints remain bound to input_hash and the signed policy versions; this object is runtime authorization only, never a release gate",
+  "required": [
+    "meta",
+    "policy_decision_id",
+    "authorization_request_id",
+    "tenant_id",
+    "principal_context_ref",
+    "action",
+    "resource",
+    "environment",
+    "outcome",
+    "constraints",
+    "reason_codes",
+    "policy_versions",
+    "input_hash",
+    "evaluated_at",
+    "expires_at"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "policy_decision_id": {"type": "string", "minLength": 1},
+    "authorization_request_id": {"type": "string", "minLength": 1},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "principal_context_ref": {"type": "string", "minLength": 1},
+    "action": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"},
+    "resource": {"type": "object", "minProperties": 1},
+    "environment": {"type": "object", "minProperties": 1},
+    "outcome": {"type": "string", "enum": ["allow", "deny", "require_approval"]},
+    "constraints": {"type": "object"},
+    "reason_codes": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "policy_versions": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "input_hash": {"type": "string", "minLength": 1},
+    "evaluated_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  }
+}

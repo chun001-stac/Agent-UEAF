@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/telemetry/audit-record.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "AuditRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "audit_record_id", "occurred_at", "recorded_at", "actor_ref", "action", "resource_refs", "policy_decision_refs", "approval_request_refs", "receipt_refs", "release_id", "run_id", "adapter_ref", "result_classification", "correlation_id", "retention_policy_ref", "access_policy_ref", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "audit_record_id": {"type": "string", "minLength": 1},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "actor_ref": {"type": "string", "minLength": 1},
+    "action": {"type": "string", "minLength": 1},
+    "resource_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "policy_decision_refs": {"$ref": "#/$defs/refList"},
+    "approval_request_refs": {"$ref": "#/$defs/refList"},
+    "receipt_refs": {"$ref": "#/$defs/refList"},
+    "release_id": {"type": ["string", "null"], "minLength": 1},
+    "run_id": {"type": ["string", "null"], "minLength": 1},
+    "adapter_ref": {"type": ["string", "null"], "minLength": 1},
+    "result_classification": {"type": "string", "minLength": 1},
+    "correlation_id": {"type": "string", "minLength": 1},
+    "retention_policy_ref": {"type": "string", "minLength": 1},
+    "access_policy_ref": {"type": "string", "minLength": 1},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+  }
+}

@@ -18,7 +18,7 @@ UEAF 将以下能力定义为默认不可由同一递归链自主修改的 Gover
 - Audit 完整性与保留；
 - Eval root、holdout 答案、核心阈值和 Judge 权限边界；
 - Release Authority 与 Manifest 签名；
-- EvolutionBudget Enforcement；
+- 既有 Budget Domain 对 Evolution budget slice 的强制执行；
 - kill switch、删除传播和法律保留。
 
 同时要求至少四个逻辑角色分离：
@@ -34,7 +34,7 @@ Evolution Subject
 
 ## 强制规则
 
-- Candidate 不得修改用于评估自身的 EvaluationSuite、阈值根或保留集答案；
+- Candidate 不得修改用于评估自身的冻结 `EvalConfig/EvaluationBundle`、阈值根或保留集答案；
 - Candidate 不得写入或覆盖自身 Eval 事实；
 - Judge 不得修改 Candidate；
 - Judge 不得持有生产业务工具写权限；

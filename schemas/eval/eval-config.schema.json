@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/eval/eval-config.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "EvalConfig",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "eval_config_id", "candidate_ref", "baseline_ref", "dataset_ref", "environment", "budget_ref", "grader_refs", "judge_config", "repeat_strategy", "tool_fixture_refs", "capability_refs", "randomness_config", "created_at", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "eval_config_id": {"type": "string", "minLength": 1},
+    "candidate_ref": {"type": "string", "minLength": 1},
+    "baseline_ref": {"type": "string", "minLength": 1},
+    "dataset_ref": {"type": "string", "minLength": 1},
+    "environment": {"type": "string", "minLength": 1},
+    "budget_ref": {"type": "string", "minLength": 1},
+    "grader_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "judge_config": {
+      "oneOf": [
+        {"$ref": "#/$defs/judgeConfig"},
+        {"type": "null"}
+      ]
+    },
+    "repeat_strategy": {"$ref": "#/$defs/repeatStrategy"},
+    "tool_fixture_refs": {"$ref": "#/$defs/refList"},
+    "capability_refs": {"$ref": "#/$defs/refList"},
+    "randomness_config": {"$ref": "#/$defs/randomnessConfig"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "nonEmptyRefList": {"$ref": "#/$defs/refList", "minItems": 1},
+    "judgeConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prompt_ref", "model_route_ref", "input_schema_ref", "output_schema_ref", "sampling_config_ref", "repeat_strategy_ref", "calibration_set_ref", "confidence_threshold_ref", "disagreement_threshold_ref"],
+      "properties": {
+        "prompt_ref": {"type": "string", "minLength": 1},
+        "model_route_ref": {"type": "string", "minLength": 1},
+        "input_schema_ref": {"type": "string", "minLength": 1},
+        "output_schema_ref": {"type": "string", "minLength": 1},
+        "sampling_config_ref": {"type": "string", "minLength": 1},
+        "repeat_strategy_ref": {"type": "string", "minLength": 1},
+        "calibration_set_ref": {"type": "string", "minLength": 1},
+        "confidence_threshold_ref": {"type": "string", "minLength": 1},
+        "disagreement_threshold_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "repeatStrategy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy_ref", "minimum_attempts", "maximum_attempts"],
+      "properties": {
+        "strategy_ref": {"type": "string", "minLength": 1},
+        "minimum_attempts": {"type": "integer", "minimum": 1},
+        "maximum_attempts": {"type": "integer", "minimum": 1}
+      }
+    },
+    "randomnessConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed_refs", "replay_policy_ref"],
+      "properties": {
+        "seed_refs": {"$ref": "#/$defs/refList"},
+        "replay_policy_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

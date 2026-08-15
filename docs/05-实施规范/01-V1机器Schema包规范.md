@@ -36,8 +36,8 @@ schemas/
 
 每个 Schema 文件 MUST：
 
-- 有稳定 `$id` 或等价唯一标识；
-- 有独立 `schema_version`；
+- 有稳定、可由 Registry 解析的逻辑 `$id`；不得从文件路径临时推导；
+- 在文件顶层有独立 `x-ueaf-schema-version`，值为 SemVer；不得用领域对象内部的 `schema_version` 代替；
 - 明确 required/optional/nullability；
 - 禁止未声明字段，除非规范明确要求扩展点；
 - 对 enum、长度、范围、pattern、数组大小和对象结构做机器限制；
@@ -122,6 +122,8 @@ HandoffEnvelope
 AuditEvent / AuditRecord where the owning module defines it
 ```
 
+`PrincipalContext` Machine Schema MUST 同时 require `meta` 与顶层 `tenant_id`。顶层 `tenant_id` MUST 等于 `meta.tenant_id`；JSON Schema 无法表达该跨字段相等约束时，生成的 validator 和 CON-008 contract test MUST 强制校验，不能把顶层字段降格为 optional mirror。
+
 状态值对象至少包括：
 
 ```text
@@ -178,6 +180,22 @@ LineageGraph
 ```
 
 这些概念继续按核心规范作为 Profile、Projection、metadata、existing object 或 internal detail 表达。
+
+### 4.4 `RepairLevel` 机器编码
+
+大写 `R0`–`R5` 只用于文档中的概念标签。Machine Schema、wire、持久化 enum 和 config MUST 使用：
+
+```text
+r0 | r1 | r2 | r3 | r4 | r5
+```
+
+适用边界：
+
+- Diagnosis/Router/Policy metadata MAY 使用 `r0`–`r5`；
+- `MutationProposal.repair_level` 的 enum MUST 严格为 `r1 | r2 | r3 | r4`；
+- `r0` 不产生长期 Mutation；
+- `r5` 只形成 `ROUTE_GOVERNANCE`，不得生成 `MutationProposal`；
+- Schema MUST 拒绝大写 `R0`–`R5` 作为 wire 值。
 
 ## 5. Profile Schema
 
@@ -327,6 +345,32 @@ ueaf.<domain>.<past_tense_fact>
 
 而不是 PascalCase 类型名。
 
+### 7.3 Machine Event Catalog
+
+`schemas/events/event-catalog.json` 是核心规范 03 公共事件目录的机器化注册索引，不是第二语义真相源。核心规范 03 仍拥有 public event 集合与命名语义；Contract/Schema Registry 是该机器 catalog 的唯一 State Writer，各事件的领域 Semantic Owner 负责其 payload 语义。
+
+每个 catalog registration 使用唯一键：
+
+```text
+(event_name, event_version)
+  -> exactly one payload_schema_ref
+```
+
+完整校验 tuple 为：
+
+```text
+(event_name, event_version, payload_schema_ref)
+```
+
+规则：
+
+- 同一 `(event_name, event_version)` 重复登记 MUST 失败；
+- 同一键映射到不同 `payload_schema_ref` MUST 作为契约冲突失败；
+- `payload_schema_ref` MUST 解析到本地/发布 Registry 中已登记且版本固定的 Schema `$id`；
+- EventEnvelope 的 `event_name`、`event_version`、`payload_schema_ref` MUST 与 catalog tuple 完全一致，payload 再由该 Schema 校验；
+- `catalog_version` 与 catalog 顶层 `x-ueaf-schema-version` 均为 SemVer；已发布相同版本内容不可改写；
+- 新增或修改 public event 必须先更新核心规范 03/必要 ADR，再由 catalog owner 编译登记，模块不得自行写入。
+
 ## 8. ID、Ref 与 Version 规范
 
 公共 Schema 中引用 SHOULD 使用显式 `<name>_ref` 或 `<name>_refs`，禁止仅用模糊 `id` 表达不同领域含义。
@@ -341,6 +385,22 @@ integrity_ref = 内容完整性/签名引用
 ```
 
 Schema version 与对象业务版本必须分离。
+
+### 8.1 Schema Registry identity 与不可变版本
+
+Machine Schema 的注册身份由以下 tuple 表达：
+
+```text
+($id, x-ueaf-schema-version)
+```
+
+- `$id` 是稳定逻辑标识和 `$ref` 解析键；Registry/consumer MUST NOT 通过文件路径或从 `$id` 文本猜测版本；
+- `x-ueaf-schema-version` 是该 Schema 文件的规范 SemVer；每个 `*.schema.json` 顶层 MUST 存在；
+- 当前发布包中 `$id` MUST 唯一；重复 `$id` 即使版本不同也必须失败，避免 active resolution 歧义；
+- Registry MUST 校验 `$id` 非空且唯一、`x-ueaf-schema-version` 为合法 SemVer、所有本地 `$ref` 可解析；
+- 已发布的同一 `($id, x-ueaf-schema-version)` MUST 映射到同一规范内容/摘要，禁止原地改写；任何文件内容或机器约束变化都必须产生新的 SemVer；
+- Release/ContractBundle/Event Catalog 引用 Schema 时 MUST 冻结可解析到该 tuple 的引用，不得静默漂移到“latest”；
+- 领域 payload 内名为 `schema_version` 的业务字段不替代文件级 `x-ueaf-schema-version`，两者生命周期分离。
 
 ## 9. 时间与金额
 
@@ -372,6 +432,8 @@ PATCH: 文档/约束澄清，不改变兼容机器结构
 MINOR: 新增向后兼容 optional 字段/enum 兼容扩展
 MAJOR: required 字段、语义或不兼容枚举变化
 ```
+
+上表描述新版本号的兼容含义，不允许在原版本上覆盖内容。即使只是 Schema 文件内的澄清，只要发布内容发生变化，也必须至少递增 PATCH 并保留旧 tuple 的不可变解析。
 
 长运行 Run 绑定启动时兼容的 Schema/Release 版本，不因控制面升级而静默改变。
 
@@ -436,4 +498,6 @@ Machine Schema Package 完成至少满足：
 - Mutation `changes[]` 可拒绝越权/越界修改；
 - 示例 payload 全部自动验证；
 - Schema compatibility 测试进入 CI；
+- Registry 强制 stable `$id`、文件级 `x-ueaf-schema-version`、唯一 active `$id`、可解析 `$ref` 和同版本不可变；
+- machine event catalog 以 `(event_name, event_version)` 唯一登记并固定一个 `payload_schema_ref`；
 - Codex 不需要通过 Markdown 自行猜字段类型、nullability、公共 meta 和枚举。

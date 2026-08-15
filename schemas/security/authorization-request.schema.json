@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/security/authorization-request.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "AuthorizationRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "$comment": "resource and environment are canonicalized policy inputs. risk_level membership must be validated fail-closed against the Policy Profile selected by policy_bundle_version; it is neither TaskEnvelope.risk_class nor Evolution RepairLevel.",
+  "required": [
+    "meta",
+    "authorization_request_id",
+    "tenant_id",
+    "principal_context_ref",
+    "workload_identity_ref",
+    "delegation_context_ref",
+    "action",
+    "resource",
+    "environment",
+    "purpose",
+    "risk_level",
+    "input_digest",
+    "policy_bundle_version",
+    "requested_at"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "authorization_request_id": {"type": "string", "minLength": 1},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "principal_context_ref": {"type": "string", "minLength": 1},
+    "workload_identity_ref": {"type": ["string", "null"], "minLength": 1},
+    "delegation_context_ref": {"type": ["string", "null"], "minLength": 1},
+    "action": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"},
+    "resource": {"type": "object", "minProperties": 1},
+    "environment": {"type": "object", "minProperties": 1},
+    "purpose": {"type": "string", "minLength": 1},
+    "risk_level": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "not": {"enum": ["r0", "r1", "r2", "r3", "r4", "r5"]}
+    },
+    "input_digest": {"type": "string", "minLength": 1},
+    "policy_bundle_version": {"type": "string", "minLength": 1},
+    "requested_at": {"type": "string", "format": "date-time"}
+  }
+}

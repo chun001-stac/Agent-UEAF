@@ -216,9 +216,17 @@ LangGraph Adapter
 ModelStepPort
 ContextBuildPort
 PromptContract
-read-only vertical slice
+runtime smoke slice (non-Eval)
 OpenAI Agents SDK read-only conformance adapter skeleton
 ```
+
+Phase 2 的 runtime smoke 只证明 `Request -> admitted Run -> frozen RuntimeAdapter -> ContextBuildPort -> ModelStepPort -> StructuredDecision` 的受控运行链可工作；它不得生成 `EvalResult`、`QualityGateDecision` 或 `ReleaseDecision`，也不得被称为 Eval vertical slice。
+
+Phase 2 的 `RunLease` 单对象 Schema/invariant 只验证规范字段、正整数 fencing token 与
+`acquired_at <= heartbeat_at < expires_at` 的内部顺序；不得用测试运行时 wall clock
+拒绝可审计的历史 `RunRecord` 快照。相对当前时间的 lease 未过期性属于 Run State Writer
+在 acquire、heartbeat 和 phase write 时执行的权威行为门禁，必须结合 CAS/revision 与
+当前 fencing token；静态 Schema 通过不等于当前仍持有执行权。
 
 CI 的行为正确性使用 deterministic fake/recorded model adapter；live model Provider 只用于显式 integration profile，不成为基础测试前置条件。
 
@@ -248,8 +256,11 @@ Quality/Security/Operational decision refs
 ReleaseDecision
 ReleaseManifest
 rollback
+read-only Eval vertical slice from frozen EvaluationBundle through QualityGateDecision
 REL/EVAL tests
 ```
+
+Phase 4 才实现实施规范 08 定义的 read-only Eval slice：从冻结 `EvalConfig/EvaluationBundle` 和 Isolated Runner 启动，产出 `EvalResult`/`QualityGateDecision`，并验证 Eval 与 Release Authority 分离。它复用 Phase 2 runtime smoke 已验证的运行端口，但不是同一个验收场景。
 
 ### Phase 5 — Evidence
 
@@ -508,25 +519,26 @@ Codex/工程师发现以下情况必须停止扩大实现：
 [x] Acceptance Test IDs exist
 [x] Reference implementation profile fixed
 [x] root AGENTS.md points to normative docs
-[x] first read-only vertical slice scope is defined by phases/tests
+[x] Phase 2 non-Eval runtime smoke 与 Phase 4 read-only Eval slice 已分别定义
 [x] Evolution Vertical Slice fixture is defined in acceptance spec
 ```
 
-这表示 **文档准备度**，不表示仓库已经存在实际 `schemas/*.json`、迁移、CI 或代码。
+这只表示 **文档准备度**，不对仓库中实际 `schemas/*.json`、迁移、CI 或代码的完整性和正确性作出结论；这些必须由当前工作树和测试单独验证。
 
 ## 21. Phase 0 Exit Gate
 
 Codex 完成 Phase 0 后才应满足：
 
 ```text
-[ ] canonical Machine Schema skeleton exists
-[ ] pyproject + lock exists
-[ ] migrations harness exists
-[ ] GitHub Actions CI exists
-[ ] Ruff/mypy/pytest commands green
-[ ] NATS/PostgreSQL/MinIO local profile starts
-[ ] RUN/ACT/EVO/MUT/REL test file skeleton exists
-[ ] first read-only vertical slice task can start
+[x] canonical Machine Schema skeleton exists
+[x] pyproject + lock exists
+[x] migrations harness exists; offline and PostgreSQL online smoke succeed
+[x] GitHub Actions CI exists
+[x] Ruff/mypy/pytest commands green
+[x] NATS/PostgreSQL/MinIO local profile starts
+[x] RUN/ACT/EVO/MUT/REL test file skeleton exists
+[ ] Phase 2 non-Eval runtime smoke 的前置契约与测试已满足
+[ ] Phase 4 read-only Eval slice 的冻结 Eval/隔离运行前置契约已满足
 ```
 
 ## 22. 完成定义

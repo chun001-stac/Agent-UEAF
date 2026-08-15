@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/common/run-phase.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "RunPhase",
+  "type": "string",
+  "additionalProperties": false,
+  "enum": ["queued", "admitting", "running", "waiting", "retrying", "paused", "terminal"]
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/common/command-envelope.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "CommandEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["command_id", "command_name", "command_version", "issued_at", "deadline_at", "tenant_id", "actor_ref", "target_type", "target_id", "expected_revision", "idempotency_key", "correlation_id", "causation_id", "trace_id", "release_id", "payload_schema_ref", "payload", "classification", "purpose", "integrity_ref"],
+  "properties": {
+    "command_id": {"type": "string", "minLength": 1},
+    "command_name": {"type": "string", "pattern": "^ueaf\\.[a-z0-9_]+\\.[a-z][a-z0-9_]*$"},
+    "command_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"},
+    "issued_at": {"type": "string", "format": "date-time"},
+    "deadline_at": {"type": "string", "format": "date-time"},
+    "tenant_id": {"type": "string", "minLength": 1},
+    "actor_ref": {"type": "string", "minLength": 1},
+    "target_type": {"type": "string", "minLength": 1},
+    "target_id": {"type": ["string", "null"], "minLength": 1},
+    "expected_revision": {"type": ["integer", "null"], "minimum": 0},
+    "idempotency_key": {"type": "string", "minLength": 1},
+    "correlation_id": {"type": "string", "minLength": 1},
+    "causation_id": {"type": ["string", "null"], "minLength": 1},
+    "trace_id": {"type": "string", "minLength": 1},
+    "release_id": {"type": ["string", "null"], "minLength": 1},
+    "payload_schema_ref": {"type": "string", "format": "uri", "minLength": 1},
+    "payload": {"type": "object"},
+    "classification": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+    "purpose": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "integrity_ref": {"type": ["string", "null"], "minLength": 1}
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/common/port-result.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "PortResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "value", "error"],
+  "properties": {
+    "status": {"type": "string", "enum": ["success", "rejected", "unknown"]},
+    "value": {},
+    "error": {
+      "oneOf": [
+        {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "status": {"const": "success"},
+        "error": {"type": "null"}
+      }
+    },
+    {
+      "properties": {
+        "status": {"const": "rejected"},
+        "value": {"type": "null"},
+        "error": {
+          "allOf": [
+            {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"},
+            {"properties": {"certainty": {"const": "not_executed"}}}
+          ]
+        }
+      }
+    },
+    {
+      "properties": {
+        "status": {"const": "unknown"},
+        "value": {"type": "null"},
+        "error": {
+          "allOf": [
+            {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"},
+            {"properties": {"certainty": {"const": "unknown"}}}
+          ]
+        }
+      }
+    }
+  ]
+}

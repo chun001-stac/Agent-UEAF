@@ -133,7 +133,7 @@ LangGraph、Microsoft Agent Framework、OpenAI Agents SDK、Google ADK、CrewAI 
 | `latest_context_manifest_ref` | 最近一次实际模型上下文引用 |
 | `pending_wait` | 等待类型、对象引用、恢复条件和期限 |
 | `cancellation` | 请求时间、来源、传播水位和已隔离晚到结果 |
-| `lease` | worker、lease_epoch、fencing_token、heartbeat、expires_at |
+| `lease` | lease_id、holder_id、fencing_token、acquired_at、heartbeat_at、expires_at；字段与核心 `RunLease` 精确一致 |
 | `checkpoint_ref` | 最近已提交 canonical checkpoint |
 | `terminal_reason_codes` / `additional_result_refs` | 仅终态存在的稳定原因、附加结果、缺口和证据引用；主结果使用 `result_ref` |
 | `revision` / `sequence` | CAS revision 和聚合事件水位 |
@@ -252,9 +252,9 @@ Checkpoint 是恢复加速器，不是唯一事件事实源，不保存万能 Pr
 
 1. 校验边缘 accepted 证据、`TaskEnvelope`、有效期、tenant、principal、候选 Release 完整性和 deadline；边缘 rejected 不得进入本流程。
 2. 新任务时从不可变 `TaskEnvelope` 创建 `TaskState`；续接时以 `expected_task_revision` CAS 加载。
-3. 创建 `RunRecord(phase=queued)`，冻结候选 `RuntimeBinding`、根预算和取消通道；取得 admission lease 后进入 `admitting`。
-4. 调用 01 Admission Controller 获取绑定该 run_id 的 `RunAdmissionResult`：admitted 进入 running；deferred 登记等待；rejected 原子提交 terminal/rejected。只有 admitted 才继续以下执行步骤。
-5. Run Coordinator 消费应用层 `RuntimeStartCommand`，复核 admitted 结果、当前 revision、租约、预算和 Release；再根据风险、任务与能力选择一个 Runtime Adapter。能力不匹配时拒绝启动，一个 Run 全程只绑定一个 Adapter 版本。
+3. 在创建 Run 前，根据候选 `ReleaseManifest`、任务约束、环境、区域和所需能力选择精确的 `RuntimeAdapter`/`CapabilityBinding`；无法唯一满足时失败关闭，不创建 Run。随后创建 `RunRecord(phase=queued)`，冻结包含精确 `runtime_adapter_ref` 的 `RuntimeBinding`、`release_id`、根预算、任务引用和取消通道；取得 admission lease 后进入 `admitting`。
+4. 调用 01 Admission Controller 获取绑定该 run_id 及其冻结 Adapter/Release 的 `RunAdmissionResult`：admitted 进入 running；deferred 登记等待；rejected 原子提交 terminal/rejected。只有 admitted 才继续以下执行步骤。
+5. Run Coordinator 消费应用层 `RuntimeStartCommand`，复核 admitted 结果、当前 revision、租约、预算、Release 和冻结的 `runtime_adapter_ref`；不得在 admission 后重新选择或静默切换 Adapter。能力不匹配时拒绝启动，一个 Run 全程只绑定创建时冻结的 Adapter 版本。
 6. 02 将命令映射为 `RuntimeStartRequest`，在其中构造最小 `RuntimeExecutionContext` 和五个受控端口句柄，再调用 `StartRun(RuntimeStartRequest) -> RuntimeSession`；底层框架不得直接读取 UEAF 存储、模型凭据或企业工具。
 7. Adapter 需要上下文时，经回调读取最新 TaskState、待决 Action/Workflow 引用和 Conversation 投影，并由 04 生成权限过滤后的 `ContextManifest`。
 8. Adapter 需要模型步骤时，经 `ModelStepPort` 请求 03；03 解析 `PromptContract`、生成 `ModelInvocation`、调用 Model Provider，并在调用后形成 `StructuredDecision`。
@@ -346,7 +346,7 @@ queued | admitting | running | waiting | retrying | paused -> terminal
 | 06 critical 节点失败 | 阻断 completed | 仅凭其他节点文本成功 |
 | Budget 耗尽 | `incomplete` 或预定义降级，保留收束预算 | 跳过审批/验证完成 |
 | 取消到达 | 停止新步骤，传播取消，核实在途副作用 | 将取消直接标成所有动作未发生 |
-| Telemetry 不可用 | 本地缓冲；按风险暂停敏感操作 | 完全不可追踪继续 R3 |
+| Telemetry 不可用 | 本地缓冲；按风险暂停敏感操作 | 完全不可追踪仍继续 `high_risk_write` |
 
 ## 9. 观测指标
 
@@ -372,7 +372,7 @@ queued | admitting | running | waiting | retrying | paused -> terminal
 
 | 端口 | 稳定语义 | 可替换实现 |
 | --- | --- | --- |
-| `RuntimeAdapterPort` | 有界 step、暂停/恢复、事件归一、callback 限制 | LangGraph、MAF、OpenAI SDK、ADK、CrewAI、自研循环 |
+| `RuntimeAdapter` | 有界 step、暂停/恢复、事件归一、callback 限制 | LangGraph、MAF、OpenAI SDK、ADK、CrewAI、自研循环 |
 | `TaskStatePort` | CAS、事件追加、Task/Run 快照和终态保护 | 关系库、事件存储、工作流状态后端 |
 | `CheckpointPort` | 原子保存、读取、完整性、迁移 | 数据库、对象存储、工作流引擎 |
 | `LeasePort` | lease、heartbeat、epoch、fencing | 数据库、Redis、协调服务 |
@@ -384,7 +384,7 @@ queued | admitting | running | waiting | retrying | paused -> terminal
 | `BudgetPort` | 原子预留、结算、释放和硬上限 | 本地账本、集中配额服务 |
 | `TelemetryPort` | Run/Turn/step 语义和关联 | OpenTelemetry 或供应商平台 |
 
-`RuntimeAdapterPort` 的适配器不得直接写 UEAF State Store、调用 05 之外的工具、绕过 03 构造模型请求，或把框架 checkpoint 当 canonical Checkpoint。框架原生能力不支持某个不变量时，适配器必须显式声明 unsupported，不能静默降级。
+`RuntimeAdapter` 不得直接写 UEAF State Store、调用 05 之外的工具、绕过 03 构造模型请求，或把框架 checkpoint 当 canonical Checkpoint。框架原生能力不支持某个不变量时，适配器必须显式声明 unsupported，不能静默降级。
 
 ## 11. 配置项
 
@@ -403,8 +403,8 @@ queued | admitting | running | waiting | retrying | paused -> terminal
 | `cancellation.poll_interval_ms` | 长步骤取消检查 | 不代表外部动作可强制撤销 |
 | `budget.reserve_finalize_ratio` | 收束保留预算 | 不得被子 Agent 借走 |
 | `stream.preview_enabled` | 是否向调用方展示模型增量 | 增量不可触发业务动作 |
-| `recovery.reauthorize_risk_level` | 恢复时重新授权阈值 | R2/R3 默认重新验证 |
-| `telemetry.fail_closed_risk_level` | 遥测故障策略 | R3 至少保留本地最小审计 |
+| `recovery.reauthorize_risk_class` | 恢复时重新授权阈值 | `reversible_write/high_risk_write` 默认重新验证 |
+| `telemetry.fail_closed_risk_class` | 遥测故障策略 | `high_risk_write` 必须 fail closed；其他类别也至少保留本地最小审计 |
 
 ## 12. 验收标准
 
@@ -413,7 +413,7 @@ queued | admitting | running | waiting | retrying | paused -> terminal
 - 每次模型调用可追溯到 Agent、Prompt、Schema、ModelRoute、ContextManifest、Adapter 和 Release 版本。
 - 调用前一定经过 03 生成 `ModelInvocation`，调用后一定经过 03 生成 `StructuredDecision`；流式半成品不能被应用。
 - 04、05、06 分别保持 Context/Evidence/Memory、Action、Workflow/Node 的唯一所有权。
-- 任一底层 Agent 框架只能通过 `RuntimeAdapterPort` 使用，且不能绕过 03/04/05/06 或直接写 canonical 状态。
+- 任一底层 Agent 框架只能通过公共 `RuntimeAdapter` SPI 使用，且不能绕过 03/04/05/06 或直接写 canonical 状态。
 - Worker 崩溃、租约过期、重复事件和晚到结果不会造成双重状态提交。
 - 在工具响应丢失场景，Run 进入等待对账，绝不通过新 action_key 盲重试。
 - Checkpoint 恢复会重新验证租户、主体、版本、策略、预算、deadline 和未决副作用。

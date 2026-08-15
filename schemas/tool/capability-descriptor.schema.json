@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/tool/capability-descriptor.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "CapabilityDescriptor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "capability_id",
+    "capability_version",
+    "kind",
+    "owner",
+    "input_schema_ref",
+    "output_schema_ref",
+    "risk_class",
+    "side_effect_class",
+    "read_only",
+    "trust_record_ref",
+    "allowed_purposes",
+    "resource_types",
+    "authorization_action",
+    "auth_requirements",
+    "approval_policy_ref",
+    "idempotency_support",
+    "timeout_profile",
+    "retry_semantics",
+    "reconciliation_capability",
+    "cancellation_capability",
+    "data_handling",
+    "regions",
+    "adapter_ref",
+    "rate_limit",
+    "lifecycle_status",
+    "deprecation",
+    "integrity_ref"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "capability_id": {"$ref": "#/$defs/nonEmptyString"},
+    "capability_version": {"$ref": "#/$defs/nonEmptyString"},
+    "kind": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "owner": {"$ref": "#/$defs/nonEmptyString"},
+    "input_schema_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "output_schema_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "risk_class": {
+      "type": "string",
+      "enum": ["compute_only", "read_only", "reversible_write", "high_risk_write"]
+    },
+    "side_effect_class": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "read_only": {"type": "boolean"},
+    "trust_record_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "allowed_purposes": {"$ref": "#/$defs/nonEmptyRefList"},
+    "resource_types": {"$ref": "#/$defs/nonEmptyRefList"},
+    "authorization_action": {"type": "string", "pattern": "^[a-z][a-z0-9_.]*$"},
+    "auth_requirements": {"$ref": "#/$defs/authRequirements"},
+    "approval_policy_ref": {"type": ["string", "null"], "minLength": 1},
+    "idempotency_support": {"$ref": "#/$defs/idempotencySupport"},
+    "timeout_profile": {"$ref": "#/$defs/timeoutProfile"},
+    "retry_semantics": {"$ref": "#/$defs/retrySemantics"},
+    "reconciliation_capability": {"$ref": "#/$defs/reconciliationCapability"},
+    "cancellation_capability": {"$ref": "#/$defs/cancellationCapability"},
+    "data_handling": {"$ref": "#/$defs/dataHandling"},
+    "regions": {"$ref": "#/$defs/nonEmptyRefList"},
+    "adapter_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "rate_limit": {"$ref": "#/$defs/rateLimit"},
+    "lifecycle_status": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "$comment": "membership is controlled by the signed Capability Registry lifecycle profile"
+    },
+    "deprecation": {"$ref": "#/$defs/deprecation"},
+    "integrity_ref": {"$ref": "#/$defs/nonEmptyString"}
+  },
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "refList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"},
+      "uniqueItems": true
+    },
+    "nonEmptyRefList": {"$ref": "#/$defs/refList", "minItems": 1},
+    "authRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["principal_types", "required_scopes", "delegation_allowed"],
+      "properties": {
+        "principal_types": {"$ref": "#/$defs/nonEmptyRefList"},
+        "required_scopes": {"$ref": "#/$defs/refList"},
+        "delegation_allowed": {"type": "boolean"}
+      }
+    },
+    "idempotencySupport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "downstream_key_supported", "same_key_replay_safe"],
+      "properties": {
+        "supported": {"type": "boolean"},
+        "downstream_key_supported": {"type": "boolean"},
+        "same_key_replay_safe": {"type": "boolean"}
+      }
+    },
+    "timeoutProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["execution_timeout_ms", "query_timeout_ms", "unknown_on_ambiguous_timeout"],
+      "properties": {
+        "execution_timeout_ms": {"type": "integer", "minimum": 1},
+        "query_timeout_ms": {"type": "integer", "minimum": 1},
+        "unknown_on_ambiguous_timeout": {"const": true}
+      }
+    },
+    "retrySemantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["retryability", "max_attempts", "requires_not_executed_proof"],
+      "properties": {
+        "retryability": {"type": "string", "enum": ["never", "safe", "conditional", "after_reconciliation"]},
+        "max_attempts": {"type": "integer", "minimum": 1},
+        "requires_not_executed_proof": {"type": "boolean"}
+      }
+    },
+    "reconciliationCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "strategy_refs", "manual_escalation_ref"],
+      "properties": {
+        "supported": {"type": "boolean"},
+        "strategy_refs": {"$ref": "#/$defs/refList"},
+        "manual_escalation_ref": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "cancellationCapability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "confirmation_required_after_execution_started"],
+      "properties": {
+        "supported": {"type": "boolean"},
+        "confirmation_required_after_execution_started": {"const": true}
+      }
+    },
+    "dataHandling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input_classifications", "output_classification", "retention_policy_ref", "result_minimization_required"],
+      "properties": {
+        "input_classifications": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "output_classification": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+        "retention_policy_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "result_minimization_required": {"type": "boolean"}
+      }
+    },
+    "rateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["limit", "window_seconds", "scope"],
+      "properties": {
+        "limit": {"type": "integer", "minimum": 1},
+        "window_seconds": {"type": "integer", "minimum": 1},
+        "scope": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}
+      }
+    },
+    "deprecation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deprecated_at", "replacement_ref", "removal_at"],
+      "properties": {
+        "deprecated_at": {"type": ["string", "null"], "format": "date-time"},
+        "replacement_ref": {"type": ["string", "null"], "minLength": 1},
+        "removal_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    }
+  }
+}

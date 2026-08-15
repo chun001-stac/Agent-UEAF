@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/eval/eval-run.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "EvalRun",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "eval_run_id", "eval_config_ref", "evaluation_bundle_ref", "candidate_ref", "baseline_ref", "dataset_version", "environment", "actual_version_refs", "budget_snapshot_ref", "tool_fixture_refs", "capability_refs", "randomness_refs", "status", "candidate_child_run_refs", "baseline_child_run_refs", "attempt_refs", "result_refs", "evidence_gap_refs", "started_at", "finished_at", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "eval_run_id": {"type": "string", "minLength": 1},
+    "eval_config_ref": {"type": "string", "minLength": 1},
+    "evaluation_bundle_ref": {"type": "string", "minLength": 1},
+    "candidate_ref": {"type": "string", "minLength": 1},
+    "baseline_ref": {"type": "string", "minLength": 1},
+    "dataset_version": {"type": "string", "minLength": 1},
+    "environment": {"type": "string", "minLength": 1},
+    "actual_version_refs": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "budget_snapshot_ref": {"type": "string", "minLength": 1},
+    "tool_fixture_refs": {"$ref": "#/$defs/refList"},
+    "capability_refs": {"$ref": "#/$defs/refList"},
+    "randomness_refs": {"$ref": "#/$defs/refList"},
+    "status": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "candidate_child_run_refs": {"$ref": "#/$defs/refList"},
+    "baseline_child_run_refs": {"$ref": "#/$defs/refList"},
+    "attempt_refs": {"$ref": "#/$defs/refList"},
+    "result_refs": {"$ref": "#/$defs/refList"},
+    "evidence_gap_refs": {"$ref": "#/$defs/refList"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": ["string", "null"], "format": "date-time"},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+  }
+}

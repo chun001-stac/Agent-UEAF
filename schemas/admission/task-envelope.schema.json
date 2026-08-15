@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/admission/task-envelope.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "TaskEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "task_id", "request_refs", "goal", "completion_criteria", "constraints", "risk_class", "owner_ref", "budget_ref", "revision"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "task_id": {"type": "string", "minLength": 1},
+    "request_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "goal": {"$ref": "#/$defs/statement"},
+    "completion_criteria": {"type": "array", "items": {"$ref": "#/$defs/statement"}, "minItems": 1},
+    "constraints": {"type": "object"},
+    "risk_class": {"type": "string", "enum": ["compute_only", "read_only", "reversible_write", "high_risk_write"]},
+    "owner_ref": {"type": "string", "minLength": 1},
+    "budget_ref": {"type": "string", "minLength": 1},
+    "revision": {"type": "integer", "minimum": 1}
+  },
+  "$defs": {
+    "statement": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "object", "minProperties": 1}
+      ]
+    }
+  }
+}

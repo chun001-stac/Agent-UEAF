@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ueaf.dev/schemas/evolution/evolution-run.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
   "title": "EvolutionRun",
   "type": "object",
   "additionalProperties": false,

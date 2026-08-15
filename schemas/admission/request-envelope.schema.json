@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/admission/request-envelope.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "RequestEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "request_id", "channel", "protocol", "input_ref", "input", "client_correlation_id", "received_at", "deadline_at", "principal_context_ref", "validation_status"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "request_id": {"type": "string", "minLength": 1},
+    "channel": {"type": "string", "minLength": 1},
+    "protocol": {"type": "string", "minLength": 1},
+    "input_ref": {"type": ["string", "null"], "minLength": 1},
+    "input": {"type": ["object", "null"]},
+    "client_correlation_id": {"type": "string", "minLength": 1},
+    "received_at": {"type": "string", "format": "date-time"},
+    "deadline_at": {"type": "string", "format": "date-time"},
+    "principal_context_ref": {"type": "string", "minLength": 1},
+    "validation_status": {"type": "string", "enum": ["accepted", "rejected"]}
+  },
+  "oneOf": [
+    {"properties": {"input_ref": {"type": "string", "minLength": 1}, "input": {"type": "null"}}},
+    {"properties": {"input_ref": {"type": "null"}, "input": {"type": "object"}}}
+  ]
+}

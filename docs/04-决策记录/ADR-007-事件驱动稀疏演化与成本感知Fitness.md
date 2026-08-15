@@ -18,7 +18,7 @@ UEAF 的默认 Evolution Mode 采用：
 3. **Sparse Mutation**：默认只允许证据相关的少量 Gene 变化；
 4. **有限候选**：每轮 Candidate 数和 Generation 数必须有硬上限；
 5. **Evaluator 升级漏斗**：Deterministic → Statistical → Small Model → Strong Model → Human；
-6. **EvolutionBudget**：限制模型调用数、输入/输出 Token、金额、时间、候选数、代数和强模型调用数；
+6. **既有 Budget Domain / budget slice**：限制模型调用数、输入/输出 Token、金额、时间、候选数、代数和强模型调用数，不建立独立 `EvolutionBudget`；
 7. **多维 Fitness**：同时记录 capability、quality、safety、robustness、Token、费用、latency、complexity 和 regression risk。
 
 稳定系统在无 Trigger 时，额外演化 Token SHOULD 接近零。

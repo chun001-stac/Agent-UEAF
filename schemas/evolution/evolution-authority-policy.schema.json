@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ueaf.dev/schemas/evolution/evolution-authority-policy.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
   "title": "EvolutionAuthorityPolicy",
   "type": "object",
   "additionalProperties": false,

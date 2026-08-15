@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/runtime/checkpoint.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "Checkpoint",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "checkpoint_id", "run_id", "state_schema_version", "run_position", "state_refs", "event_high_watermark", "task_state_ref", "run_state_snapshot", "runtime_binding", "frozen_version_refs", "concurrency_token", "budget_snapshot", "pending_wait", "pending_action_refs", "workflow_refs", "provider_state_refs", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "checkpoint_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "state_schema_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"},
+    "run_position": {"$ref": "#/$defs/runPosition"},
+    "state_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "event_high_watermark": {"type": "integer", "minimum": 0},
+    "task_state_ref": {"type": "string", "minLength": 1},
+    "run_state_snapshot": {"$ref": "#/$defs/runStateSnapshot"},
+    "runtime_binding": {"$ref": "#/$defs/runtimeBinding"},
+    "frozen_version_refs": {"$ref": "#/$defs/versionRefMap"},
+    "concurrency_token": {"$ref": "#/$defs/concurrencyToken"},
+    "budget_snapshot": {"$ref": "#/$defs/budgetSnapshot"},
+    "pending_wait": {
+      "oneOf": [
+        {"$ref": "#/$defs/pendingWait"},
+        {"type": "null"}
+      ]
+    },
+    "pending_action_refs": {"$ref": "#/$defs/refList"},
+    "workflow_refs": {"$ref": "#/$defs/refList"},
+    "provider_state_refs": {"$ref": "#/$defs/refList"},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "nonEmptyRefList": {"$ref": "#/$defs/refList", "minItems": 1},
+    "runPosition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["turn_id", "step_no", "phase", "deterministic_position"],
+      "properties": {
+        "turn_id": {"type": ["string", "null"], "minLength": 1},
+        "step_no": {"type": "integer", "minimum": 0},
+        "phase": {"$ref": "https://ueaf.dev/schemas/common/run-phase.schema.json"},
+        "deterministic_position": {"type": "string", "minLength": 1}
+      }
+    },
+    "runStateSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "sequence", "phase"],
+      "properties": {
+        "revision": {"type": "integer", "minimum": 1},
+        "sequence": {"type": "integer", "minimum": 1},
+        "phase": {"$ref": "https://ueaf.dev/schemas/common/run-phase.schema.json"}
+      }
+    },
+    "runtimeBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["release_id", "agent_definition_ref", "prompt_contract_ref", "schema_ref", "model_route_ref", "policy_snapshot_refs", "capability_set_ref", "runtime_adapter_ref", "state_schema_version", "compatibility_hash"],
+      "properties": {
+        "release_id": {"type": "string", "minLength": 1},
+        "agent_definition_ref": {"type": "string", "minLength": 1},
+        "prompt_contract_ref": {"type": "string", "minLength": 1},
+        "schema_ref": {"type": "string", "minLength": 1},
+        "model_route_ref": {"type": "string", "minLength": 1},
+        "policy_snapshot_refs": {"$ref": "#/$defs/refList"},
+        "capability_set_ref": {"type": "string", "minLength": 1},
+        "runtime_adapter_ref": {"type": "string", "minLength": 1},
+        "state_schema_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"},
+        "compatibility_hash": {"type": "string", "minLength": 1}
+      }
+    },
+    "versionRefMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "concurrencyToken": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revision", "lease_epoch", "fencing_token"],
+      "properties": {
+        "revision": {"type": "integer", "minimum": 1},
+        "lease_epoch": {"type": "integer", "minimum": 1},
+        "fencing_token": {"type": "integer", "minimum": 1}
+      }
+    },
+    "budgetMeasure": {
+      "oneOf": [
+        {"type": "integer", "minimum": 0},
+        {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"}
+      ]
+    },
+    "budgetDimensionMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {"$ref": "#/$defs/budgetMeasure"}
+    },
+    "budgetSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allocated", "reserved", "consumed", "remaining"],
+      "properties": {
+        "allocated": {"$ref": "#/$defs/budgetDimensionMap"},
+        "reserved": {"$ref": "#/$defs/budgetDimensionMap"},
+        "consumed": {"$ref": "#/$defs/budgetDimensionMap"},
+        "remaining": {"$ref": "#/$defs/budgetDimensionMap"}
+      }
+    },
+    "pendingWait": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "condition_refs", "expires_at", "resume_phase"],
+      "properties": {
+        "reason": {"$ref": "https://ueaf.dev/schemas/common/wait-reason.schema.json"},
+        "condition_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+        "expires_at": {"type": ["string", "null"], "format": "date-time"},
+        "resume_phase": {"$ref": "https://ueaf.dev/schemas/common/run-phase.schema.json"}
+      }
+    }
+  }
+}

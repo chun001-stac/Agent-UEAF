@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/eval/eval-result.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "EvalResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "eval_result_id", "eval_run_id", "candidate_ref", "baseline_ref", "dataset_version", "case_id", "slice_ids", "dimension", "measurement", "verdict", "grader_version", "evidence_refs", "produced_at"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "eval_result_id": {"type": "string", "minLength": 1},
+    "eval_run_id": {"type": "string", "minLength": 1},
+    "candidate_ref": {"type": "string", "minLength": 1},
+    "baseline_ref": {"type": "string", "minLength": 1},
+    "dataset_version": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string", "minLength": 1},
+    "slice_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "dimension": {"type": "string", "enum": ["outcome", "trajectory", "state", "security", "performance"]},
+    "measurement": {"type": "object", "minProperties": 1},
+    "verdict": {"type": "string", "enum": ["pass", "fail", "inconclusive", "invalid"]},
+    "grader_version": {"type": "string", "minLength": 1},
+    "evidence_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "produced_at": {"type": "string", "format": "date-time"}
+  }
+}

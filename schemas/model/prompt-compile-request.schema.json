@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/model/prompt-compile-request.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "PromptCompileRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "runtime_binding_ref",
+    "task_projection",
+    "run_ref",
+    "turn_ref",
+    "principal_ref",
+    "context_manifest_ref",
+    "observation_refs",
+    "candidate_capability_refs",
+    "budget",
+    "output_consumer_ref",
+    "delivery_mode"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "runtime_binding_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "task_projection": {"$ref": "#/$defs/taskProjection"},
+    "run_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "turn_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "principal_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "context_manifest_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "observation_refs": {"$ref": "#/$defs/refList"},
+    "candidate_capability_refs": {"$ref": "#/$defs/refList"},
+    "budget": {"$ref": "#/$defs/modelBudget"},
+    "output_consumer_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "delivery_mode": {"type": "string", "enum": ["stream", "non_stream"]}
+  },
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "refList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"},
+      "uniqueItems": true
+    },
+    "taskProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["goal", "completion_criteria", "open_questions", "risk_class"],
+      "properties": {
+        "goal": {"type": "string", "minLength": 1},
+        "completion_criteria": {"$ref": "#/$defs/refList", "minItems": 1},
+        "open_questions": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "risk_class": {
+          "type": "string",
+          "enum": ["compute_only", "read_only", "reversible_write", "high_risk_write"]
+        }
+      }
+    },
+    "modelBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_input_tokens", "max_output_tokens", "max_duration_ms", "max_cost_amount", "currency"],
+      "properties": {
+        "max_input_tokens": {"type": "integer", "minimum": 0},
+        "max_output_tokens": {"type": "integer", "minimum": 1},
+        "max_duration_ms": {"type": "integer", "minimum": 1},
+        "max_cost_amount": {"type": "string", "pattern": "^(0|[1-9][0-9]*)(?:\\.[0-9]+)?$"},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+      }
+    }
+  }
+}

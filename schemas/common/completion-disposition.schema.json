@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/common/completion-disposition.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "CompletionDisposition",
+  "type": "string",
+  "additionalProperties": false,
+  "enum": ["completed", "rejected", "incomplete", "failed", "cancelled"]
+}

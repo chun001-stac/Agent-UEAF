@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/workflow/handoff-envelope.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "HandoffEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "handoff_id", "parent_run_id", "source_agent_ref", "target_agent_ref", "subgoal", "completion_criteria", "principal_context_ref", "delegated_scope", "budget_slice", "context_refs", "evidence_refs", "artifact_refs", "state_summary", "return_contract", "ownership_mode", "expires_at", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "handoff_id": {"type": "string", "minLength": 1},
+    "parent_run_id": {"type": "string", "minLength": 1},
+    "source_agent_ref": {"type": "string", "minLength": 1},
+    "target_agent_ref": {"type": "string", "minLength": 1},
+    "subgoal": {"$ref": "#/$defs/statement"},
+    "completion_criteria": {"type": "array", "items": {"$ref": "#/$defs/statement"}, "minItems": 1},
+    "principal_context_ref": {"type": "string", "minLength": 1},
+    "delegated_scope": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "budget_slice": {"$ref": "#/$defs/budgetSlice"},
+    "context_refs": {"$ref": "#/$defs/refList"},
+    "evidence_refs": {"$ref": "#/$defs/refList"},
+    "artifact_refs": {"$ref": "#/$defs/refList"},
+    "state_summary": {"$ref": "#/$defs/statement"},
+    "return_contract": {"type": "object", "minProperties": 1},
+    "ownership_mode": {"type": "string", "enum": ["manager_retains", "receiver_assumes", "workflow_node"]},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "statement": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "object", "minProperties": 1}
+      ]
+    },
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "budgetMeasure": {
+      "oneOf": [
+        {"type": "integer", "minimum": 0},
+        {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"}
+      ]
+    },
+    "budgetSlice": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {"$ref": "#/$defs/budgetMeasure"}
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/admission/run-admission-result.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "RunAdmissionResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "run_admission_result_id", "run_id", "outcome", "validation_refs", "policy_decision_refs", "budget_snapshot_ref", "release_manifest_ref", "reason_codes", "retry_after", "created_at", "expires_at"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "run_admission_result_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "outcome": {"type": "string", "enum": ["admitted", "rejected", "deferred"]},
+    "validation_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "policy_decision_refs": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "budget_snapshot_ref": {"type": "string", "minLength": 1},
+    "release_manifest_ref": {"type": "string", "minLength": 1},
+    "reason_codes": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "uniqueItems": true},
+    "retry_after": {"type": ["string", "null"], "format": "date-time"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  }
+}

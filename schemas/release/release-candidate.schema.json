@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/release/release-candidate.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ReleaseCandidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "release_candidate_id", "genome_manifest_ref", "mutation_proposal_refs", "baseline_ref", "candidate_builder_ref", "candidate_builder_version", "components", "contract_version_ranges", "compatibility_matrix_ref", "dependency_lock_ref", "dependency_refs", "dependency_digest", "migration_refs", "sbom_ref", "sbom_digest", "build_provenance_refs", "build_evidence_refs", "candidate_digest", "built_at", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "release_candidate_id": {"type": "string", "minLength": 1},
+    "genome_manifest_ref": {"type": "string", "minLength": 1},
+    "mutation_proposal_refs": {"$ref": "#/$defs/refList"},
+    "baseline_ref": {"type": ["string", "null"], "minLength": 1},
+    "candidate_builder_ref": {"type": "string", "minLength": 1},
+    "candidate_builder_version": {"type": "string", "minLength": 1},
+    "components": {"type": "array", "items": {"$ref": "#/$defs/component"}, "minItems": 1},
+    "contract_version_ranges": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"minLength": 1},
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "compatibility_matrix_ref": {"type": "string", "minLength": 1},
+    "dependency_lock_ref": {"type": "string", "minLength": 1},
+    "dependency_refs": {"$ref": "#/$defs/refList"},
+    "dependency_digest": {"type": "string", "minLength": 1},
+    "migration_refs": {"$ref": "#/$defs/refList"},
+    "sbom_ref": {"type": "string", "minLength": 1},
+    "sbom_digest": {"type": "string", "minLength": 1},
+    "build_provenance_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "build_evidence_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "candidate_digest": {"type": "string", "minLength": 1},
+    "built_at": {"type": "string", "format": "date-time"},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "anyOf": [
+    {"properties": {"mutation_proposal_refs": {"$ref": "#/$defs/nonEmptyRefList"}}},
+    {"properties": {"baseline_ref": {"type": "string", "minLength": 1}}}
+  ],
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "nonEmptyRefList": {"$ref": "#/$defs/refList", "minItems": 1},
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component_type", "component_ref", "version", "digest", "provenance_refs"],
+      "properties": {
+        "component_type": {"type": "string", "enum": ["agent", "prompt", "schema", "model_route", "capability", "adapter", "knowledge_index", "memory_policy", "policy"]},
+        "component_ref": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1},
+        "digest": {"type": "string", "minLength": 1},
+        "provenance_refs": {"$ref": "#/$defs/nonEmptyRefList"}
+      }
+    }
+  }
+}

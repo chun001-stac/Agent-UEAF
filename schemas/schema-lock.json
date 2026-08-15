@@ -1,0 +1,315 @@
+{
+  "lock_version": "1.0.0",
+  "schemas": [
+    {
+      "$id": "https://ueaf.dev/schemas/admission/budget-envelope.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "98696e986aac1fbb3af58c7397a4549476080a145120f4a0e1c33ea571cdeada"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/admission/request-envelope.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "6de91bd42deb5c59351381e3748090d92f1f7175314d49e248e07bb90951d881"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/admission/run-admission-result.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "c0182f10d154f6d171ba785666fbf8861fb79aedb03199281da3a7f5120a590e"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/admission/task-envelope.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "8c4bef8fe1d82da93bc477283f2ad62add57957e3975702ba9a353cbf47ea07b"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/action-disposition.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "77a5169f2ed07ffa42c40f46e06dcc8d528793a15563e3708035ec102a0c6f45"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/action-phase.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "d9c165d209bafd609b367f60573cfd1028fab655f84ff9996541085fce7d1470"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/command-envelope.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "ee3213ca226a273ecd01dafd3e6c669c40dfd66de09918c11fb1df02bdfe560b"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/completion-disposition.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "0d61735d4755e8e82ceb48d9e3f272f9cd9c00c9691504abebb8884db62d328a"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/contract-meta.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "5d907b0aed35dbd8f29be664f0888ca0d539ae1d5630efa8eb7f33d68e52a609"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/port-error.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "e71ac582ebd5253283534f27a5451b737f95c88af908dfe57e3b03bb77b0b86d"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/port-result.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "6b109d15f2f8fa96621d4f09c9952b6ac71b7a0334d7e01d952378344b047018"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/problem-detail.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "d6e31fc2b935ae3d82107a27e78eda82ad14de51ae80a2c7a8dfd1bd1ed6956e"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/run-phase.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "666024f34db6faafed16dfe306c642cb6c0cdad5ba431d685cc2b35c3010923a"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/common/wait-reason.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "58f4368bcc54594c87e031ddda28020ae07300e83258aef0abcbe86985218b87"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/context/context-build-request.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "929d2983e76ecc070a6b1c601e2a6463ab1f78c17ce54e674e75069c3aeb4d99"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/context/context-manifest.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "2f34fa9e7e8d71abfc62b11c22874e35c336dcdd5eac44e1675b0745eb10a26e"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/context/evidence-pack.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "b255da2cdc3746bd1a64a3f069777b7a5e0ebb26ecca4bf8df4da70b61287ca4"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/context/query-intent.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "3b9dae11a10100cc4775844d60bf5a5ff19c4dee6f12c0ff02b80c8d7d625d31"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/eval/eval-case.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "f7f0337c0e342a82a3c0139f6b4c93138368b22aab491d8b16ee7241166d3ce0"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/eval/eval-config.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "80060b8dc11abea8845a8d383f257cc81de1fb15f0bfb4b2434a167ec6764a13"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/eval/eval-dataset.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "0b2007d3e8e47c835739589760ad202070af47aa3f69b6cb34f353bad94cd6e9"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/eval/eval-result.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "fed9254f38abe536b1a34f210d48fd87e5c8a6e3454bcb0cb038c2701b736093"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/eval/eval-run.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "1a9323050a01adb495f90f3b2fc7922c71a9e16958938d182b1af18e33f381ad"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/eval/quality-gate-decision.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "d7c5477976216b1f50977b4c66fe152691f5e82c9a292e7b2a4dc4fe3ca00287"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/events/event-catalog.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "ccded81a85ece9cc59c4d91f32142871ac500f7da674d7a16eaa13290d711d70"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/events/event-envelope.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "9011441c173ea99936deaa7bfa8695291b88df48a100ba3535d78cc36f8252ba"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/evolution/evolution-authority-policy.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "6f48233e87e5b003c422de6f74f4702fc8382d1b7f70f1235b5f28ad4247a011"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/evolution/evolution-run.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "d5e76976ba591c28ca5440ab3919e430cf987bcc697f102aa2b4512bb25038b4"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/evolution/evolution-trigger.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "e35cc638a52b3e128cdb530fd5d95a8246d06970dee121844034dedac75e1c46"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/evolution/genome-manifest.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "831351cb52cc879a837446019465600a5e12b397894a67377e530f9c547dc528"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/evolution/mutation-proposal.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "6b24894de756d82b9a30ff078c788fb89ba0dba63c2a35b7ddbc01dbc6d373cb"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/model/model-invocation.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "6708e74e7ed2b1670b8a635717ff369f917f8d0daa0b7c87833cf57ca870635e"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/model/model-run-result.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "836848c792cdfc195d707e5fd9d8f16a499af883b8e75aea32cd6c2546268115"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/model/model-stream-event.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "4407b841e316ed664b71f285edb7e3f3533d9a8777a413730eb21274872e8b11"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/model/prompt-compile-request.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "92c9625ea9944309ebac3994e4902c1e1cf331d088dc29ae1a22d287f4817b12"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/model/prompt-contract.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "6254dfd396f60fb4839fe50a192b0f41d45436ec4e3ab2385e552e06e378a66b"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/model/structured-decision.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "f3fe680fd99fb348a0bcb4a770ee04cb45cfcb80d0c7f1e8000191d3c64bc9b1"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/model/validation-report.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "c00c7d7cdc4a10776bbbb2d9a6a8193ec95878a402669a63251b11174c763acd"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/profiles/evolution-objective-profile.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "c0ccc9a80d73c4c7efed4cfc02de14030bffaee7cda5b70fe774248e1689e7bb"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/profiles/evolution-strategy-profile.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "ebb9d0c67fc8a76168225f67a5bf33b4ba4d39929d998b80fc9f84b6684004f7"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/profiles/subject-profile.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "80e6231ca6ae5932931de46dae3b01770bb44edbbc28d543ad63d80025ef96f7"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/release/operational-readiness-decision.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "e32ebc2fba569229c748ee51ce7a84860fa1bb5fb1c8c06415abe03d0b0a28b9"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/release/release-candidate.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "00a882b15ab2f9d2da4258a684d57a225111911d53bd22b5ea4e72ee67ca8bab"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/release/release-decision.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "fd9a481506136678119d006b6bf63047f1513742a899a5f57232745e6479ac9c"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/release/release-manifest.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "cdf98f6a7ccce24427e5155e55ee6fafc35157ff31c09967ac83e7a91045a9fc"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/release/security-gate-decision.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "ba7af9294c89aabfaca43bd43d2f38d04184bfffc9ad9fe26e08c828f9c410cc"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/runtime/checkpoint.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "b124153fb0a3dd4f7bd0b7b08a8b50216ede19eff3fbe30c08febcbedc79b9e7"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/runtime/run-record.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "9ebefe8db21e8a4803f0be2727ad7c47e537deed441039b0d9189068efa76b0e"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/runtime/task-state.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "c3eba92015717cef0fdd977f4a8de8ea7ee868369bf38411900204de4680b750"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/security/approval-request.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "2370b49e882528a4c0666d32ef351818cb1f9f78c4665a79ee9e921bb8b98910"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/security/authorization-request.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "cd0347cbee479500325f683efd28386663edd1fc26b1269a30b625fb3817a49b"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/security/policy-decision.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "9c773887b9e3f2eb781afa743ec526f48269d377cc9b01a61b478d17a18b11b2"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/security/principal-context.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "a9f600709d8407c6217cf559789b3081a7664408af96ca8e35e9a97136217bea"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/telemetry/audit-record.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "7eb602bfe894fa6184ef61fc6a159f593032e81544812be6a7e4d140434f2d60"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/tool/action-receipt.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "6446c184ff8b9e2a6da68fd05dfb12d0abc32a12c13d93e73c5d2262b17a3772"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/tool/action-record.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "ea990504627e7cba45bf191c22c3e735bfc5308d72a133bf421c6417e791c960"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/tool/capability-descriptor.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "f2ab0bafad3132fef288f52b21290f26631b6646b8fa9541e2af247a61e8b781"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/tool/tool-intent.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "2a14e8cd735606db2184d5e3ae8dbc4341a855867ea12dbd5441da201ae2f157"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/tool/tool-result.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "dd3e70143d03f7409e27df236178c11445f74a89fb783c6bc85f7986da3289ae"
+    },
+    {
+      "$id": "https://ueaf.dev/schemas/workflow/handoff-envelope.schema.json",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "fbcff0ab79e4d1895afd2600fedede48c4e55be74f681139417e9b7702a91f88"
+    },
+    {
+      "$id": "schema://run-created/1.0.0",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "876f8bc6c05774ff3d959b720eb6c2b6f37c184e13b39efa3ef167ef2dbe1d38"
+    },
+    {
+      "$id": "schema://run-phase-changed/1.0.0",
+      "x-ueaf-schema-version": "1.0.0",
+      "sha256": "6ef00f898beb37633c19b66f04aca1b786835ab59c254e0c34280e0d0c5588d1"
+    }
+  ]
+}

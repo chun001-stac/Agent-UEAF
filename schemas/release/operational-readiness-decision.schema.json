@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/release/operational-readiness-decision.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "OperationalReadinessDecision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "operational_readiness_decision_id", "candidate_ref", "environment", "scope", "outcome", "status", "readiness_policy_version", "slo_profile_ref", "capacity_evidence_refs", "observability_evidence_refs", "migration_evidence_refs", "rollback_evidence_refs", "recovery_evidence_refs", "condition_refs", "waiver_refs", "issued_by", "issued_at", "expires_at", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "operational_readiness_decision_id": {"type": "string", "minLength": 1},
+    "candidate_ref": {"type": "string", "minLength": 1},
+    "environment": {"type": "string", "minLength": 1},
+    "scope": {"type": "object", "minProperties": 1},
+    "outcome": {"type": "string", "enum": ["pass", "conditional", "fail"]},
+    "status": {"type": "string", "enum": ["active", "expired", "revoked", "superseded"]},
+    "readiness_policy_version": {"type": "string", "minLength": 1},
+    "slo_profile_ref": {"type": "string", "minLength": 1},
+    "capacity_evidence_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "observability_evidence_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "migration_evidence_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "rollback_evidence_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "recovery_evidence_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "condition_refs": {"$ref": "#/$defs/refList"},
+    "waiver_refs": {"$ref": "#/$defs/refList"},
+    "issued_by": {"type": "string", "minLength": 1},
+    "issued_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"outcome": {"const": "conditional"}}},
+      "then": {"properties": {"condition_refs": {"$ref": "#/$defs/nonEmptyRefList"}}}
+    }
+  ],
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "nonEmptyRefList": {"$ref": "#/$defs/refList", "minItems": 1}
+  }
+}

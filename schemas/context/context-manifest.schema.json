@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/context/context-manifest.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ContextManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "context_manifest_id",
+    "run_id",
+    "turn_id",
+    "sections",
+    "source_refs",
+    "policy_snapshot_ref",
+    "budget_before",
+    "budget_after",
+    "selection_decisions",
+    "omissions",
+    "compression_records",
+    "trust_labels",
+    "integrity_ref"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "context_manifest_id": {"$ref": "#/$defs/nonEmptyString"},
+    "run_id": {"$ref": "#/$defs/nonEmptyString"},
+    "turn_id": {"$ref": "#/$defs/nonEmptyString"},
+    "sections": {"type": "array", "items": {"$ref": "#/$defs/section"}},
+    "source_refs": {"$ref": "#/$defs/refList"},
+    "policy_snapshot_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "budget_before": {"$ref": "#/$defs/budgetSnapshot"},
+    "budget_after": {"$ref": "#/$defs/budgetSnapshot"},
+    "selection_decisions": {"type": "array", "items": {"$ref": "#/$defs/selectionDecision"}},
+    "omissions": {"type": "array", "items": {"$ref": "#/$defs/omission"}},
+    "compression_records": {"type": "array", "items": {"$ref": "#/$defs/compressionRecord"}},
+    "trust_labels": {"type": "array", "items": {"$ref": "#/$defs/trustLabel"}},
+    "integrity_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "task_id": {"type": "string", "minLength": 1},
+    "principal_context_ref": {"type": "string", "minLength": 1},
+    "purpose": {"type": "string", "minLength": 1},
+    "prompt_contract_ref": {"type": "string", "minLength": 1},
+    "task_state_ref": {"type": "string", "minLength": 1},
+    "task_state_revision": {"type": "integer", "minimum": 0},
+    "authorization_proof_refs": {"$ref": "#/$defs/refList"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "refList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"},
+      "uniqueItems": true
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "section_id",
+        "partition",
+        "content_ref",
+        "source_refs",
+        "source_versions",
+        "purpose",
+        "token_count",
+        "selection_reason_code",
+        "trust_label"
+      ],
+      "properties": {
+        "section_id": {"$ref": "#/$defs/nonEmptyString"},
+        "partition": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "content_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "source_refs": {"$ref": "#/$defs/refList", "minItems": 1},
+        "source_versions": {"$ref": "#/$defs/refList", "minItems": 1},
+        "purpose": {"type": "string", "minLength": 1},
+        "token_count": {"type": "integer", "minimum": 0},
+        "selection_reason_code": {"$ref": "#/$defs/nonEmptyString"},
+        "trust_label": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}
+      }
+    },
+    "budgetSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["context_tokens", "remaining_latency_ms", "remaining_cost_amount", "currency"],
+      "properties": {
+        "context_tokens": {"type": "integer", "minimum": 0},
+        "remaining_latency_ms": {"type": "integer", "minimum": 0},
+        "remaining_cost_amount": {"type": "string", "pattern": "^(0|[1-9][0-9]*)(?:\\.[0-9]+)?$"},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+      }
+    },
+    "selectionDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "$comment": "decision membership is defined by the frozen selection policy, not by a new global state enum",
+      "required": ["candidate_ref", "decision", "reason_code", "policy_ref"],
+      "properties": {
+        "candidate_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "decision": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "reason_code": {"$ref": "#/$defs/nonEmptyString"},
+        "policy_ref": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "omission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_ref", "reason_code", "safe_summary_ref"],
+      "properties": {
+        "candidate_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "reason_code": {"$ref": "#/$defs/nonEmptyString"},
+        "safe_summary_ref": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "compressionRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input_refs", "rule_or_model_ref", "output_ref", "loss_summary_ref", "omission_refs", "integrity_ref"],
+      "properties": {
+        "input_refs": {"$ref": "#/$defs/refList", "minItems": 1},
+        "rule_or_model_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "output_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "loss_summary_ref": {"type": ["string", "null"], "minLength": 1},
+        "omission_refs": {"$ref": "#/$defs/refList"},
+        "integrity_ref": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "trustLabel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["section_id", "label"],
+      "properties": {
+        "section_id": {"$ref": "#/$defs/nonEmptyString"},
+        "label": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}
+      }
+    }
+  }
+}

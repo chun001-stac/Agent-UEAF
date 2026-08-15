@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/release/release-decision.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ReleaseDecision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "release_decision_id", "candidate_ref", "environment", "scope", "outcome", "status", "release_policy_version", "quality_gate_decision_ref", "security_gate_decision_ref", "operational_readiness_decision_ref", "evidence_refs", "condition_refs", "waiver_refs", "rollout_constraints", "issued_by", "issued_at", "expires_at", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "release_decision_id": {"type": "string", "minLength": 1},
+    "candidate_ref": {"type": "string", "minLength": 1},
+    "environment": {"type": "string", "minLength": 1},
+    "scope": {"type": "object", "minProperties": 1},
+    "outcome": {"type": "string", "enum": ["approved", "conditional", "rejected"]},
+    "status": {"type": "string", "enum": ["active", "expired", "revoked", "superseded"]},
+    "release_policy_version": {"type": "string", "minLength": 1},
+    "quality_gate_decision_ref": {"type": "string", "minLength": 1},
+    "security_gate_decision_ref": {"type": "string", "minLength": 1},
+    "operational_readiness_decision_ref": {"type": "string", "minLength": 1},
+    "evidence_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "condition_refs": {"$ref": "#/$defs/refList"},
+    "waiver_refs": {"$ref": "#/$defs/refList"},
+    "rollout_constraints": {"type": "object", "minProperties": 1},
+    "issued_by": {"type": "string", "minLength": 1},
+    "issued_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"outcome": {"const": "conditional"}}},
+      "then": {"properties": {"condition_refs": {"$ref": "#/$defs/nonEmptyRefList"}}}
+    }
+  ],
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "nonEmptyRefList": {"$ref": "#/$defs/refList", "minItems": 1}
+  }
+}

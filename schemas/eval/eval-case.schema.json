@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/eval/eval-case.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "EvalCase",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "eval_case_id", "case_version", "input_ref", "input", "precondition_state_ref", "allowed_capability_refs", "expected_constraints", "scoring_rubric_ref", "scope", "sensitivity", "source_refs", "exposure_status", "contamination_status", "deletion_propagation_ref", "content_digest", "integrity_ref"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "eval_case_id": {"type": "string", "minLength": 1},
+    "case_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"},
+    "input_ref": {"type": ["string", "null"], "minLength": 1},
+    "input": {"type": ["object", "null"]},
+    "precondition_state_ref": {"type": ["string", "null"], "minLength": 1},
+    "allowed_capability_refs": {"$ref": "#/$defs/refList"},
+    "expected_constraints": {"type": "object", "minProperties": 1},
+    "scoring_rubric_ref": {"type": "string", "minLength": 1},
+    "scope": {"type": "object", "minProperties": 1},
+    "sensitivity": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+    "source_refs": {"$ref": "#/$defs/nonEmptyRefList"},
+    "exposure_status": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "contamination_status": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+    "deletion_propagation_ref": {"type": "string", "minLength": 1},
+    "content_digest": {"type": "string", "minLength": 1},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "oneOf": [
+    {"properties": {"input_ref": {"type": "string", "minLength": 1}, "input": {"type": "null"}}},
+    {"properties": {"input_ref": {"type": "null"}, "input": {"type": "object"}}}
+  ],
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "nonEmptyRefList": {"$ref": "#/$defs/refList", "minItems": 1}
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/admission/budget-envelope.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "BudgetEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "budget_id", "absolute_deadline", "runtime_steps", "model_calls", "model_input_tokens", "model_output_tokens", "amount", "currency", "tool_calls", "write_actions", "workflow_nodes", "workflow_depth", "parallelism", "subtasks", "risk_actions", "reserved_finalize_budget"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "budget_id": {"type": "string", "minLength": 1},
+    "absolute_deadline": {"$ref": "#/$defs/deadlineLimit"},
+    "runtime_steps": {"$ref": "#/$defs/countLimit"},
+    "model_calls": {"$ref": "#/$defs/countLimit"},
+    "model_input_tokens": {"$ref": "#/$defs/countLimit"},
+    "model_output_tokens": {"$ref": "#/$defs/countLimit"},
+    "amount": {"$ref": "#/$defs/amountLimit"},
+    "currency": {"type": ["string", "null"], "pattern": "^[A-Z]{3}$"},
+    "tool_calls": {"$ref": "#/$defs/countLimit"},
+    "write_actions": {"$ref": "#/$defs/countLimit"},
+    "workflow_nodes": {"$ref": "#/$defs/countLimit"},
+    "workflow_depth": {"$ref": "#/$defs/countLimit"},
+    "parallelism": {"$ref": "#/$defs/countLimit"},
+    "subtasks": {"$ref": "#/$defs/countLimit"},
+    "risk_actions": {"$ref": "#/$defs/countLimit"},
+    "reserved_finalize_budget": {"$ref": "#/$defs/finalizeBudget"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"amount": {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"}}},
+      "then": {"properties": {"currency": {"type": "string", "pattern": "^[A-Z]{3}$"}}}
+    }
+  ],
+  "$defs": {
+    "contractLimitMode": {"type": "string", "enum": ["unbounded_by_contract", "organization_default"]},
+    "countLimit": {
+      "oneOf": [
+        {"type": "integer", "minimum": 0},
+        {"$ref": "#/$defs/contractLimitMode"}
+      ]
+    },
+    "deadlineLimit": {
+      "oneOf": [
+        {"type": "string", "format": "date-time"},
+        {"$ref": "#/$defs/contractLimitMode"}
+      ]
+    },
+    "amountLimit": {
+      "oneOf": [
+        {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"},
+        {"$ref": "#/$defs/contractLimitMode"}
+      ]
+    },
+    "finalizeBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime_steps", "model_calls", "model_input_tokens", "model_output_tokens", "tool_calls", "amount", "currency"],
+      "properties": {
+        "runtime_steps": {"type": "integer", "minimum": 0},
+        "model_calls": {"type": "integer", "minimum": 0},
+        "model_input_tokens": {"type": "integer", "minimum": 0},
+        "model_output_tokens": {"type": "integer", "minimum": 0},
+        "tool_calls": {"type": "integer", "minimum": 0},
+        "amount": {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+      }
+    }
+  }
+}

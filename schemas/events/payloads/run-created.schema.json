@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema://run-created/1.0.0",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ueaf.run.created Payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "task_id", "release_id", "runtime_adapter_ref"],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "release_id": {"type": "string", "minLength": 1},
+    "runtime_adapter_ref": {"type": "string", "minLength": 1}
+  }
+}

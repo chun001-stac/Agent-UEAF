@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ueaf.dev/schemas/security/principal-context.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
   "title": "PrincipalContext",
   "type": "object",
   "additionalProperties": false,

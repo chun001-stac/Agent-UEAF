@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/model/model-run-result.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ModelRunResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "model_invocation_id",
+    "status",
+    "output_ref",
+    "finish_reason",
+    "usage",
+    "provider_request_ref",
+    "model_identity",
+    "latency_ms",
+    "error",
+    "integrity_ref",
+    "normalized_candidate_ref",
+    "provider_state_ref",
+    "stream_integrity"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "model_invocation_id": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "enum": ["succeeded", "refused", "failed", "unknown"]},
+    "output_ref": {"type": ["string", "null"], "minLength": 1},
+    "finish_reason": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "$comment": "Finish reasons are a stable, contract-versioned vocabulary; this common schema does not invent a globally closed provider-independent enum."
+    },
+    "usage": {"$ref": "#/$defs/modelUsage"},
+    "provider_request_ref": {"type": "string", "minLength": 1},
+    "model_identity": {"$ref": "#/$defs/modelIdentity"},
+    "latency_ms": {"type": "integer", "minimum": 0},
+    "error": {
+      "anyOf": [
+        {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"},
+        {"type": "null"}
+      ]
+    },
+    "integrity_ref": {"type": "string", "minLength": 1},
+    "normalized_candidate_ref": {"type": ["string", "null"], "minLength": 1},
+    "provider_state_ref": {"type": ["string", "null"], "minLength": 1},
+    "stream_integrity": {"$ref": "#/$defs/streamIntegrity"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"enum": ["succeeded", "refused"]}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "output_ref": {"type": "string", "minLength": 1},
+          "error": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"enum": ["failed", "unknown"]}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "output_ref": {"type": "null"},
+          "error": {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "failed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "error": {
+            "allOf": [
+              {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"},
+              {"properties": {"certainty": {"const": "not_executed"}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "unknown"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "error": {
+            "allOf": [
+              {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"},
+              {"properties": {"certainty": {"const": "unknown"}}}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "modelUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input_tokens", "output_tokens", "cached_tokens", "reasoning_tokens", "cost_amount", "currency", "is_estimated"],
+      "properties": {
+        "input_tokens": {"type": "integer", "minimum": 0},
+        "output_tokens": {"type": "integer", "minimum": 0},
+        "cached_tokens": {"type": "integer", "minimum": 0},
+        "reasoning_tokens": {"type": "integer", "minimum": 0},
+        "cost_amount": {"type": "string", "pattern": "^(0|[1-9][0-9]*)(?:\\.[0-9]+)?$"},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+        "is_estimated": {"type": "boolean"}
+      }
+    },
+    "modelIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "model_version"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1},
+        "model": {"type": "string", "minLength": 1},
+        "model_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "streamIntegrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["delivery_mode", "continuous", "final_received", "missing_sequences"],
+      "properties": {
+        "delivery_mode": {"type": "string", "enum": ["stream", "non_stream"]},
+        "continuous": {"type": "boolean"},
+        "final_received": {"type": "boolean"},
+        "missing_sequences": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 1},
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

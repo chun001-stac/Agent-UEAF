@@ -17,7 +17,7 @@ Implementation: `Current`
    固定 authority/projection、CAS、fencing、outbox、Action/Evolution/Release 事务顺序。
 
 4. [V1 验收与一致性测试规范](04-V1验收与一致性测试规范.md)  
-   注册并定义 `CON/RUN/ADP/PRM/CTX/RAG/ACT/SEC/EVD/EVAL/REL/EVO/REP/MUT/OBJ/STR/ETH/P0-SCH/P0-PORT` Test IDs。
+   作为唯一前缀注册表，登记 `CON/RUN/ADP/PRM/CTX/RAG/ACT/SEC/EVD/EVAL/REL/EVO/REP/MUT/OBJ/STR/ETH/P0-SCH/P0-PORT`；并作为 `P0-SCH-*`/`P0-PORT-*` 的唯一具体 ID 与 expected-semantics Owner，扩展规范只为这两类补充 fixture/执行说明。
 
 5. [V1 参考实现与 Codex 开发规范](05-V1参考实现与Codex开发规范.md)  
    固定 Python Reference Profile、Phase 0..6、仓库结构和 Codex 决策边界。
@@ -107,8 +107,8 @@ Normative V1 Docs
 - public event name = `ueaf.<domain>.<past_tense_fact>`；
 - API error = `ProblemDetail`，Port error = `PortResult<T>/PortError`；
 - RuntimeAdapter/ContextBuildPort/TelemetryPort 只用核心 SPI；
-- `PrincipalContext` 只有核心一套字段；
-- Task risk enum 与 Evolution `RepairLevel` 分离；
+- `PrincipalContext` 只有核心一套字段，顶层 `tenant_id` MUST 等于 `meta.tenant_id`；
+- Task risk enum 与 Evolution `RepairLevel` 分离；RepairLevel 概念标签为 `R0..R5`，wire 为 `r0..r5`，Mutation 只允许 `r1..r4`；
 - `ReleaseManifest` 使用 plural version-set 字段；
 - Evolution Canonical Object 只有五个；
 - `Mutation -> GenomeManifest candidate -> ReleaseCandidate` 不可跳步；
@@ -146,11 +146,12 @@ pytest / Ruff / mypy / GitHub Actions
 ## 7. 当前状态
 
 ```text
-Documentation Code-Ready: PASS
+Documentation Contract Convergence: PASS (2026-08-15 corrective revalidation)
+V1 Development Gate: CONDITIONAL-GO (phase-specific tests required)
 Architecture Feature Freeze: ACTIVE
-Phase 0 implementation: IN PROGRESS / partial skeleton exists
-P0 implementation deepening: AUDITED DOCUMENTATION READY
-P0 machine implementation: PENDING
+Phase 0 implementation: IN PROGRESS / 62 active Schema + first baseline lock + typed core SPI + migration/CI baseline landed
+P0 implementation deepening: DOCUMENTATION CONVERGED
+P0 machine implementation: BASELINE VERIFIED / frozen local + GitHub Actions contract/local-profile gates green; phase behavior prerequisites pending
 ```
 
-当前仓库已有部分 `schemas/`、`src/`、`tests/`、migration harness、CI 和本地基础设施骨架。下一步应按 01/02/03/04/07/08 继续机器化 Model、Context/RAG、Tool、Security 和 Eval，并实现 typed Port、failure-injection 和隔离 vertical slices，而不是继续主动发散 V1 架构。
+当前仓库已落地 62 份 active Machine Schema、首次 baseline schema lock、typed core SPI、migration harness 与 GitHub Actions CI baseline；全部自动化测试均已映射到已登记 Test ID，JUnit 可追溯性和冻结本地门禁已通过。GitHub Actions 也已验证 PostgreSQL online migration，以及 NATS/PostgreSQL/MinIO local profile 的真实启动与健康检查。文档 PASS 和上述 baseline 不等于 Phase 0 complete 或 Full Implementation Ready；下一步进入 Phase 1 authoritative state/outbox 行为切片，并补齐 Phase 2 non-Eval runtime smoke 与 Phase 4 read-only Eval slice 的行为前置及相应 failure-injection，而不是继续主动发散 V1 架构。
