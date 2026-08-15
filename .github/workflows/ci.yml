@@ -23,10 +23,10 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install locked toolchain
@@ -69,7 +69,7 @@ jobs:
         run: uv run --no-sync pytest --junitxml=pytest-results.xml
       - name: Upload pytest traceability report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-results
           path: pytest-results.xml
@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start and verify the local dependency profile
         run: docker compose up -d --wait --wait-timeout 120
       - name: Diagnose local profile failure
