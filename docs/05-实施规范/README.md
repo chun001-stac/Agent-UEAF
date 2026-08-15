@@ -166,8 +166,11 @@ Phase 4 (Eval / Release): DONE / read-only Eval slice + fail-closed activation c
 Phase 5 (Evidence): DONE / L0-L1-L2 evidence flow, 0 LLM default path
 Phase 6 (Evolution V1): DONE / 5 canonical objects + MutationValidator + evolution vertical slice
 P0 machine implementation: VERIFIED / 387 tests mapped to registered Test IDs green
+Persistence (spec 03): DONE / SQLAlchemy repos + authority/outbox migration + DB-level CAS/fencing
+Control-plane API: DONE / FastAPI + Pydantic wire models + ProblemDetail mapping
+Queue/Artifact wiring: DONE / NATS JetStream outbox publisher + S3/MinIO artifact store
 ```
 
 当前仓库已落地 V1 参考实现的全部阶段行为切片：Admission/Run 状态机与 transactional outbox（CAS/revision、fencing token、run 域权威事件）、确定性 Runtime Adapter（Deterministic / LangGraph / OpenAI Agents SDK read-only）、Tool Gateway 动作生命周期（指纹、审批、预留、对账）、read-only Eval 与 Release 激活链（Gate 隔离、rollback）、Evidence L0→L1→L2 证据流（默认 0 LLM token），以及五个 Evolution canonical object 的受控演化内核（含 MutationValidator 与 Single-Candidate 策略）。
 
-所有新增测试均映射到已登记 Test ID（CON/RUN/ADP/PRM/CTX/RAG/ACT/SEC/EVD/EVAL/REL/EVO/REP/MUT/OBJ/STR/ETH/P0-SCH/P0-PORT），本地 pytest（venv，jsonschema>=4.25 匹配锁定环境）与 ruff/mypy 全绿。文档 PASS 与上述实现 gate 通过不等于产品级生产就绪；后续按需补充 live provider integration profile、PostgreSQL 事务化 repository 落地，以及 NATS/MinIO 端到端接线，而不是继续主动发散 V1 架构。
+所有新增测试均映射到已登记 Test ID（CON/RUN/ADP/PRM/CTX/RAG/ACT/SEC/EVD/EVAL/REL/EVO/REP/MUT/OBJ/STR/ETH/P0-SCH/P0-PORT），本地 pytest（venv，jsonschema>=4.25 匹配锁定环境）与 ruff/mypy 全绿。文档 PASS 与上述实现 gate 通过不等于产品级生产就绪；后续按需补充 live provider integration profile、NATS/MinIO 容器端到端集成测试，以及 action/approval 域对象持久化落地，而不是继续主动发散 V1 架构。
