@@ -20,9 +20,9 @@ from ueaf.runtime.outbox import OutboxEntry, OutboxStore
 
 
 class OutboxPublisher(Protocol):
-    def publish(self, entry: OutboxEntry) -> bool: ...
+    async def publish(self, entry: OutboxEntry) -> bool: ...
 
-    def drain(self, outbox: OutboxStore) -> int: ...
+    async def drain(self, outbox: OutboxStore) -> int: ...
 
 
 def _to_envelope(entry: OutboxEntry) -> EventEnvelope:
@@ -59,18 +59,18 @@ class InMemoryOutboxPublisher:
         self._seen: set[str] = set()
         self.events: list[EventEnvelope] = []
 
-    def publish(self, entry: OutboxEntry) -> bool:
+    async def publish(self, entry: OutboxEntry) -> bool:
         if entry.event_id in self._seen:
             return False
         self._seen.add(entry.event_id)
         self.events.append(_to_envelope(entry))
         return True
 
-    def drain(self, outbox: OutboxStore) -> int:
+    async def drain(self, outbox: OutboxStore) -> int:
         count = 0
-        for entry in outbox.unpublished():
-            if self.publish(entry):
-                outbox.mark_published(entry.event_id, utcnow())
+        for entry in await outbox.unpublished():
+            if await self.publish(entry):
+                await outbox.mark_published(entry.event_id, utcnow())
                 count += 1
         return count
 
@@ -106,9 +106,9 @@ class NatsJetStreamOutboxPublisher:
 
     async def drain(self, outbox: OutboxStore) -> int:
         count = 0
-        for entry in outbox.unpublished():
+        for entry in await outbox.unpublished():
             if await self.publish(entry):
-                outbox.mark_published(entry.event_id, utcnow())
+                await outbox.mark_published(entry.event_id, utcnow())
                 count += 1
         return count
 
