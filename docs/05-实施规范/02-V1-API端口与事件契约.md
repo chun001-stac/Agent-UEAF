@@ -427,7 +427,7 @@ sequence > current + 1 -> gap / recovery path
 
 V1 默认使用至少一次投递，因此所有消费者 MUST 幂等。禁止把消息队列的“已消费”当作业务事实提交的唯一依据。
 
-权威 DB transaction 与 Event publish SHOULD 使用 transactional outbox 或等价机制。消费者检测 sequence gap 时不能继续宣称 Projection 完整。
+权威 DB transaction 与 Event publish MUST 使用 transactional outbox、同一事务日志或可证明等价机制。消费者检测 sequence gap 时不能继续宣称 Projection 完整。
 
 ## 13. Authorization
 

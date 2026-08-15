@@ -109,7 +109,7 @@ convenience method 只能是可选私有扩展。
 
 ### 4.5 PrincipalContext
 
-只使用核心字段。不得再造 `subject_id/identity_provider/assurance_level/...` 版第二 `PrincipalContext`。
+只使用核心字段。顶层 `tenant_id` 是 MUST，并且 MUST 与 `meta.tenant_id` 相同；它不是可选镜像。不得再造 `subject_id/identity_provider/assurance_level/...` 版第二 `PrincipalContext`。
 
 ### 4.6 Risk type
 
@@ -118,10 +118,12 @@ TaskEnvelope.risk_class:
 compute_only | read_only | reversible_write | high_risk_write
 
 Evolution RepairLevel:
-R0 | R1 | R2 | R3 | R4 | R5
+概念标签：R0 | R1 | R2 | R3 | R4 | R5
+wire / Schema / config：r0 | r1 | r2 | r3 | r4 | r5
+MutationProposal.repair_level：r1 | r2 | r3 | r4
 ```
 
-不得混用。
+不得混用 Task risk 与 RepairLevel，也不得把大写概念标签写入 wire enum。`R0/r0` 只表达运行处置，不产生长期 Mutation；`R5/r5` 只路由独立治理，不产生 `MutationProposal`。
 
 ### 4.7 ReleaseManifest
 
@@ -149,7 +151,9 @@ MutationProposal
 
 - 每种权威事实只有一个 Semantic Owner；
 - `RunPhase` 与 `CompletionDisposition` 正交；
+- 精确 `RuntimeAdapter`/CapabilityBinding 在创建 Run 前选择，`runtime_adapter_ref` 在创建时冻结；admission 后不得重选或静默切换；
 - Runtime Adapter 不绕过 Model/Tool/Context/Telemetry；
+- 权威状态与公共事件通过 transactional outbox、同一事务日志或可证明等价机制原子关联；
 - 所有企业副作用经过 Tool Gateway；
 - action identity 在 Policy 前稳定，side effect 在 Policy/Approval/Reservation 后执行；
 - Tool timeout/unknown 先 reconciliation；
@@ -174,6 +178,8 @@ read normative docs
 ```
 
 每个涉及公共契约的 PR 必须运行相关 `CON-*`。
+
+`docs/05-实施规范/04-V1验收与一致性测试规范.md` 是 Test ID 前缀注册表，也是 `P0-SCH-*` / `P0-PORT-*` 的唯一具体 ID 与 expected-semantics Owner；实施规范 08 对这两类只能补充 fixture/执行说明。
 
 ## 7. Codex MAY 自主决定
 

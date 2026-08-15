@@ -338,7 +338,7 @@ Trace 必须关联 contract bundle、context manifest、model invocation、model
 | `ContentSafetyPort` | 内容安全检测和转换信号 | 自建或云安全服务 |
 | `TelemetryPort` | 模型、Prompt、解析和门禁语义 | OpenTelemetry、供应商观测平台 |
 
-Provider Adapter 只能处理模型协议。任何带 Agent loop、handoff、tool execution 或 graph state 的框架集成必须进入 02 的 `RuntimeAdapterPort`。
+Provider Adapter 只能处理模型协议。任何带 Agent loop、handoff、tool execution 或 graph state 的框架集成必须进入 02 的公共 `RuntimeAdapter` SPI。
 
 ## 11. 配置项
 

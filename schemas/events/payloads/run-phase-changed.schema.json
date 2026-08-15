@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "schema://run-phase-changed/1.0.0",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ueaf.run.phase_changed Payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["from_phase", "to_phase", "reason_codes"],
+  "properties": {
+    "from_phase": {"$ref": "#/$defs/runPhase"},
+    "to_phase": {"$ref": "#/$defs/runPhase"},
+    "reason_codes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "runPhase": {
+      "type": "string",
+      "enum": ["queued", "admitting", "running", "waiting", "retrying", "paused", "terminal"]
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/context/context-build-request.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ContextBuildRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "context_request_id",
+    "task_id",
+    "run_id",
+    "turn_id",
+    "principal_context_ref",
+    "task_state_ref",
+    "prompt_contract_ref",
+    "release_manifest_ref",
+    "goal",
+    "query_hints",
+    "purpose",
+    "source_constraints",
+    "memory_scope",
+    "budget_slice",
+    "citation_requirement",
+    "known_context_refs"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "context_request_id": {"$ref": "#/$defs/nonEmptyString"},
+    "task_id": {"$ref": "#/$defs/nonEmptyString"},
+    "run_id": {"$ref": "#/$defs/nonEmptyString"},
+    "turn_id": {"$ref": "#/$defs/nonEmptyString"},
+    "principal_context_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "task_state_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "prompt_contract_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "release_manifest_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "goal": {"type": "string", "minLength": 1},
+    "query_hints": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "purpose": {"type": "string", "minLength": 1},
+    "source_constraints": {"$ref": "#/$defs/sourceConstraints"},
+    "memory_scope": {"type": "string", "enum": ["none", "session", "subject", "team", "tenant"]},
+    "budget_slice": {"$ref": "#/$defs/contextBudget"},
+    "citation_requirement": {"$ref": "#/$defs/citationRequirement"},
+    "known_context_refs": {"$ref": "#/$defs/refList"}
+  },
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "refList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"},
+      "uniqueItems": true
+    },
+    "sourceConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_source_refs",
+        "denied_source_refs",
+        "from_time",
+        "to_time",
+        "max_age_seconds",
+        "regions",
+        "languages"
+      ],
+      "properties": {
+        "allowed_source_refs": {"$ref": "#/$defs/refList"},
+        "denied_source_refs": {"$ref": "#/$defs/refList"},
+        "from_time": {"type": ["string", "null"], "format": "date-time"},
+        "to_time": {"type": ["string", "null"], "format": "date-time"},
+        "max_age_seconds": {"type": ["integer", "null"], "minimum": 0},
+        "regions": {"$ref": "#/$defs/refList"},
+        "languages": {
+          "type": "array",
+          "items": {"type": "string", "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "contextBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_context_tokens", "max_latency_ms", "max_queries", "max_cost_amount", "currency"],
+      "properties": {
+        "max_context_tokens": {"type": "integer", "minimum": 0},
+        "max_latency_ms": {"type": "integer", "minimum": 1},
+        "max_queries": {"type": "integer", "minimum": 0},
+        "max_cost_amount": {"type": "string", "pattern": "^(0|[1-9][0-9]*)(?:\\.[0-9]+)?$"},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+      }
+    },
+    "citationRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_level", "minimum_evidence_items", "max_age_seconds"],
+      "properties": {
+        "item_level": {"type": "boolean"},
+        "minimum_evidence_items": {"type": "integer", "minimum": 0},
+        "max_age_seconds": {"type": ["integer", "null"], "minimum": 0}
+      }
+    }
+  }
+}

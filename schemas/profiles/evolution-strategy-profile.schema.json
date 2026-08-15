@@ -1,13 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ueaf.dev/schemas/profiles/evolution-strategy-profile.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
   "title": "EvolutionStrategyProfile",
   "type": "object",
   "additionalProperties": false,
   "required": ["strategy_id", "strategy_type", "max_candidates", "max_fields_per_candidate", "max_components_per_candidate", "max_scopes_per_candidate", "allow_mixed_repair_levels", "require_single_hypothesis", "novelty_policy", "budget"],
   "properties": {
     "strategy_id": {"type": "string", "minLength": 1},
-    "strategy_type": {"type": "string", "enum": ["llm_guided_sparse_mutation", "genetic_search", "bayesian_optimization", "self_reflection", "workflow_tool_search", "human_guided"]},
+    "strategy_type": {"type": "string", "enum": ["llm_guided_sparse_mutation", "genetic_search", "bayesian_optimization", "self_reflection", "workflow_topology_search", "tool_creation_search", "human_guided"]},
     "max_candidates": {"type": "integer", "minimum": 0},
     "max_fields_per_candidate": {"type": "integer", "minimum": 1},
     "max_components_per_candidate": {"type": "integer", "minimum": 1},

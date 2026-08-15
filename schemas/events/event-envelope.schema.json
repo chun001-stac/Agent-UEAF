@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ueaf.dev/schemas/events/event-envelope.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
   "title": "EventEnvelope",
   "type": "object",
   "additionalProperties": false,

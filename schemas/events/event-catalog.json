@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ueaf.dev/schemas/events/event-catalog.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "catalog_version": "1.0.0",
+  "events": [
+    {
+      "event_name": "ueaf.run.created",
+      "event_version": "1.0.0",
+      "payload_schema_ref": "schema://run-created/1.0.0"
+    },
+    {
+      "event_name": "ueaf.run.phase_changed",
+      "event_version": "1.0.0",
+      "payload_schema_ref": "schema://run-phase-changed/1.0.0"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/common/action-phase.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ActionPhase",
+  "type": "string",
+  "additionalProperties": false,
+  "enum": ["proposed", "validating", "authorizing", "waiting_approval", "reserved", "executing", "reconciling", "terminal"]
+}

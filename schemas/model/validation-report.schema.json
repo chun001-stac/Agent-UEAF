@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/model/validation-report.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ValidationReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "schema_result",
+    "semantic_result",
+    "evidence_result",
+    "refusal_result",
+    "normalization_log",
+    "security_signals",
+    "repair_attempts"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "schema_result": {"$ref": "#/$defs/schemaResult"},
+    "semantic_result": {"$ref": "#/$defs/semanticResult"},
+    "evidence_result": {"$ref": "#/$defs/evidenceResult"},
+    "refusal_result": {"$ref": "#/$defs/refusalResult"},
+    "normalization_log": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/normalizationRecord"}
+    },
+    "security_signals": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/securitySignal"}
+    },
+    "repair_attempts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/repairAttempt"}
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "validationOutcome": {"type": "string", "enum": ["pass", "fail"]},
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule_id", "severity", "field_path", "reason_code"],
+      "properties": {
+        "rule_id": {"$ref": "#/$defs/nonEmptyString"},
+        "severity": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "$comment": "Severity membership is owned by the referenced validation rule set; consumers must reject values outside that versioned vocabulary."
+        },
+        "field_path": {"type": "string"},
+        "reason_code": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "issueList": {"type": "array", "items": {"$ref": "#/$defs/issue"}},
+    "schemaResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "schema_ref", "issues"],
+      "properties": {
+        "outcome": {"$ref": "#/$defs/validationOutcome"},
+        "schema_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "issues": {"$ref": "#/$defs/issueList"}
+      }
+    },
+    "semanticResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "rule_set_ref", "issues"],
+      "properties": {
+        "outcome": {"$ref": "#/$defs/validationOutcome"},
+        "rule_set_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "issues": {"$ref": "#/$defs/issueList"}
+      }
+    },
+    "evidenceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "evidence_pack_ref", "validated_claim_refs", "missing_claim_refs", "invalid_citation_refs"],
+      "properties": {
+        "outcome": {"$ref": "#/$defs/validationOutcome"},
+        "evidence_pack_ref": {"type": ["string", "null"], "minLength": 1},
+        "validated_claim_refs": {"$ref": "#/$defs/refList"},
+        "missing_claim_refs": {"$ref": "#/$defs/refList"},
+        "invalid_citation_refs": {"$ref": "#/$defs/refList"}
+      }
+    },
+    "refusalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "refusal_policy_ref", "reason_codes", "alternative_path_refs"],
+      "properties": {
+        "outcome": {"$ref": "#/$defs/validationOutcome"},
+        "refusal_policy_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "reason_codes": {"$ref": "#/$defs/refList"},
+        "alternative_path_refs": {"$ref": "#/$defs/refList"}
+      }
+    },
+    "refList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"},
+      "uniqueItems": true
+    },
+    "normalizationRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field_path", "original_value_ref", "rule_ref", "normalized_value_ref"],
+      "properties": {
+        "field_path": {"type": "string", "minLength": 1},
+        "original_value_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "rule_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "normalized_value_ref": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "securitySignal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["signal_type", "severity", "source_ref", "reason_code"],
+      "properties": {
+        "signal_type": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "severity": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "$comment": "Severity membership is owned by the referenced security rule set; consumers must reject values outside that versioned vocabulary."
+        },
+        "source_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "reason_code": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "repairAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt",
+        "reason_code",
+        "budget_ref",
+        "contract_bundle_ref",
+        "model_invocation_ref",
+        "error_fingerprint",
+        "outcome"
+      ],
+      "properties": {
+        "attempt": {"type": "integer", "minimum": 1},
+        "reason_code": {"$ref": "#/$defs/nonEmptyString"},
+        "budget_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "contract_bundle_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "model_invocation_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "error_fingerprint": {"$ref": "#/$defs/nonEmptyString"},
+        "outcome": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "$comment": "Repair-attempt outcomes are a contract-versioned validator vocabulary, not a new global lifecycle enum."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/tool/tool-intent.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ToolIntent",
+  "type": "object",
+  "additionalProperties": false,
+  "$comment": "arguments are capability-specific and must be validated against the frozen CapabilityDescriptor.input_schema_ref; identity, tenant, authorization, and credentials are rebound server-side",
+  "required": [
+    "meta",
+    "tool_intent_id",
+    "run_id",
+    "turn_id",
+    "capability_ref",
+    "arguments",
+    "argument_provenance",
+    "purpose",
+    "target_resource_hints",
+    "risk_hint",
+    "requested_by",
+    "proposal_hash"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "tool_intent_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "turn_id": {"type": "string", "minLength": 1},
+    "capability_ref": {"type": "string", "minLength": 1},
+    "arguments": {"type": "object"},
+    "argument_provenance": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/argumentProvenance"}
+    },
+    "purpose": {"type": "string", "minLength": 1},
+    "target_resource_hints": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/resourceHint"}
+    },
+    "risk_hint": {
+      "type": "string",
+      "enum": ["compute_only", "read_only", "reversible_write", "high_risk_write"]
+    },
+    "requested_by": {"type": "string", "minLength": 1},
+    "proposal_hash": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "argumentProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field_path", "source_kind", "source_ref"],
+      "properties": {
+        "field_path": {"type": "string", "minLength": 1},
+        "source_kind": {
+          "type": "string",
+          "enum": ["user", "evidence", "memory", "model", "deterministic_system"]
+        },
+        "source_ref": {"type": "string", "minLength": 1}
+      }
+    },
+    "resourceHint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource_type"],
+      "properties": {
+        "resource_type": {"type": "string", "minLength": 1},
+        "resource_id_hint": {"type": "string", "minLength": 1},
+        "resource_ref": {"type": "string", "minLength": 1}
+      },
+      "oneOf": [
+        {"required": ["resource_id_hint"], "not": {"required": ["resource_ref"]}},
+        {"required": ["resource_ref"], "not": {"required": ["resource_id_hint"]}}
+      ]
+    }
+  }
+}

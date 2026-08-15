@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/model/prompt-contract.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "PromptContract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "prompt_contract_id",
+    "version",
+    "owner",
+    "business_purpose",
+    "agent_compatibility",
+    "instruction_layers",
+    "variable_spec",
+    "context_partition_spec",
+    "input_schema_ref",
+    "output_schema_ref",
+    "semantic_rules",
+    "evidence_policy",
+    "refusal_policy",
+    "tool_intent_schema",
+    "handoff_schema",
+    "examples_ref",
+    "consumer_compatibility",
+    "security_profile",
+    "status",
+    "integrity_ref"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "prompt_contract_id": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"},
+    "owner": {"type": "string", "minLength": 1},
+    "business_purpose": {"type": "string", "minLength": 1},
+    "agent_compatibility": {"$ref": "#/$defs/nonEmptyRefList"},
+    "instruction_layers": {"$ref": "#/$defs/instructionLayers"},
+    "variable_spec": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/variableSpec"},
+      "uniqueItems": true
+    },
+    "context_partition_spec": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/contextPartition"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "input_schema_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "output_schema_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "semantic_rules": {"$ref": "#/$defs/refList"},
+    "evidence_policy": {"$ref": "#/$defs/nonEmptyString"},
+    "refusal_policy": {"$ref": "#/$defs/nonEmptyString"},
+    "tool_intent_schema": {"$ref": "#/$defs/nonEmptyString"},
+    "handoff_schema": {"$ref": "#/$defs/nonEmptyString"},
+    "examples_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "consumer_compatibility": {"$ref": "#/$defs/nonEmptyString"},
+    "security_profile": {"$ref": "#/$defs/nonEmptyString"},
+    "status": {
+      "type": "string",
+      "enum": ["draft", "reviewed", "approved", "released", "deprecated", "revoked"]
+    },
+    "integrity_ref": {"$ref": "#/$defs/nonEmptyString"}
+  },
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "refList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"},
+      "uniqueItems": true
+    },
+    "nonEmptyRefList": {
+      "$ref": "#/$defs/refList",
+      "minItems": 1
+    },
+    "instructionBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instruction_ref", "version", "integrity_ref"],
+      "properties": {
+        "instruction_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "version": {"$ref": "#/$defs/nonEmptyString"},
+        "integrity_ref": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "instructionList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/instructionBinding"}
+    },
+    "instructionLayers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_security", "business", "task", "behavior", "expression"],
+      "properties": {
+        "organization_security": {"$ref": "#/$defs/instructionList"},
+        "business": {"$ref": "#/$defs/instructionList"},
+        "task": {"$ref": "#/$defs/instructionList"},
+        "behavior": {"$ref": "#/$defs/instructionList"},
+        "expression": {"$ref": "#/$defs/instructionList"}
+      }
+    },
+    "variableSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "source",
+        "type",
+        "required",
+        "classification",
+        "max_length",
+        "serialization",
+        "escaping",
+        "allow_empty"
+      ],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"},
+        "source": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "type": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "required": {"type": "boolean"},
+        "classification": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+        "max_length": {"type": "integer", "minimum": 1},
+        "serialization": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "escaping": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "allow_empty": {"type": "boolean"}
+      }
+    },
+    "contextPartition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["partition", "content_policy_ref", "max_tokens", "required", "compression_allowed"],
+      "properties": {
+        "partition": {
+          "type": "string",
+          "enum": ["system", "task", "state", "evidence", "memory", "history", "tool_result"]
+        },
+        "content_policy_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "max_tokens": {"type": "integer", "minimum": 0},
+        "required": {"type": "boolean"},
+        "compression_allowed": {"type": "boolean"}
+      }
+    }
+  }
+}

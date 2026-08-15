@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/runtime/run-record.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "RunRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "run_id", "task_id", "agent_ref", "runtime_adapter_ref", "release_id", "phase", "completion_disposition", "wait_reason", "wait_condition_refs", "attempt", "sequence", "lease", "deadline_at", "budget_snapshot", "checkpoint_ref", "pending_action_refs", "terminal_reason_codes", "result_ref", "error_ref", "revision", "created_at", "updated_at"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "run_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "agent_ref": {"type": "string", "minLength": 1},
+    "runtime_adapter_ref": {"type": "string", "minLength": 1},
+    "release_id": {"type": "string", "minLength": 1},
+    "phase": {"$ref": "https://ueaf.dev/schemas/common/run-phase.schema.json"},
+    "completion_disposition": {
+      "oneOf": [
+        {"$ref": "https://ueaf.dev/schemas/common/completion-disposition.schema.json"},
+        {"type": "null"}
+      ]
+    },
+    "wait_reason": {
+      "oneOf": [
+        {"$ref": "https://ueaf.dev/schemas/common/wait-reason.schema.json"},
+        {"type": "null"}
+      ]
+    },
+    "wait_condition_refs": {"$ref": "#/$defs/refList"},
+    "attempt": {"type": "integer", "minimum": 1},
+    "sequence": {"type": "integer", "minimum": 1},
+    "lease": {
+      "oneOf": [
+        {"$ref": "#/$defs/runLease"},
+        {"type": "null"}
+      ]
+    },
+    "deadline_at": {"type": ["string", "null"], "format": "date-time"},
+    "budget_snapshot": {"$ref": "#/$defs/budgetSnapshot"},
+    "checkpoint_ref": {"type": ["string", "null"], "minLength": 1},
+    "pending_action_refs": {"$ref": "#/$defs/refList"},
+    "terminal_reason_codes": {"$ref": "#/$defs/refList"},
+    "result_ref": {"type": ["string", "null"], "minLength": 1},
+    "error_ref": {"type": ["string", "null"], "minLength": 1},
+    "revision": {"type": "integer", "minimum": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"phase": {"const": "terminal"}}},
+      "then": {
+        "properties": {
+          "completion_disposition": {"$ref": "https://ueaf.dev/schemas/common/completion-disposition.schema.json"},
+          "lease": {"type": "null"},
+          "terminal_reason_codes": {"$ref": "#/$defs/refList", "minItems": 1}
+        }
+      },
+      "else": {"properties": {"completion_disposition": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"phase": {"const": "waiting"}}},
+      "then": {
+        "properties": {
+          "wait_reason": {"$ref": "https://ueaf.dev/schemas/common/wait-reason.schema.json"},
+          "wait_condition_refs": {"$ref": "#/$defs/refList", "minItems": 1}
+        }
+      },
+      "else": {
+        "properties": {
+          "wait_reason": {"type": "null"},
+          "wait_condition_refs": {"maxItems": 0}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"phase": {"enum": ["admitting", "running"]}},
+        "required": ["phase"]
+      },
+      "then": {"properties": {"lease": {"$ref": "#/$defs/runLease"}}}
+    },
+    {
+      "if": {
+        "properties": {"phase": {"enum": ["queued", "waiting", "paused"]}},
+        "required": ["phase"]
+      },
+      "then": {"properties": {"lease": {"type": "null"}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {"const": "terminal"},
+          "completion_disposition": {"const": "completed"}
+        },
+        "required": ["phase", "completion_disposition"]
+      },
+      "then": {
+        "properties": {
+          "pending_action_refs": {"maxItems": 0},
+          "result_ref": {"type": "string", "minLength": 1},
+          "error_ref": {"type": "null"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "runLease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lease_id", "holder_id", "fencing_token", "acquired_at", "heartbeat_at", "expires_at"],
+      "properties": {
+        "lease_id": {"type": "string", "minLength": 1},
+        "holder_id": {"type": "string", "minLength": 1},
+        "fencing_token": {"type": "integer", "minimum": 1},
+        "acquired_at": {"type": "string", "format": "date-time"},
+        "heartbeat_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "budgetMeasure": {
+      "oneOf": [
+        {"type": "integer", "minimum": 0},
+        {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"}
+      ]
+    },
+    "budgetDimensionMap": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+      "additionalProperties": {"$ref": "#/$defs/budgetMeasure"}
+    },
+    "budgetSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allocated", "reserved", "consumed", "remaining"],
+      "properties": {
+        "allocated": {"$ref": "#/$defs/budgetDimensionMap"},
+        "reserved": {"$ref": "#/$defs/budgetDimensionMap"},
+        "consumed": {"$ref": "#/$defs/budgetDimensionMap"},
+        "remaining": {"$ref": "#/$defs/budgetDimensionMap"}
+      }
+    }
+  }
+}

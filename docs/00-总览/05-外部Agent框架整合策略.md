@@ -94,7 +94,7 @@ Run Coordinator
 
 ## 6. Adapter 能力协商
 
-每个 Adapter 发布不可变 `AdapterCapabilityDescriptor`，至少声明：
+每个 Adapter 发布核心规范定义的不可变、可签名 `AdapterDescriptor`，至少声明：
 
 - start、resume、cancel、stream、interrupt、handoff、parallel、replay；
 - 模型调用能否强制经 `ModelStepPort`；

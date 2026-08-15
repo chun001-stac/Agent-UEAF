@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/model/model-invocation.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ModelInvocation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "model_invocation_id",
+    "run_id",
+    "turn_id",
+    "model_route_ref",
+    "prompt_contract_ref",
+    "rendered_prompt_ref",
+    "context_manifest_ref",
+    "output_schema_ref",
+    "tool_capability_refs",
+    "deadline_at",
+    "budget_slice",
+    "attempt",
+    "contract_bundle_ref",
+    "model_route_snapshot",
+    "compiled_instructions",
+    "context_blocks",
+    "capability_projection",
+    "response_format",
+    "sampling_config",
+    "streaming_policy",
+    "data_handling"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "model_invocation_id": {"$ref": "#/$defs/nonEmptyString"},
+    "run_id": {"$ref": "#/$defs/nonEmptyString"},
+    "turn_id": {"$ref": "#/$defs/nonEmptyString"},
+    "model_route_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "prompt_contract_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "rendered_prompt_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "context_manifest_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "output_schema_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "tool_capability_refs": {"$ref": "#/$defs/refList"},
+    "deadline_at": {"type": "string", "format": "date-time"},
+    "budget_slice": {"$ref": "#/$defs/modelBudget"},
+    "attempt": {"type": "integer", "minimum": 1},
+    "contract_bundle_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "model_route_snapshot": {"$ref": "#/$defs/modelRouteSnapshot"},
+    "compiled_instructions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/compiledInstruction"},
+      "minItems": 1
+    },
+    "context_blocks": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/contextBlock"}
+    },
+    "capability_projection": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/capabilityProjectionItem"},
+      "uniqueItems": true
+    },
+    "response_format": {"$ref": "#/$defs/responseFormat"},
+    "sampling_config": {"$ref": "#/$defs/samplingConfig"},
+    "streaming_policy": {"$ref": "#/$defs/streamingPolicy"},
+    "provider_state_ref": {"type": ["string", "null"], "minLength": 1},
+    "data_handling": {"$ref": "#/$defs/dataHandling"}
+  },
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "refList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"},
+      "uniqueItems": true
+    },
+    "modelBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_input_tokens", "max_output_tokens", "max_duration_ms", "max_cost_amount", "currency"],
+      "properties": {
+        "max_input_tokens": {"type": "integer", "minimum": 0},
+        "max_output_tokens": {"type": "integer", "minimum": 1},
+        "max_duration_ms": {"type": "integer", "minimum": 1},
+        "max_cost_amount": {"type": "string", "pattern": "^(0|[1-9][0-9]*)(?:\\.[0-9]+)?$"},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+      }
+    },
+    "modelRouteSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_id",
+        "route_version",
+        "provider",
+        "model",
+        "model_version",
+        "capability_refs",
+        "parameter_profile_ref",
+        "region",
+        "fallback_route_refs"
+      ],
+      "properties": {
+        "route_id": {"$ref": "#/$defs/nonEmptyString"},
+        "route_version": {"$ref": "#/$defs/nonEmptyString"},
+        "provider": {"$ref": "#/$defs/nonEmptyString"},
+        "model": {"$ref": "#/$defs/nonEmptyString"},
+        "model_version": {"$ref": "#/$defs/nonEmptyString"},
+        "capability_refs": {"$ref": "#/$defs/refList"},
+        "parameter_profile_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "region": {"$ref": "#/$defs/nonEmptyString"},
+        "fallback_route_refs": {"$ref": "#/$defs/refList"}
+      }
+    },
+    "compiledInstruction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["layer", "content_ref", "content_hash"],
+      "properties": {
+        "layer": {
+          "type": "string",
+          "enum": ["organization_security", "business", "task", "behavior", "expression"]
+        },
+        "content_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "content_hash": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "contextBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_ref", "kind", "trust", "purpose", "classification", "token_estimate"],
+      "properties": {
+        "source_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "kind": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "trust": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "purpose": {"type": "string", "minLength": 1},
+        "classification": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+        "token_estimate": {"type": "integer", "minimum": 0}
+      }
+    },
+    "capabilityProjectionItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability_ref", "input_schema_ref", "output_schema_ref", "description_ref"],
+      "properties": {
+        "capability_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "input_schema_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "output_schema_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "description_ref": {"$ref": "#/$defs/nonEmptyString"}
+      }
+    },
+    "responseFormat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["output_schema_ref", "strict", "refusal_channel"],
+      "properties": {
+        "output_schema_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "strict": {"type": "boolean"},
+        "refusal_channel": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}
+      }
+    },
+    "samplingConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["temperature", "top_p", "seed"],
+      "properties": {
+        "temperature": {"type": "number", "minimum": 0},
+        "top_p": {"type": "number", "minimum": 0, "maximum": 1},
+        "seed": {"type": ["integer", "null"]}
+      }
+    },
+    "streamingPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_types", "max_buffer_bytes", "preview_enabled", "cancellation_semantics"],
+      "properties": {
+        "event_types": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["output_delta", "tool_call_delta", "usage", "final", "error"]},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "max_buffer_bytes": {"type": "integer", "minimum": 1},
+        "preview_enabled": {"type": "boolean"},
+        "cancellation_semantics": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}
+      }
+    },
+    "dataHandling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_regions", "retention_policy_ref", "training_use_allowed", "classification"],
+      "properties": {
+        "allowed_regions": {"$ref": "#/$defs/refList", "minItems": 1},
+        "retention_policy_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "training_use_allowed": {"type": "boolean"},
+        "classification": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]}
+      }
+    }
+  }
+}

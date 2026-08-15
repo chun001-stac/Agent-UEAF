@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/context/evidence-pack.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "EvidencePack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "evidence_pack_id",
+    "query_intent_ref",
+    "principal_context_ref",
+    "items",
+    "authorization_proof_refs",
+    "source_versions",
+    "coverage",
+    "conflicts",
+    "freshness",
+    "selection_policy_ref",
+    "citation_map",
+    "expires_at",
+    "omission_summary"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "evidence_pack_id": {"$ref": "#/$defs/nonEmptyString"},
+    "query_intent_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "principal_context_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "items": {"type": "array", "items": {"$ref": "#/$defs/evidenceItem"}},
+    "authorization_proof_refs": {"$ref": "#/$defs/refList"},
+    "source_versions": {"type": "array", "items": {"$ref": "#/$defs/sourceVersion"}},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "conflicts": {"type": "array", "items": {"$ref": "#/$defs/conflict"}},
+    "freshness": {"type": "array", "items": {"$ref": "#/$defs/freshness"}},
+    "selection_policy_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "citation_map": {"type": "array", "items": {"$ref": "#/$defs/citationMapping"}},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "omission_summary": {"$ref": "#/$defs/omissionSummary"}
+  },
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "refList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"},
+      "uniqueItems": true
+    },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value", "start", "end"],
+      "properties": {
+        "kind": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "value": {"type": "string", "minLength": 1},
+        "start": {"type": ["integer", "null"], "minimum": 0},
+        "end": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_ref",
+        "source_version",
+        "locator",
+        "authorization_scope_ref",
+        "trust_label",
+        "citation_handle",
+        "purpose",
+        "classification",
+        "region"
+      ],
+      "properties": {
+        "source_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "source_version": {"$ref": "#/$defs/nonEmptyString"},
+        "locator": {"$ref": "#/$defs/locator"},
+        "content_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "minimal_snippet": {"type": "string", "minLength": 1},
+        "authorization_scope_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "trust_label": {
+          "type": "string",
+          "enum": ["authoritative", "reviewed", "user_provided", "model_derived", "external_untrusted"]
+        },
+        "citation_handle": {"$ref": "#/$defs/nonEmptyString"},
+        "purpose": {"type": "string", "minLength": 1},
+        "classification": {"type": "string", "enum": ["public", "internal", "confidential", "restricted"]},
+        "region": {"type": "string", "minLength": 1}
+      },
+      "oneOf": [
+        {"required": ["content_ref"], "not": {"required": ["minimal_snippet"]}},
+        {"required": ["minimal_snippet"], "not": {"required": ["content_ref"]}}
+      ]
+    },
+    "sourceVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_ref", "version", "observed_at"],
+      "properties": {
+        "source_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "version": {"$ref": "#/$defs/nonEmptyString"},
+        "observed_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["covered_question_refs", "missing_question_refs", "conflict_refs"],
+      "properties": {
+        "covered_question_refs": {"$ref": "#/$defs/refList"},
+        "missing_question_refs": {"$ref": "#/$defs/refList"},
+        "conflict_refs": {"$ref": "#/$defs/refList"}
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conflict_id", "claim_ref", "evidence_refs", "authoritative_source_ref"],
+      "properties": {
+        "conflict_id": {"$ref": "#/$defs/nonEmptyString"},
+        "claim_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "evidence_refs": {"$ref": "#/$defs/refList", "minItems": 2},
+        "authoritative_source_ref": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_ref", "observed_at", "watermark_ref", "meets_requirement"],
+      "properties": {
+        "source_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "watermark_ref": {"type": ["string", "null"], "minLength": 1},
+        "meets_requirement": {"type": "boolean"}
+      }
+    },
+    "citationMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result_fragment_ref", "citation_handle", "source_ref", "source_version", "locator"],
+      "properties": {
+        "result_fragment_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "citation_handle": {"$ref": "#/$defs/nonEmptyString"},
+        "source_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "source_version": {"$ref": "#/$defs/nonEmptyString"},
+        "locator": {"$ref": "#/$defs/locator"}
+      }
+    },
+    "omissionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorization_count", "budget_count", "expired_count", "conflict_count", "reason_codes"],
+      "properties": {
+        "authorization_count": {"type": "integer", "minimum": 0},
+        "budget_count": {"type": "integer", "minimum": 0},
+        "expired_count": {"type": "integer", "minimum": 0},
+        "conflict_count": {"type": "integer", "minimum": 0},
+        "reason_codes": {"$ref": "#/$defs/refList"}
+      }
+    }
+  }
+}

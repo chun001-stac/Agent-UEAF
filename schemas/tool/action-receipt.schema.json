@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/tool/action-receipt.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ActionReceipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "action_receipt_id",
+    "action_key",
+    "action_fingerprint",
+    "tool_intent_ref",
+    "policy_decision_ref",
+    "approval_request_ref",
+    "capability_ref",
+    "executor_ref",
+    "status",
+    "retryability",
+    "attempt",
+    "started_at",
+    "finished_at",
+    "external_reference",
+    "result_digest",
+    "error",
+    "reconciliation",
+    "integrity_ref"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "action_receipt_id": {"type": "string", "minLength": 1},
+    "action_key": {"type": "string", "minLength": 1},
+    "action_fingerprint": {"type": "string", "minLength": 1},
+    "tool_intent_ref": {"type": "string", "minLength": 1},
+    "policy_decision_ref": {"type": "string", "minLength": 1},
+    "approval_request_ref": {"type": ["string", "null"], "minLength": 1},
+    "capability_ref": {"type": "string", "minLength": 1},
+    "executor_ref": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "enum": ["succeeded", "failed", "unknown"]},
+    "retryability": {"type": "string", "enum": ["never", "safe", "conditional", "after_reconciliation"]},
+    "attempt": {"type": "integer", "minimum": 1},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "external_reference": {"type": ["string", "null"], "minLength": 1},
+    "result_digest": {"type": ["string", "null"], "minLength": 1},
+    "error": {
+      "anyOf": [
+        {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"},
+        {"type": "null"}
+      ]
+    },
+    "reconciliation": {
+      "anyOf": [
+        {"$ref": "#/$defs/reconciliationObservation"},
+        {"type": "null"}
+      ]
+    },
+    "confirmation_of_ref": {"type": "string", "minLength": 1},
+    "supersedes_receipt_ref": {"type": "string", "minLength": 1},
+    "integrity_ref": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "succeeded"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "result_digest": {"type": "string", "minLength": 1},
+          "error": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "failed"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "error": {
+            "allOf": [
+              {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"},
+              {"properties": {"certainty": {"const": "not_executed"}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "unknown"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "retryability": {"const": "after_reconciliation"},
+          "error": {
+            "allOf": [
+              {"$ref": "https://ueaf.dev/schemas/common/port-error.schema.json"},
+              {"properties": {"certainty": {"const": "unknown"}}}
+            ]
+          },
+          "reconciliation": {
+            "allOf": [
+              {"$ref": "#/$defs/reconciliationObservation"},
+              {"properties": {"required": {"const": true}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "not": {"required": ["confirmation_of_ref", "supersedes_receipt_ref"]}
+    }
+  ],
+  "$defs": {
+    "reconciliationObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "strategy_ref", "evidence_refs", "next_check_at"],
+      "properties": {
+        "required": {"type": "boolean"},
+        "strategy_ref": {"type": "string", "minLength": 1},
+        "evidence_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "next_check_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    }
+  }
+}

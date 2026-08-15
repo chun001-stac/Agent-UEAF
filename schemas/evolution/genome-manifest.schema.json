@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://ueaf.dev/schemas/evolution/genome-manifest.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
   "title": "GenomeManifest",
   "type": "object",
   "additionalProperties": false,

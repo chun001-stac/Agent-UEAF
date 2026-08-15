@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/common/wait-reason.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "WaitReason",
+  "type": "string",
+  "additionalProperties": false,
+  "enum": ["user_input", "tool_result", "approval", "dependency", "capacity", "reconciliation"]
+}

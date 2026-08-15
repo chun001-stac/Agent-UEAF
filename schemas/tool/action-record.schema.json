@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/tool/action-record.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ActionRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "action_id",
+    "action_key",
+    "action_fingerprint",
+    "tool_intent_ref",
+    "run_id",
+    "turn_id",
+    "capability_ref",
+    "phase",
+    "disposition",
+    "policy_decision_ref",
+    "approval_request_ref",
+    "idempotency_reservation_ref",
+    "latest_receipt_ref",
+    "receipt_refs",
+    "attempt",
+    "reconciliation_state",
+    "lease_fencing_token",
+    "revision",
+    "sequence",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "action_id": {"$ref": "#/$defs/nonEmptyString"},
+    "action_key": {"$ref": "#/$defs/nonEmptyString"},
+    "action_fingerprint": {"$ref": "#/$defs/nonEmptyString"},
+    "tool_intent_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "run_id": {"$ref": "#/$defs/nonEmptyString"},
+    "turn_id": {"$ref": "#/$defs/nonEmptyString"},
+    "capability_ref": {"$ref": "#/$defs/nonEmptyString"},
+    "phase": {
+      "type": "string",
+      "enum": ["proposed", "validating", "authorizing", "waiting_approval", "reserved", "executing", "reconciling", "terminal"]
+    },
+    "disposition": {
+      "type": ["string", "null"],
+      "enum": ["executed", "denied", "approval_rejected", "invalid", "failed", "unresolved", "cancelled", null]
+    },
+    "policy_decision_ref": {"type": ["string", "null"], "minLength": 1},
+    "approval_request_ref": {"type": ["string", "null"], "minLength": 1},
+    "idempotency_reservation_ref": {"type": ["string", "null"], "minLength": 1},
+    "latest_receipt_ref": {"type": ["string", "null"], "minLength": 1},
+    "receipt_refs": {"$ref": "#/$defs/refList"},
+    "attempt": {"type": "integer", "minimum": 0},
+    "reconciliation_state": {
+      "anyOf": [
+        {"$ref": "#/$defs/reconciliationState"},
+        {"type": "null"}
+      ]
+    },
+    "lease_fencing_token": {"type": ["integer", "null"], "minimum": 1},
+    "revision": {"type": "integer", "minimum": 0},
+    "sequence": {"type": "integer", "minimum": 0},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"phase": {"const": "terminal"}}, "required": ["phase"]},
+      "then": {"properties": {"disposition": {"not": {"type": "null"}}}}
+    },
+    {
+      "if": {"properties": {"phase": {"not": {"const": "terminal"}}}, "required": ["phase"]},
+      "then": {"properties": {"disposition": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"phase": {"const": "waiting_approval"}}, "required": ["phase"]},
+      "then": {
+        "properties": {
+          "policy_decision_ref": {"type": "string", "minLength": 1},
+          "approval_request_ref": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"phase": {"enum": ["reserved", "executing", "reconciling"]}}, "required": ["phase"]},
+      "then": {
+        "properties": {
+          "policy_decision_ref": {"type": "string", "minLength": 1},
+          "idempotency_reservation_ref": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"phase": {"enum": ["executing", "reconciling"]}}, "required": ["phase"]},
+      "then": {"properties": {"lease_fencing_token": {"type": "integer", "minimum": 1}}}
+    },
+    {
+      "if": {"properties": {"phase": {"const": "reconciling"}}, "required": ["phase"]},
+      "then": {
+        "properties": {
+          "latest_receipt_ref": {"type": "string", "minLength": 1},
+          "reconciliation_state": {"$ref": "#/$defs/reconciliationState"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"disposition": {"enum": ["executed", "failed", "unresolved"]}}, "required": ["disposition"]},
+      "then": {"properties": {"latest_receipt_ref": {"type": "string", "minLength": 1}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {"const": "terminal"},
+          "disposition": {"enum": ["executed", "failed", "unresolved"]}
+        },
+        "required": ["phase", "disposition"]
+      },
+      "then": {
+        "properties": {
+          "policy_decision_ref": {"type": "string", "minLength": 1},
+          "idempotency_reservation_ref": {"type": "string", "minLength": 1},
+          "latest_receipt_ref": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"disposition": {"const": "unresolved"}}, "required": ["disposition"]},
+      "then": {
+        "properties": {
+          "reconciliation_state": {
+            "allOf": [
+              {"$ref": "#/$defs/reconciliationState"},
+              {"properties": {"exhausted": {"const": true}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"disposition": {"const": "denied"}}, "required": ["disposition"]},
+      "then": {"properties": {"policy_decision_ref": {"type": "string", "minLength": 1}}}
+    },
+    {
+      "if": {"properties": {"disposition": {"const": "approval_rejected"}}, "required": ["disposition"]},
+      "then": {"properties": {"approval_request_ref": {"type": "string", "minLength": 1}}}
+    }
+  ],
+  "$defs": {
+    "nonEmptyString": {"type": "string", "minLength": 1},
+    "refList": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/nonEmptyString"},
+      "uniqueItems": true
+    },
+    "reconciliationState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_ref", "observation_refs", "attempts", "last_observed_at", "next_check_at", "exhausted"],
+      "properties": {
+        "policy_ref": {"$ref": "#/$defs/nonEmptyString"},
+        "observation_refs": {"$ref": "#/$defs/refList"},
+        "attempts": {"type": "integer", "minimum": 0},
+        "last_observed_at": {"type": "string", "format": "date-time"},
+        "next_check_at": {"type": ["string", "null"], "format": "date-time"},
+        "exhausted": {"type": "boolean"}
+      }
+    }
+  }
+}

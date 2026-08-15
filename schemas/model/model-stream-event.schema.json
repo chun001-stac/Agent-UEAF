@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/model/model-stream-event.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ModelStreamEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "model_invocation_id",
+    "stream_sequence",
+    "kind",
+    "observed_at",
+    "provider_event_ref",
+    "integrity_state",
+    "is_preview"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "model_invocation_id": {"type": "string", "minLength": 1},
+    "stream_sequence": {"type": "integer", "minimum": 1},
+    "kind": {"type": "string", "enum": ["output_delta", "tool_call_delta", "usage", "final", "error"]},
+    "payload_ref": {"type": "string", "minLength": 1},
+    "payload": {"$ref": "#/$defs/streamPayload"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "provider_event_ref": {"type": "string", "minLength": 1},
+    "integrity_state": {"$ref": "#/$defs/integrityState"},
+    "is_preview": {"type": "boolean"}
+  },
+  "oneOf": [
+    {"required": ["payload_ref"], "not": {"required": ["payload"]}},
+    {"required": ["payload"], "not": {"required": ["payload_ref"]}}
+  ],
+  "allOf": [
+    {
+      "if": {"properties": {"kind": {"enum": ["output_delta", "tool_call_delta"]}}, "required": ["kind"]},
+      "then": {"properties": {"is_preview": {"const": true}}}
+    }
+  ],
+  "$defs": {
+    "streamPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text_delta": {"type": "string"},
+        "structured_delta_ref": {"type": "string", "minLength": 1},
+        "usage_ref": {"type": "string", "minLength": 1},
+        "finish_reason": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "error_ref": {"type": "string", "minLength": 1}
+      },
+      "minProperties": 1
+    },
+    "integrityState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["continuous", "missing_sequences", "aggregate_watermark"],
+      "properties": {
+        "continuous": {"type": "boolean"},
+        "missing_sequences": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 1},
+          "uniqueItems": true
+        },
+        "aggregate_watermark": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

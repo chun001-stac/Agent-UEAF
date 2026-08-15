@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/security/approval-request.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "ApprovalRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "meta",
+    "approval_request_id",
+    "action_fingerprint",
+    "tool_intent_ref",
+    "principal_context_ref",
+    "policy_decision_ref",
+    "impact_preview",
+    "risk_reasons",
+    "approver_policy",
+    "status",
+    "decision",
+    "decision_reason",
+    "decided_by",
+    "created_at",
+    "expires_at",
+    "revision",
+    "separation_of_duty_rules"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "approval_request_id": {"type": "string", "minLength": 1},
+    "action_fingerprint": {"type": "string", "minLength": 1},
+    "tool_intent_ref": {"type": "string", "minLength": 1},
+    "principal_context_ref": {"type": "string", "minLength": 1},
+    "policy_decision_ref": {"type": "string", "minLength": 1},
+    "impact_preview": {"$ref": "#/$defs/impactPreview"},
+    "risk_reasons": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "approver_policy": {"type": "string", "minLength": 1},
+    "status": {"type": "string", "enum": ["pending", "approved", "rejected", "expired", "cancelled"]},
+    "decision": {"type": ["string", "null"], "enum": ["approved", "rejected", null]},
+    "decision_reason": {"type": ["string", "null"], "minLength": 1},
+    "decided_by": {"type": ["string", "null"], "minLength": 1},
+    "created_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "revision": {"type": "integer", "minimum": 0},
+    "separation_of_duty_rules": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "pending"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "decision": {"type": "null"},
+          "decision_reason": {"type": "null"},
+          "decided_by": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "approved"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "decision": {"const": "approved"},
+          "decided_by": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "rejected"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "decision": {"const": "rejected"},
+          "decision_reason": {"type": "string", "minLength": 1},
+          "decided_by": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"enum": ["expired", "cancelled"]}}, "required": ["status"]},
+      "then": {"properties": {"decision": {"type": "null"}}}
+    }
+  ],
+  "$defs": {
+    "impactPreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "safe_summary",
+        "canonical_resource_ref",
+        "side_effect_class",
+        "reversible",
+        "rollback_or_irreversible_summary",
+        "redacted_field_paths"
+      ],
+      "properties": {
+        "safe_summary": {"type": "string", "minLength": 1},
+        "canonical_resource_ref": {"type": "string", "minLength": 1},
+        "side_effect_class": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "reversible": {"type": "boolean"},
+        "rollback_or_irreversible_summary": {"type": "string", "minLength": 1},
+        "redacted_field_paths": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

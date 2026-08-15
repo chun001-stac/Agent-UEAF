@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/model/structured-decision.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "StructuredDecision",
+  "type": "object",
+  "additionalProperties": false,
+  "$comment": "payload is validated against schema_ref; only a passed ValidationReport may produce this object",
+  "required": [
+    "meta",
+    "structured_decision_id",
+    "run_id",
+    "turn_id",
+    "kind",
+    "payload",
+    "schema_ref",
+    "validation_result",
+    "evidence_refs",
+    "source_model_result_ref",
+    "confidence"
+  ],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "structured_decision_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "turn_id": {"type": "string", "minLength": 1},
+    "kind": {
+      "type": "string",
+      "enum": ["final_response", "tool_intents", "handoff", "need_input", "refusal", "no_progress"]
+    },
+    "payload": {},
+    "schema_ref": {"type": "string", "minLength": 1},
+    "validation_result": {"$ref": "#/$defs/passedValidation"},
+    "evidence_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "source_model_result_ref": {"type": "string", "minLength": 1},
+    "confidence": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "context_manifest_ref": {"type": "string", "minLength": 1},
+    "prompt_contract_ref": {"type": "string", "minLength": 1},
+    "contract_bundle_ref": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "passedValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "validation_report_ref"],
+      "properties": {
+        "outcome": {"const": "passed"},
+        "validation_report_ref": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

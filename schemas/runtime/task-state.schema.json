@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ueaf.dev/schemas/runtime/task-state.schema.json",
+  "x-ueaf-schema-version": "1.0.0",
+  "title": "TaskState",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "task_id", "revision", "task_envelope_ref", "completion_criteria_state", "goal", "completion_criteria", "confirmed_facts", "open_questions", "pending_action_refs", "workflow_refs", "evidence_pack_refs", "memory_usage_refs", "active_run_ids", "terminal_evidence", "last_event_seq"],
+  "properties": {
+    "meta": {"$ref": "https://ueaf.dev/schemas/common/contract-meta.schema.json"},
+    "task_id": {"type": "string", "minLength": 1},
+    "revision": {"type": "integer", "minimum": 1},
+    "task_envelope_ref": {"type": "string", "minLength": 1},
+    "completion_criteria_state": {"type": "array", "items": {"$ref": "#/$defs/criterionState"}, "minItems": 1},
+    "goal": {"$ref": "#/$defs/statement"},
+    "completion_criteria": {"type": "array", "items": {"$ref": "#/$defs/statement"}, "minItems": 1},
+    "confirmed_facts": {"type": "array", "items": {"$ref": "#/$defs/confirmedFact"}},
+    "open_questions": {"type": "array", "items": {"$ref": "#/$defs/statement"}},
+    "pending_action_refs": {"$ref": "#/$defs/refList"},
+    "workflow_refs": {"$ref": "#/$defs/refList"},
+    "evidence_pack_refs": {"$ref": "#/$defs/refList"},
+    "memory_usage_refs": {"$ref": "#/$defs/refList"},
+    "active_run_ids": {"$ref": "#/$defs/refList"},
+    "terminal_evidence": {"$ref": "#/$defs/refList"},
+    "last_event_seq": {"type": "integer", "minimum": 0}
+  },
+  "$defs": {
+    "refList": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "statement": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "object", "minProperties": 1}
+      ]
+    },
+    "criterionState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criterion_ref", "status", "evidence_refs"],
+      "properties": {
+        "criterion_ref": {"type": "string", "minLength": 1},
+        "status": {"type": "string", "enum": ["pending", "satisfied", "waived"]},
+        "evidence_refs": {"$ref": "#/$defs/refList"}
+      }
+    },
+    "confirmedFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fact_id", "value", "source_refs"],
+      "properties": {
+        "fact_id": {"type": "string", "minLength": 1},
+        "value": {},
+        "source_refs": {"$ref": "#/$defs/refList", "minItems": 1}
+      }
+    }
+  }
+}

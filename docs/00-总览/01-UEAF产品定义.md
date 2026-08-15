@@ -75,7 +75,7 @@ Promote automatic_after_gates | canary | gated | never
 | 问题 | V1 响应 |
 |---|---|
 | 不同 SDK Session/Thread/Memory 含义不同 | Canonical Object + Runtime Adapter 显式映射 |
-| 模型能提 Tool 但缺企业授权 | `ToolIntent -> PolicyDecision -> Approval -> ActionRecord/Receipt` |
+| 模型能提 Tool 但缺企业授权 | `ToolIntent -> stable identity -> ActionRecord(proposed) -> PolicyDecision/Approval -> Reservation -> execution/Receipt` |
 | 长任务恢复重复副作用 | CAS/lease/fencing/action_key/receipt/reconciliation |
 | Prompt/模型变化难回溯 | 不可变 `ReleaseManifest` 版本集合 |
 | Trace 被误当审计 | Trace/Metric/Log/Audit/Eval 分离 |
