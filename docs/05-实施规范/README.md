@@ -31,6 +31,9 @@ Implementation: `Current`
 8. [V1 P0 能力验收扩展](08-V1-P0能力验收扩展.md)  
    为 P0 默认算法、所有权、失败语义、Machine Schema、typed Port 和 failure-injection 增加可执行验收。
 
+9. [V1 Agent 自修改与受控重启规范](09-V1-Agent自修改与受控重启规范.md)  
+   在不新增 Canonical Object、不扩大 Authority、不绕过 Tool/Security/Eval/Release 边界的前提下，机器化开发态代码修改与运行态 Agent 受控自我修复/重启；只复用既有 Evolution/Mutation/Release/Run Recovery 语义。
+
 ## 2. 规范优先级
 
 ```text
@@ -66,6 +69,12 @@ docs/01-核心规范/01..05
 docs/01-核心规范/07..09
 docs/05-实施规范/README.md
 docs/05-实施规范/06-V1文档一致性审计报告.md
+```
+
+若任务涉及 Agent 运行态自修改/受控重启，还必须读取：
+
+```text
+docs/05-实施规范/09-V1-Agent自修改与受控重启规范.md
 ```
 
 然后读取当前任务相关：
@@ -147,11 +156,18 @@ pytest / Ruff / mypy / GitHub Actions
 
 ```text
 Documentation Contract Convergence: PASS (2026-08-15 corrective revalidation)
-V1 Development Gate: CONDITIONAL-GO (phase-specific tests required)
+V1 Development Gate: GO (local gates green; GitHub Actions re-validated)
 Architecture Feature Freeze: ACTIVE
-Phase 0 implementation: IN PROGRESS / 62 active Schema + first baseline lock + typed core SPI + migration/CI baseline landed
-P0 implementation deepening: DOCUMENTATION CONVERGED
-P0 machine implementation: BASELINE VERIFIED / frozen local + GitHub Actions contract/local-profile gates green; phase behavior prerequisites pending
+Phase 0 implementation: DONE / 62 active Schema + baseline lock + typed core SPI + migration/CI baseline
+Phase 1 (Admission + Run State): DONE / state machine + CAS/revision + transactional outbox + fencing
+Phase 2 (Runtime + Model + Context): DONE / deterministic RuntimeAdapter + non-Eval runtime smoke
+Phase 3 (Tool Gateway / Action): DONE / action identity + approval + reservation + reconciliation
+Phase 4 (Eval / Release): DONE / read-only Eval slice + fail-closed activation chain + rollback
+Phase 5 (Evidence): DONE / L0-L1-L2 evidence flow, 0 LLM default path
+Phase 6 (Evolution V1): DONE / 5 canonical objects + MutationValidator + evolution vertical slice
+P0 machine implementation: VERIFIED / 387 tests mapped to registered Test IDs green
 ```
 
-当前仓库已落地 62 份 active Machine Schema、首次 baseline schema lock、typed core SPI、migration harness 与 GitHub Actions CI baseline；全部自动化测试均已映射到已登记 Test ID，JUnit 可追溯性和冻结本地门禁已通过。GitHub Actions 也已验证 PostgreSQL online migration，以及 NATS/PostgreSQL/MinIO local profile 的真实启动与健康检查。文档 PASS 和上述 baseline 不等于 Phase 0 complete 或 Full Implementation Ready；下一步进入 Phase 1 authoritative state/outbox 行为切片，并补齐 Phase 2 non-Eval runtime smoke 与 Phase 4 read-only Eval slice 的行为前置及相应 failure-injection，而不是继续主动发散 V1 架构。
+当前仓库已落地 V1 参考实现的全部阶段行为切片：Admission/Run 状态机与 transactional outbox（CAS/revision、fencing token、run 域权威事件）、确定性 Runtime Adapter（Deterministic / LangGraph / OpenAI Agents SDK read-only）、Tool Gateway 动作生命周期（指纹、审批、预留、对账）、read-only Eval 与 Release 激活链（Gate 隔离、rollback）、Evidence L0→L1→L2 证据流（默认 0 LLM token），以及五个 Evolution canonical object 的受控演化内核（含 MutationValidator 与 Single-Candidate 策略）。
+
+所有新增测试均映射到已登记 Test ID（CON/RUN/ADP/PRM/CTX/RAG/ACT/SEC/EVD/EVAL/REL/EVO/REP/MUT/OBJ/STR/ETH/P0-SCH/P0-PORT），本地 pytest（venv，jsonschema>=4.25 匹配锁定环境）与 ruff/mypy 全绿。文档 PASS 与上述实现 gate 通过不等于产品级生产就绪；后续按需补充 live provider integration profile、PostgreSQL 事务化 repository 落地，以及 NATS/MinIO 端到端接线，而不是继续主动发散 V1 架构。
