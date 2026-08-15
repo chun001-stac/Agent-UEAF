@@ -32,8 +32,8 @@ def _harness(**kwargs) -> tuple[RunCoordinator, InMemoryRunRecordRepository, InM
     return coordinator, runs, outbox
 
 
-def _create_run(coordinator: RunCoordinator, *, risk_class="read_only") -> RunRecord:
-    return coordinator.create_run(
+async def _create_run(coordinator: RunCoordinator, *, risk_class="read_only") -> RunRecord:
+    return await coordinator.create_run(
         RunCreateInput(
             task_envelope=support.task_envelope(risk_class=risk_class),
             agent_ref="agent:1",
@@ -47,17 +47,17 @@ def _create_run(coordinator: RunCoordinator, *, risk_class="read_only") -> RunRe
 
 
 @pytest.mark.test_id("RUN-001")
-def test_queued_cannot_skip_admitting() -> None:
+async def test_queued_cannot_skip_admitting() -> None:
     coordinator, _, _ = _harness()
-    run = _create_run(coordinator)
+    run = await _create_run(coordinator)
     assert run.phase == "queued"
 
     # Direct queued -> running is rejected by the closed state machine.
     with pytest.raises(StateMachineError):
-        coordinator.resume(run.run_id, to_phase="running", resume_signal_ref="sig")
+        await coordinator.resume(run.run_id, to_phase="running", resume_signal_ref="sig")
 
     # Correct path: queued -> admitting -> running (only after admitted).
-    admitting = coordinator.begin_admission(run.run_id)
+    admitting = await coordinator.begin_admission(run.run_id)
     assert admitting.phase == "admitting"
 
     result = support.admission_controller().evaluate(
@@ -65,13 +65,13 @@ def test_queued_cannot_skip_admitting() -> None:
     )
     assert result.outcome == "admitted"
 
-    running = coordinator.apply_admission(admitting.run_id, result)
+    running = await coordinator.apply_admission(admitting.run_id, result)
     assert running.phase == "running"
     assert running.completion_disposition is None
 
 
 @pytest.mark.test_id("RUN-005")
-def test_edge_reject_creates_no_run() -> None:
+async def test_edge_reject_creates_no_run() -> None:
     coordinator, runs, _ = _harness()
     moment = support.now()
 
@@ -99,15 +99,15 @@ def test_edge_reject_creates_no_run() -> None:
     result = edge.validate(rejected_request, observed_at=moment)
     assert result.accepted is False
     # No RunRecord / RunAdmissionResult may exist for an edge-rejected request.
-    assert runs.get("run:any") is None
-    assert coordinator._admissions.get("run-admission:any:1") is None
+    assert await runs.get("run:any") is None
+    assert await coordinator._admissions.get("run-admission:any:1") is None
 
 
 @pytest.mark.test_id("RUN-006")
-def test_task_risk_enum_rejects_deprecated_aliases() -> None:
+async def test_task_risk_enum_rejects_deprecated_aliases() -> None:
     coordinator, _, _ = _harness()
     with pytest.raises(ValueError, match="invalid risk_class"):
-        _create_run(coordinator, risk_class="R3")  # deprecated alias rejected
+        await _create_run(coordinator, risk_class="R3")  # deprecated alias rejected
     with pytest.raises(ValueError, match="invalid risk_class"):
         TaskEnvelope(
             meta=ContractMeta(
@@ -131,27 +131,27 @@ def test_task_risk_enum_rejects_deprecated_aliases() -> None:
 
 
 @pytest.mark.test_id("RUN-007")
-def test_adapter_binding_is_frozen_before_admission() -> None:
+async def test_adapter_binding_is_frozen_before_admission() -> None:
     coordinator, runs, _ = _harness()
-    run = _create_run(coordinator)
+    run = await _create_run(coordinator)
     frozen_adapter = run.runtime_adapter_ref
     assert frozen_adapter == "adapter:langgraph"
 
-    admitting = coordinator.begin_admission(run.run_id)
+    admitting = await coordinator.begin_admission(run.run_id)
     result = support.admission_controller().evaluate(
         admitting, support.task_envelope(), support.budget(), support.principal()
     )
-    running = coordinator.apply_admission(admitting.run_id, result)
+    running = await coordinator.apply_admission(admitting.run_id, result)
     # Admission validates the already-frozen binding; retry/recovery cannot reselect.
     assert running.runtime_adapter_ref == frozen_adapter
     assert running.runtime_adapter_ref == "adapter:langgraph"
 
 
 @pytest.mark.test_id("ADP-003")
-def test_unsupported_capability_rejects_with_unsupported() -> None:
+async def test_unsupported_capability_rejects_with_unsupported() -> None:
     coordinator, _, _ = _harness()
-    run = _create_run(coordinator)
-    admitting = coordinator.begin_admission(run.run_id)
+    run = await _create_run(coordinator)
+    admitting = await coordinator.begin_admission(run.run_id)
     # An adapter whose capability set does not satisfy the task is rejected at
     # admission via the binding check (unsupported_capability reason code).
     result = support.admission_controller(usable_release=False).evaluate(

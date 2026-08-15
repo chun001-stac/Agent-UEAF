@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncIterator
 
 import pytest
@@ -32,7 +31,7 @@ from ueaf.runtime.outbox import InMemoryOutboxStore
 SCHEMA_REF = "schema://structured-decision/1.0.0"
 
 
-def _admit_run():
+async def _admit_run():
     runs = InMemoryRunRecordRepository()
     tasks = InMemoryTaskStateRepository()
     admissions = InMemoryAdmissionResultRepository()
@@ -40,7 +39,7 @@ def _admit_run():
     coordinator = RunCoordinator(
         runs, tasks, admissions, support.admission_controller(), outbox, Clock(support.now())
     )
-    run = coordinator.create_run(
+    run = await coordinator.create_run(
         RunCreateInput(
             task_envelope=support.task_envelope(),
             agent_ref="agent:1",
@@ -51,14 +50,14 @@ def _admit_run():
             actor_ref="principal:1",
         )
     )
-    admitting = coordinator.begin_admission(run.run_id)
+    admitting = await coordinator.begin_admission(run.run_id)
     result = support.admission_controller().evaluate(
         admitting, support.task_envelope(), support.budget(), support.principal()
     )
-    return coordinator.apply_admission(admitting.run_id, result), runs, outbox
+    return await coordinator.apply_admission(admitting.run_id, result), runs, outbox
 
 
-def _execution_context(model: DeterministicFakeModel, *, call_log: list[str]):
+async def _execution_context(model: DeterministicFakeModel, *, call_log: list[str]):
     context = ContextBuilder()
     model_step = ModelStep(model, output_schema_ref=SCHEMA_REF)
     tool_intent = _RecordingToolIntent(call_log)
@@ -67,7 +66,7 @@ def _execution_context(model: DeterministicFakeModel, *, call_log: list[str]):
         def submit(self, request):
             return Success(object())
 
-    run, _, _ = _admit_run()
+    run, _, _ = await _admit_run()
     ctx = build_execution_context(
         run,
         trace_id="trace:1",
@@ -109,10 +108,10 @@ async def _drain(stream: AsyncIterator[RuntimeEvent]) -> list[RuntimeEvent]:
 
 
 @pytest.mark.test_id("ADP-001")
-def test_adapter_model_step_routes_through_model_gateway() -> None:
+async def test_adapter_model_step_routes_through_model_gateway() -> None:
     call_log: list[str] = []
     model = DeterministicFakeModel()
-    run, ctx = _execution_context(model, call_log=call_log)
+    run, ctx = await _execution_context(model, call_log=call_log)
     adapter = DeterministicRuntimeAdapter()
 
     session = adapter.StartRun(
@@ -144,7 +143,7 @@ def test_adapter_model_step_routes_through_model_gateway() -> None:
             deadline_at=run.deadline_at,
         )
     )
-    events = asyncio.run(_drain(stream))
+    events = await _drain(stream)
     assert len(events) >= 2
     types = {event.event_type for event in events}
     assert "context_built" in types
@@ -152,11 +151,11 @@ def test_adapter_model_step_routes_through_model_gateway() -> None:
 
 
 @pytest.mark.test_id("ADP-002")
-def test_tool_candidates_flow_through_tool_gateway() -> None:
+async def test_tool_candidates_flow_through_tool_gateway() -> None:
     # The deterministic adapter emits model decisions; tool candidates are
     # only ever produced as ToolIntent via ToolIntentPort, never executed
     # directly by the adapter.
-    run, ctx = _execution_context(DeterministicFakeModel(), call_log=[])
+    run, ctx = await _execution_context(DeterministicFakeModel(), call_log=[])
     assert ctx.tool_intent_port is not None
     assert ctx.model_step_port is not None
     assert ctx.context_build_port is not None
@@ -180,8 +179,8 @@ def test_second_adapter_is_equivalent_for_read_only_agent() -> None:
 
 
 @pytest.mark.test_id("ADP-005")
-def test_runtime_event_is_not_authoritative_event_envelope() -> None:
-    run, ctx = _execution_context(DeterministicFakeModel(), call_log=[])
+async def test_runtime_event_is_not_authoritative_event_envelope() -> None:
+    run, ctx = await _execution_context(DeterministicFakeModel(), call_log=[])
     adapter = DeterministicRuntimeAdapter()
     session = adapter.StartRun(
         RuntimeStartRequest(
@@ -211,7 +210,7 @@ def test_runtime_event_is_not_authoritative_event_envelope() -> None:
             deadline_at=run.deadline_at,
         )
     )
-    events = asyncio.run(_drain(stream))
+    events = await _drain(stream)
     # Adapter events are RuntimeEvent; they must never impersonate ueaf.* EventEnvelope.
     for event in events:
         assert event.event_type == "ueaf" or not event.event_type.startswith("ueaf.")

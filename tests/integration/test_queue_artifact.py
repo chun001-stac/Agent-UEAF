@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 from datetime import UTC, datetime
 
@@ -42,17 +41,17 @@ def _entry(event_name: str = "ueaf.run.created") -> OutboxEntry:
 
 
 @pytest.mark.test_id("CON-013")
-def test_in_memory_publisher_drains_and_dedupes_outbox() -> None:
+async def test_in_memory_publisher_drains_and_dedupes_outbox() -> None:
     outbox = InMemoryOutboxStore()
     entry = _entry()
-    outbox.append(entry)
+    await outbox.append(entry)
 
     publisher = InMemoryOutboxPublisher()
-    assert publisher.drain(outbox) == 1
-    assert outbox.dedupe_event_id(entry.event_id)
+    assert await publisher.drain(outbox) == 1
+    assert await outbox.dedupe_event_id(entry.event_id)
 
     # Nothing left to publish; redelivery is deduped by event_id.
-    assert publisher.drain(outbox) == 0
+    assert await publisher.drain(outbox) == 0
     assert len(publisher.events) == 1
     assert publisher.events[0].event_name == "ueaf.run.created"
 
@@ -81,15 +80,15 @@ class _FakeJetStream:
 
 
 @pytest.mark.test_id("CON-013")
-def test_nats_publisher_sends_msg_id_and_marks_published() -> None:
+async def test_nats_publisher_sends_msg_id_and_marks_published() -> None:
     fake = _FakeJetStream()
     publisher = NatsJetStreamOutboxPublisher(fake, subject_prefix="ueaf.events")
     outbox = InMemoryOutboxStore()
     entry = _entry()
-    outbox.append(entry)
+    await outbox.append(entry)
 
-    asyncio.run(publisher.drain(outbox))
-    assert outbox.dedupe_event_id(entry.event_id)
+    await publisher.drain(outbox)
+    assert await outbox.dedupe_event_id(entry.event_id)
     assert len(fake.calls) == 1
     subject, _payload, headers = fake.calls[0]
     assert subject == f"ueaf.events.{entry.event_name}"
