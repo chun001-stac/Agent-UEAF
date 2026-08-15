@@ -7,18 +7,27 @@ never reach this class (RUN-005).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
+from functools import wraps
 from typing import Literal
 
 from ueaf.admission.controller import AdmissionController, RunAdmissionResult
 from ueaf.admission.objects import TaskEnvelope
 from ueaf.common.identifiers import new_object_id
 from ueaf.common.meta import ContractMeta
+from ueaf.infrastructure.db.database import Database
 from ueaf.infrastructure.db.repositories import (
-    InMemoryAdmissionResultRepository,
-    InMemoryRunRecordRepository,
-    InMemoryTaskStateRepository,
+    AdmissionResultRepository,
+    RunRecordRepository,
+    TaskStateRepository,
+)
+from ueaf.infrastructure.db.repositories_sql import (
+    SqlAdmissionResultRepository,
+    SqlOutboxStore,
+    SqlRunRecordRepository,
+    SqlTaskStateRepository,
 )
 from ueaf.runtime.objects import (
     CompletionDisposition,
@@ -37,6 +46,21 @@ from ueaf.runtime.state_machine import (
 EVENT_VERSION = "1.0.0"
 PRODUCER = "ueaf-runtime-coordinator"
 PRODUCER_VERSION = "0.1.0"
+
+def _transactional[T](
+    method: Callable[..., T],
+) -> Callable[..., T]:
+    """Wrap an authoritative operation in a single DB transaction when SQL mode."""
+
+    @wraps(method)
+    def wrapper(self: RunCoordinator, *args: object, **kwargs: object) -> T:
+        database = getattr(self, "_db", None)
+        if database is None:
+            return method(self, *args, **kwargs)
+        with database.session_context():
+            return method(self, *args, **kwargs)
+
+    return wrapper
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,22 +82,52 @@ class RunCoordinator:
 
     def __init__(
         self,
-        runs: InMemoryRunRecordRepository,
-        tasks: InMemoryTaskStateRepository,
-        admissions: InMemoryAdmissionResultRepository,
+        runs: RunRecordRepository,
+        tasks: TaskStateRepository,
+        admissions: AdmissionResultRepository,
         admission_controller: AdmissionController,
         outbox: OutboxStore,
         clock: object | None = None,
+        database: Database | None = None,
     ) -> None:
         self._runs = runs
         self._tasks = tasks
         self._admissions = admissions
         self._admission = admission_controller
         self._outbox = outbox
+        self._db = database
         self._now = clock if callable(clock) else _default_now
+
+    @classmethod
+    def sql(
+        cls,
+        database: Database,
+        admission_controller: AdmissionController,
+        *,
+        clock: object | None = None,
+    ) -> RunCoordinator:
+        """Build a coordinator backed by SQL repositories (authoritative DB mode)."""
+        return cls(
+            runs=SqlRunRecordRepository(database),
+            tasks=SqlTaskStateRepository(database),
+            admissions=SqlAdmissionResultRepository(database),
+            admission_controller=admission_controller,
+            outbox=SqlOutboxStore(database),
+            clock=clock,
+            database=database,
+        )
+
+    # -- read --------------------------------------------------------------
+
+    def get_run(self, run_id: str) -> RunRecord | None:
+        return self._runs.get(run_id)
+
+    def require_run(self, run_id: str) -> RunRecord:
+        return self._runs.require(run_id)
 
     # -- creation ----------------------------------------------------------
 
+    @_transactional
     def create_run(self, input_: RunCreateInput) -> RunRecord:
         """Create TaskState + RunRecord(queued) with frozen bindings (RUN-007)."""
         moment = self._now()
@@ -142,6 +196,7 @@ class RunCoordinator:
 
     # -- admission ---------------------------------------------------------
 
+    @_transactional
     def begin_admission(self, run_id: str, *, actor_ref: str | None = None) -> RunRecord:
         """queued -> admitting (admission lease acquired)."""
         return self._transition(
@@ -156,6 +211,7 @@ class RunCoordinator:
             actor_ref=actor_ref,
         )
 
+    @_transactional
     def apply_admission(
         self,
         run_id: str,
@@ -224,6 +280,7 @@ class RunCoordinator:
 
     # -- lifecycle commands ------------------------------------------------
 
+    @_transactional
     def acquire_lease(
         self, run_id: str, *, holder_id: str, actor_ref: str | None = None
     ) -> RunRecord:
@@ -270,6 +327,7 @@ class RunCoordinator:
         ))
         return updated
 
+    @_transactional
     def heartbeat(
         self,
         run_id: str,
@@ -298,6 +356,7 @@ class RunCoordinator:
         self._runs.update(updated, expected_revision=run.revision)
         return updated
 
+    @_transactional
     def register_wait(
         self,
         run_id: str,
@@ -317,6 +376,7 @@ class RunCoordinator:
             actor_ref=actor_ref,
         )
 
+    @_transactional
     def resume(
         self,
         run_id: str,
@@ -348,6 +408,7 @@ class RunCoordinator:
         ))
         return updated
 
+    @_transactional
     def schedule_retry(
         self,
         run_id: str,
@@ -379,6 +440,7 @@ class RunCoordinator:
         ))
         return updated
 
+    @_transactional
     def pause(
         self,
         run_id: str,
@@ -408,6 +470,7 @@ class RunCoordinator:
         ))
         return updated
 
+    @_transactional
     def cancel(self, run_id: str, *, actor_ref: str | None = None) -> RunRecord:
         """Legal cancel accepted; no new actions started."""
         run = self._runs.require(run_id)
@@ -422,6 +485,7 @@ class RunCoordinator:
             actor_ref=actor_ref,
         )
 
+    @_transactional
     def commit_terminal(
         self,
         run_id: str,
@@ -532,6 +596,10 @@ class RunCoordinator:
             if run.completion_disposition == disposition:
                 return run  # idempotent replay (spec 02 §5.2)
             raise StateMachineError(run.phase, "terminal", "terminal_conflict")
+        if disposition == "completed" and run.phase not in ("running", "waiting", "retrying"):
+            raise StateMachineError(
+                run.phase, "terminal", "completed requires an executed run"
+            )
         if disposition == "completed" and run.pending_action_refs:
             raise StateMachineError(
                 run.phase, "terminal", "completed must not leave unresolved actions"
