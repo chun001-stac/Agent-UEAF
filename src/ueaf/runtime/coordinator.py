@@ -3,6 +3,10 @@
 Drives the closed run state machine with CAS/revision, fencing-token checks
 and transactional outbox events (CON-013). Edge pre-validation rejections must
 never reach this class (RUN-005).
+
+All public operations are async so the SQL repositories (asyncpg) can run in
+the same event loop as FastAPI; in-memory repositories satisfy the same async
+protocol.
 """
 
 from __future__ import annotations
@@ -11,7 +15,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Literal
+from typing import Any, Literal, TypeVar, cast
 
 from ueaf.admission.controller import AdmissionController, RunAdmissionResult
 from ueaf.admission.objects import TaskEnvelope
@@ -47,20 +51,22 @@ EVENT_VERSION = "1.0.0"
 PRODUCER = "ueaf-runtime-coordinator"
 PRODUCER_VERSION = "0.1.0"
 
-def _transactional[T](
-    method: Callable[..., T],
-) -> Callable[..., T]:
-    """Wrap an authoritative operation in a single DB transaction when SQL mode."""
+
+_Method = TypeVar("_Method", bound=Callable[..., Any])
+
+
+def _transactional(method: _Method) -> _Method:  # noqa: UP047 (method decorator typing)
+    """Wrap an authoritative async operation in a single DB transaction when SQL mode."""
 
     @wraps(method)
-    def wrapper(self: RunCoordinator, *args: object, **kwargs: object) -> T:
+    async def wrapper(self: RunCoordinator, *args: object, **kwargs: object) -> Any:
         database = getattr(self, "_db", None)
         if database is None:
-            return method(self, *args, **kwargs)
-        with database.session_context():
-            return method(self, *args, **kwargs)
+            return await method(self, *args, **kwargs)
+        async with database.async_session_context():
+            return await method(self, *args, **kwargs)
 
-    return wrapper
+    return cast(_Method, wrapper)
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,16 +125,16 @@ class RunCoordinator:
 
     # -- read --------------------------------------------------------------
 
-    def get_run(self, run_id: str) -> RunRecord | None:
-        return self._runs.get(run_id)
+    async def get_run(self, run_id: str) -> RunRecord | None:
+        return await self._runs.get(run_id)
 
-    def require_run(self, run_id: str) -> RunRecord:
-        return self._runs.require(run_id)
+    async def require_run(self, run_id: str) -> RunRecord:
+        return await self._runs.require(run_id)
 
     # -- creation ----------------------------------------------------------
 
     @_transactional
-    def create_run(self, input_: RunCreateInput) -> RunRecord:
+    async def create_run(self, input_: RunCreateInput) -> RunRecord:
         """Create TaskState + RunRecord(queued) with frozen bindings (RUN-007)."""
         moment = self._now()
         task = input_.task_envelope
@@ -149,7 +155,7 @@ class RunCoordinator:
             ),
             task_id=task.task_id,
         )
-        self._tasks.create(task_state)
+        await self._tasks.create(task_state)
 
         record = RunRecord(
             meta=ContractMeta(
@@ -179,8 +185,8 @@ class RunCoordinator:
             created_at=moment,
             updated_at=moment,
         )
-        self._runs.create(record)
-        self._outbox.append(self._entry(
+        await self._runs.create(record)
+        await self._outbox.append(self._entry(
             record,
             event_name="ueaf.run.created",
             correlation_id=input_.correlation_id,
@@ -197,9 +203,11 @@ class RunCoordinator:
     # -- admission ---------------------------------------------------------
 
     @_transactional
-    def begin_admission(self, run_id: str, *, actor_ref: str | None = None) -> RunRecord:
+    async def begin_admission(
+        self, run_id: str, *, actor_ref: str | None = None
+    ) -> RunRecord:
         """queued -> admitting (admission lease acquired)."""
-        return self._transition(
+        return await self._transition(
             run_id,
             to_phase="admitting",
             expected_revision=None,
@@ -212,7 +220,7 @@ class RunCoordinator:
         )
 
     @_transactional
-    def apply_admission(
+    async def apply_admission(
         self,
         run_id: str,
         result: RunAdmissionResult,
@@ -220,7 +228,7 @@ class RunCoordinator:
         actor_ref: str | None = None,
     ) -> RunRecord:
         """Apply a validated admission result: running / waiting / terminal."""
-        run = self._runs.require(run_id)
+        run = await self._runs.require(run_id)
         if run.phase != "admitting":
             raise StateMachineError(run.phase, "running")
         if not result.is_valid_at(self._now()):
@@ -228,8 +236,8 @@ class RunCoordinator:
 
             raise ValueError(f"{ERROR_CODES['EXPIRED_RESULT']}: admission result expired")
 
-        self._admissions.create(result)
-        self._outbox.append(self._entry(
+        await self._admissions.create(result)
+        await self._outbox.append(self._entry(
             run,
             event_name=(
                 "ueaf.run.admitted"
@@ -251,7 +259,7 @@ class RunCoordinator:
         ))
 
         if result.outcome == "admitted":
-            return self._transition(
+            return await self._transition(
                 run_id,
                 to_phase="running",
                 expected_revision=run.revision,
@@ -263,7 +271,7 @@ class RunCoordinator:
                 actor_ref=actor_ref,
             )
         if result.outcome == "deferred":
-            return self._register_wait(
+            return await self._register_wait(
                 run_id,
                 wait_reason="dependency",
                 condition_refs=result.validation_refs or ("admission_deferred",),
@@ -271,7 +279,7 @@ class RunCoordinator:
                 wait_origin="admission_deferred",
                 actor_ref=actor_ref,
             )
-        return self._commit_terminal(
+        return await self._commit_terminal(
             run_id,
             disposition="rejected",
             reason_codes=result.reason_codes,
@@ -281,18 +289,15 @@ class RunCoordinator:
     # -- lifecycle commands ------------------------------------------------
 
     @_transactional
-    def acquire_lease(
+    async def acquire_lease(
         self, run_id: str, *, holder_id: str, actor_ref: str | None = None
     ) -> RunRecord:
-        """Acquire (or renew) the execution lease with a monotonic fencing token.
-
-        A new execution attempt increments ``attempt`` and always issues a
-        strictly greater fencing token than any previously issued lease
-        (RUN-003, RUN-008).
-        """
-        run = self._runs.require(run_id)
+        """Acquire (or renew) the execution lease with a monotonic fencing token."""
+        run = await self._runs.require(run_id)
         if run.phase not in ("admitting", "running", "retrying"):
-            raise StateMachineError(run.phase, "running", "lease requires an executing phase")
+            raise StateMachineError(
+                run.phase, "running", "lease requires an executing phase"
+            )
         moment = self._now()
         previous_token = run.lease.fencing_token if run.lease else 0
         lease = RunLease(
@@ -303,7 +308,7 @@ class RunCoordinator:
             heartbeat_at=moment,
             expires_at=moment + timedelta(seconds=120),
         )
-        attempt = run.attempt if run.lease is not None else run.attempt
+        attempt = run.attempt
         if run.lease is None and run.phase == "retrying":
             attempt = run.attempt + 1
         updated = replace(
@@ -313,8 +318,8 @@ class RunCoordinator:
             revision=run.revision + 1,
             updated_at=moment,
         )
-        self._runs.update(updated, expected_revision=run.revision)
-        self._outbox.append(self._entry(
+        await self._runs.update(updated, expected_revision=run.revision)
+        await self._outbox.append(self._entry(
             updated,
             event_name="ueaf.run.phase_changed",
             correlation_id=None,
@@ -328,7 +333,7 @@ class RunCoordinator:
         return updated
 
     @_transactional
-    def heartbeat(
+    async def heartbeat(
         self,
         run_id: str,
         *,
@@ -337,7 +342,7 @@ class RunCoordinator:
         actor_ref: str | None = None,
     ) -> RunRecord:
         """Extend a held lease; rejects stale holders (RUN-003)."""
-        run = self._runs.require(run_id)
+        run = await self._runs.require(run_id)
         self._ensure_lease(run, lease_id, fencing_token)
         assert run.lease is not None  # _ensure_lease guarantees an active lease
         moment = self._now()
@@ -353,11 +358,11 @@ class RunCoordinator:
             expires_at=moment + timedelta(seconds=120),
         )
         updated = replace(run, lease=lease, revision=run.revision + 1, updated_at=moment)
-        self._runs.update(updated, expected_revision=run.revision)
+        await self._runs.update(updated, expected_revision=run.revision)
         return updated
 
     @_transactional
-    def register_wait(
+    async def register_wait(
         self,
         run_id: str,
         *,
@@ -367,7 +372,7 @@ class RunCoordinator:
         wait_origin: Literal["admission_deferred", "admitted_execution"] | None = None,
         actor_ref: str | None = None,
     ) -> RunRecord:
-        return self._register_wait(
+        return await self._register_wait(
             run_id,
             wait_reason=wait_reason,
             condition_refs=condition_refs,
@@ -377,7 +382,7 @@ class RunCoordinator:
         )
 
     @_transactional
-    def resume(
+    async def resume(
         self,
         run_id: str,
         *,
@@ -386,16 +391,16 @@ class RunCoordinator:
         validation_refs: tuple[str, ...] = (),
         actor_ref: str | None = None,
     ) -> RunRecord:
-        run = self._runs.require(run_id)
+        run = await self._runs.require(run_id)
         validate_transition(run.phase, to_phase)
-        updated = self._apply(
+        updated = await self._apply(
             run,
             to_phase=to_phase,
             clear_wait=True,
             expected_revision=run.revision,
             actor_ref=actor_ref,
         )
-        self._outbox.append(self._entry(
+        await self._outbox.append(self._entry(
             updated,
             event_name="ueaf.run.resumed",
             correlation_id=None,
@@ -409,7 +414,7 @@ class RunCoordinator:
         return updated
 
     @_transactional
-    def schedule_retry(
+    async def schedule_retry(
         self,
         run_id: str,
         *,
@@ -418,15 +423,15 @@ class RunCoordinator:
         not_before: datetime | None = None,
         actor_ref: str | None = None,
     ) -> RunRecord:
-        run = self._runs.require(run_id)
+        run = await self._runs.require(run_id)
         validate_transition(run.phase, "retrying")
-        updated = self._apply(
+        updated = await self._apply(
             run,
             to_phase="retrying",
             expected_revision=run.revision,
             actor_ref=actor_ref,
         )
-        self._outbox.append(self._entry(
+        await self._outbox.append(self._entry(
             updated,
             event_name="ueaf.run.retry_scheduled",
             correlation_id=None,
@@ -441,7 +446,7 @@ class RunCoordinator:
         return updated
 
     @_transactional
-    def pause(
+    async def pause(
         self,
         run_id: str,
         *,
@@ -449,15 +454,15 @@ class RunCoordinator:
         checkpoint_ref: str | None = None,
         actor_ref: str | None = None,
     ) -> RunRecord:
-        run = self._runs.require(run_id)
+        run = await self._runs.require(run_id)
         validate_transition(run.phase, "paused")
-        updated = self._apply(
+        updated = await self._apply(
             run,
             to_phase="paused",
             expected_revision=run.revision,
             actor_ref=actor_ref,
         )
-        self._outbox.append(self._entry(
+        await self._outbox.append(self._entry(
             updated,
             event_name="ueaf.run.paused",
             correlation_id=None,
@@ -471,14 +476,14 @@ class RunCoordinator:
         return updated
 
     @_transactional
-    def cancel(self, run_id: str, *, actor_ref: str | None = None) -> RunRecord:
+    async def cancel(self, run_id: str, *, actor_ref: str | None = None) -> RunRecord:
         """Legal cancel accepted; no new actions started."""
-        run = self._runs.require(run_id)
+        run = await self._runs.require(run_id)
         if run.phase == "terminal":
             return run
         if run.phase == "running" and run.pending_action_refs:
             raise StateMachineError(run.phase, "terminal", "in-flight actions pending")
-        return self._commit_terminal(
+        return await self._commit_terminal(
             run_id,
             disposition="cancelled",
             reason_codes=("cancelled_by_actor",),
@@ -486,7 +491,7 @@ class RunCoordinator:
         )
 
     @_transactional
-    def commit_terminal(
+    async def commit_terminal(
         self,
         run_id: str,
         *,
@@ -496,7 +501,7 @@ class RunCoordinator:
         error_ref: str | None = None,
         actor_ref: str | None = None,
     ) -> RunRecord:
-        return self._commit_terminal(
+        return await self._commit_terminal(
             run_id,
             disposition=disposition,
             reason_codes=reason_codes,
@@ -507,7 +512,7 @@ class RunCoordinator:
 
     # -- internals ---------------------------------------------------------
 
-    def _register_wait(
+    async def _register_wait(
         self,
         run_id: str,
         *,
@@ -517,7 +522,7 @@ class RunCoordinator:
         wait_origin: Literal["admission_deferred", "admitted_execution"] | None,
         actor_ref: str | None,
     ) -> RunRecord:
-        run = self._runs.require(run_id)
+        run = await self._runs.require(run_id)
         if run.phase not in ("admitting", "running", "retrying"):
             raise StateMachineError(run.phase, "waiting")
         updated = replace(
@@ -530,8 +535,8 @@ class RunCoordinator:
             updated_at=self._now(),
             lease=None,
         )
-        self._runs.update(updated, expected_revision=run.revision)
-        self._outbox.append(self._entry(
+        await self._runs.update(updated, expected_revision=run.revision)
+        await self._outbox.append(self._entry(
             updated,
             event_name="ueaf.run.wait_registered",
             correlation_id=None,
@@ -544,7 +549,7 @@ class RunCoordinator:
         ))
         return updated
 
-    def _transition(
+    async def _transition(
         self,
         run_id: str,
         *,
@@ -553,15 +558,15 @@ class RunCoordinator:
         event_extra: dict[str, object],
         actor_ref: str | None,
     ) -> RunRecord:
-        run = self._runs.require(run_id)
+        run = await self._runs.require(run_id)
         validate_transition(run.phase, to_phase)
-        updated = self._apply(
+        updated = await self._apply(
             run,
             to_phase=to_phase,
             expected_revision=expected_revision,
             actor_ref=actor_ref,
         )
-        self._outbox.append(self._entry(
+        await self._outbox.append(self._entry(
             updated,
             event_name="ueaf.run.phase_changed",
             correlation_id=None,
@@ -577,11 +582,15 @@ class RunCoordinator:
 
             raise ValueError(f"{ERROR_CODES['STALE_FENCING']}: no active lease")
         if run.lease.lease_id != lease_id:
-            raise StateMachineError(run.phase, run.phase, "lease_id does not match holder")
+            raise StateMachineError(
+                run.phase, run.phase, "lease_id does not match holder"
+            )
         if fencing_token < run.lease.fencing_token:
-            raise ValueError(f"stale_fencing_token: {fencing_token} < {run.lease.fencing_token}")
+            raise ValueError(
+                f"stale_fencing_token: {fencing_token} < {run.lease.fencing_token}"
+            )
 
-    def _commit_terminal(
+    async def _commit_terminal(
         self,
         run_id: str,
         *,
@@ -591,12 +600,14 @@ class RunCoordinator:
         error_ref: str | None = None,
         actor_ref: str | None = None,
     ) -> RunRecord:
-        run = self._runs.require(run_id)
+        run = await self._runs.require(run_id)
         if run.phase == "terminal":
             if run.completion_disposition == disposition:
                 return run  # idempotent replay (spec 02 §5.2)
             raise StateMachineError(run.phase, "terminal", "terminal_conflict")
-        if disposition == "completed" and run.phase not in ("running", "waiting", "retrying"):
+        if disposition == "completed" and run.phase not in (
+            "running", "waiting", "retrying"
+        ):
             raise StateMachineError(
                 run.phase, "terminal", "completed requires an executed run"
             )
@@ -615,8 +626,8 @@ class RunCoordinator:
             updated_at=self._now(),
             lease=None,
         )
-        self._runs.update(updated, expected_revision=run.revision)
-        self._outbox.append(self._entry(
+        await self._runs.update(updated, expected_revision=run.revision)
+        await self._outbox.append(self._entry(
             updated,
             event_name="ueaf.run.terminal_committed",
             correlation_id=None,
@@ -630,7 +641,7 @@ class RunCoordinator:
         ))
         return updated
 
-    def _apply(
+    async def _apply(
         self,
         run: RunRecord,
         *,
@@ -655,7 +666,7 @@ class RunCoordinator:
             wait_origin=None if (clear_wait or to_phase != "waiting") else run.wait_origin,
             lease=None if to_phase in ("queued", "waiting", "paused", "terminal") else run.lease,
         )
-        self._runs.update(updated, expected_revision=expected_revision)
+        await self._runs.update(updated, expected_revision=expected_revision)
         return updated
 
     def _entry(
