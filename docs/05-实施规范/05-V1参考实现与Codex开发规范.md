@@ -532,10 +532,10 @@ Codex 完成 Phase 0 后才应满足：
 ```text
 [x] canonical Machine Schema skeleton exists
 [x] pyproject + lock exists
-[x] migrations harness exists
+[x] migrations harness exists; offline and PostgreSQL online smoke succeed
 [x] GitHub Actions CI exists
 [x] Ruff/mypy/pytest commands green
-[ ] NATS/PostgreSQL/MinIO local profile starts
+[x] NATS/PostgreSQL/MinIO local profile starts
 [x] RUN/ACT/EVO/MUT/REL test file skeleton exists
 [ ] Phase 2 non-Eval runtime smoke 的前置契约与测试已满足
 [ ] Phase 4 read-only Eval slice 的冻结 Eval/隔离运行前置契约已满足

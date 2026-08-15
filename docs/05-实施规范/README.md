@@ -151,7 +151,7 @@ V1 Development Gate: CONDITIONAL-GO (phase-specific tests required)
 Architecture Feature Freeze: ACTIVE
 Phase 0 implementation: IN PROGRESS / 62 active Schema + first baseline lock + typed core SPI + migration/CI baseline landed
 P0 implementation deepening: DOCUMENTATION CONVERGED
-P0 machine implementation: IN PROGRESS / frozen local gates green; remote local-profile + online migration evidence pending
+P0 machine implementation: BASELINE VERIFIED / frozen local + GitHub Actions contract/local-profile gates green; phase behavior prerequisites pending
 ```
 
-当前仓库已落地 62 份 active Machine Schema、首次 baseline schema lock、typed core SPI、migration harness 与 GitHub Actions CI baseline；全部自动化测试均已映射到已登记 Test ID，JUnit 可追溯性和冻结本地门禁已通过。文档 PASS 和上述 baseline 不等于 Phase 0 complete 或 Full Implementation Ready；下一步应先由 GitHub Actions 取得 NATS/PostgreSQL/MinIO local profile 的真实启动、健康检查及 PostgreSQL online migration 证据，然后进入 Phase 1 authoritative state/outbox 行为切片，并补齐 Phase 2 non-Eval runtime smoke 与 Phase 4 read-only Eval slice 的行为前置及相应 failure-injection，而不是继续主动发散 V1 架构。
+当前仓库已落地 62 份 active Machine Schema、首次 baseline schema lock、typed core SPI、migration harness 与 GitHub Actions CI baseline；全部自动化测试均已映射到已登记 Test ID，JUnit 可追溯性和冻结本地门禁已通过。GitHub Actions 也已验证 PostgreSQL online migration，以及 NATS/PostgreSQL/MinIO local profile 的真实启动与健康检查。文档 PASS 和上述 baseline 不等于 Phase 0 complete 或 Full Implementation Ready；下一步进入 Phase 1 authoritative state/outbox 行为切片，并补齐 Phase 2 non-Eval runtime smoke 与 Phase 4 read-only Eval slice 的行为前置及相应 failure-injection，而不是继续主动发散 V1 架构。
