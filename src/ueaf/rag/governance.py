@@ -1,15 +1,11 @@
-"""RAG governance: trigger guard, budget gate, revocation, benchmark.
+"""RAG 治理：触发守卫、预算闸门、撤销、基准评测。
 
-RAG-002 single retrieval_empty != trigger: one empty retrieval never becomes a
-Trigger/Mutation by itself.
-RAG-003 context budget: after a context mutation, model/context/token/permission
-constraints still hold.
-RAG-007 ACL revocation propagation: a source that became visible then lost
-access is removed from retrieval/cache within an SLO; past the SLO it is
-isolated or fail-closed.
-RAG-016 benchmark feeds the Quality Gate: a fixed retrieval benchmark compares
-baseline/current recall, precision, citation, freshness, latency, cost and key
-slices.
+RAG-002 单次 retrieval_empty != 触发：一次空检索本身绝不会成为 Trigger/Mutation。
+RAG-003 上下文预算：上下文变更后，model/context/token/permission 约束仍然成立。
+RAG-007 ACL 撤销传播：曾经可见随后失去访问权限的来源会在 SLO 内从检索/缓存中
+移除；超过 SLO 后会被隔离或 fail-closed。
+RAG-016 基准评测为质量门禁提供输入：固定检索基准比较 baseline/current 的召回率、
+精确率、引用、时效、延迟、成本及关键分片。
 """
 
 from __future__ import annotations
@@ -21,13 +17,13 @@ from ueaf.common.identifiers import sha256_hex
 
 @dataclass(frozen=True, slots=True)
 class RetrievalTriggerGuard:
-    """RAG-002: a single empty retrieval is never itself a trigger."""
+    """RAG-002：单次空检索本身绝不会成为触发条件。"""
 
     min_evidence_refs: int = 1
 
     def should_trigger(self, *, retrieval_empty: bool, evidence_refs: tuple[str, ...]) -> bool:
         if retrieval_empty:
-            return False  # single empty retrieval is not a mutation trigger
+            return False  # 单次空检索不是变更触发条件
         return len(evidence_refs) >= self.min_evidence_refs
 
 
@@ -47,7 +43,7 @@ class ContextBudget:
 
 @dataclass(slots=True)
 class RevocationTracker:
-    """Tracks visible-then-revoked sources and enforces the SLO (RAG-007)."""
+    """跟踪“先可见后被撤销”的来源，并强制执行 SLO（RAG-007）。"""
 
     revocation_slo_seconds: int = 300
     _revoked_at: dict[str, float] = field(default_factory=dict)
@@ -60,8 +56,8 @@ class RevocationTracker:
         if revoked is None:
             return True
         if now - revoked <= self.revocation_slo_seconds:
-            return False  # removed from retrieval/cache within SLO
-        return False  # past SLO: isolate or fail closed
+            return False  # 在 SLO 内从检索/缓存中移除
+        return False  # 超过 SLO：隔离或 fail closed
 
     def fail_closed(self, source_ref: str, *, now: float) -> bool:
         revoked = self._revoked_at.get(source_ref)
@@ -70,7 +66,7 @@ class RevocationTracker:
 
 @dataclass(frozen=True, slots=True)
 class RetrievalBenchmark:
-    """Fixed benchmark results feeding the Quality Gate (RAG-016)."""
+    """为质量门禁提供输入的固定基准结果（RAG-016）。"""
 
     benchmark_id: str
     baseline_recall: float

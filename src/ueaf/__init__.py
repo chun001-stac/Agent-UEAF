@@ -1,7 +1,7 @@
-"""UEAF V1 reference implementation.
+"""UEAF V1 参考实现。
 
-Public semantics are defined by the repository's normative documentation and
-canonical machine schemas. Runtime code must not redefine those contracts.
+公开语义由仓库的规范文档与权威机器 schema 定义。运行时代码不得重新定义这些
+契约。
 """
 
 __version__ = "0.1.0"

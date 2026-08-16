@@ -1,10 +1,9 @@
-"""Workflow Orchestrator (functional module 06).
+"""工作流编排器（功能模块 06）。
 
-Advances a ``WorkflowRun`` by scheduling ``NodeRun`` instances that are ready
-(dependencies satisfied), respecting node dependencies, routing and bounded
-retries. Handoffs are emitted through the core ``HandoffPort`` as minimal
-``HandoffEnvelope``. A failed node with no evidence never auto-widens scope
-(REP-003) and never re-runs without a bounded attempt budget.
+通过调度就绪（依赖已满足）的 ``NodeRun`` 实例来推进 ``WorkflowRun``，并遵循节点依赖、
+路由与有界重试。交接通过核心 ``HandoffPort`` 以最小化的 ``HandoffEnvelope`` 发出。
+没有证据的失败节点绝不自行动大权限范围（REP-003），且在没有有界尝试预算的情况下
+绝不重新运行。
 """
 
 from __future__ import annotations
@@ -30,7 +29,7 @@ class ScheduleDecision:
 
 
 class WorkflowOrchestrator:
-    """Owns node scheduling; the WorkflowRun is the single state object."""
+    """拥有节点调度权；WorkflowRun 是唯一的状态对象。"""
 
     def __init__(
         self,
@@ -76,7 +75,7 @@ class WorkflowOrchestrator:
         return run
 
     def schedule_ready(self, run: WorkflowRun) -> ScheduleDecision:
-        """Mark nodes ready once their dependencies are completed."""
+        """当节点的依赖全部完成时将其标记为就绪。"""
         advanced: list[str] = []
         completed = {nr.node_id for nr in run.node_runs if nr.status == "completed"}
         for index, node_run in enumerate(run.node_runs):
@@ -99,7 +98,7 @@ class WorkflowOrchestrator:
         return run.status == "completed"
 
     def fail_node(self, run: WorkflowRun, node_id: str) -> bool:
-        """Fail a node and mark the run failed (bounded retries handled elsewhere)."""
+        """使节点失败并将运行标记为失败（有界重试在别处处理）。"""
         for index, node_run in enumerate(run.node_runs):
             if node_run.node_id == node_id:
                 run.node_runs[index] = replace(node_run, status="failed")

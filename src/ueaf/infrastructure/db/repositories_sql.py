@@ -1,9 +1,9 @@
-"""SQLAlchemy-backed authoritative repositories with DB-level CAS/fencing.
+"""基于 SQLAlchemy 的权威仓库，具备数据库级 CAS/fencing。
 
-Each repository must be used inside ``Database.session_context()`` so state
-changes and outbox inserts share one transaction. CAS is enforced with a
-conditional ``UPDATE ... WHERE revision = expected`` and rowcount checks;
-stale fencing tokens are rejected against the persisted lease fencing token.
+每个仓库都必须在 ``Database.session_context()`` 内使用，使状态变更与 outbox
+插入共享同一事务。CAS 通过条件 ``UPDATE ... WHERE revision = expected`` 与
+rowcount 检查来保证；过期的 fencing token 会与持久化的 lease fencing token
+比对后被拒绝。
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from ueaf.tool.action import ActionReceipt, ActionRecord
 
 
 class SqlRunRecordRepository:
-    """RunRecord authority store with conditional-update CAS."""
+    """具备条件更新 CAS 的 RunRecord 权威存储。"""
 
     def __init__(self, database: Database) -> None:
         self._db = database
@@ -193,7 +193,7 @@ class SqlAdmissionResultRepository:
 
 
 class SqlOutboxStore:
-    """Outbox store sharing the active transaction (CON-013)."""
+    """共享当前事务的 outbox 存储（CON-013）。"""
 
     def __init__(self, database: Database) -> None:
         self._db = database
@@ -262,7 +262,7 @@ class SqlOutboxStore:
 
 
 class SqlActionRecordRepository:
-    """ActionRecord authority store with conditional-update CAS/fencing."""
+    """具备条件更新 CAS/fencing 的 ActionRecord 权威存储。"""
 
     def __init__(self, database: Database) -> None:
         self._db = database
@@ -350,7 +350,7 @@ class SqlActionRecordRepository:
 
 
 class SqlActionReceiptRepository:
-    """Append-only ActionReceipt store (side-effect evidence)."""
+    """只追加的 ActionReceipt 存储（副作用证据）。"""
 
     def __init__(self, database: Database) -> None:
         self._db = database
@@ -384,7 +384,7 @@ class SqlActionReceiptRepository:
 
 
 class SqlTurnRecordRepository:
-    """Append-only TurnRecord store (authoritative per-run turn sequence)."""
+    """只追加的 TurnRecord 存储（每次运行轮次的权威序列）。"""
 
     def __init__(self, database: Database) -> None:
         self._db = database
@@ -418,7 +418,7 @@ class SqlTurnRecordRepository:
 
 
 class SqlMemoryRecordRepository:
-    """Governed memory store; the Memory Service is the only writer."""
+    """受治理的记忆存储；Memory Service 是唯一写入方。"""
 
     def __init__(self, database: Database) -> None:
         self._db = database
@@ -446,7 +446,7 @@ class SqlMemoryRecordRepository:
         return [_memory_from_row(row) for row in rows]
 
 
-# -- row <-> object mapping --------------------------------------------------
+# -- 行 <-> 对象映射 ----------------------------------------------------------
 
 
 def _utcnow() -> datetime:

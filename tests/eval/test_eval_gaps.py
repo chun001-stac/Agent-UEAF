@@ -1,9 +1,7 @@
-"""Eval gate gap tests: EVAL-006/009/010/012/013/014/016/017.
+"""Eval 门禁缺口测试：EVAL-006/009/010/012/013/014/016/017。
 
-Covers the eval slices missing from the reference implementation: baseline
-equivalence, judge disagreement, judge calibration degradation, critical-slice
-regression, cost/latency guardrails, authorized reference access, judge
-side-channel contamination, and attempt-history preservation.
+覆盖参考实现中缺失的 eval 切片：基线等价性、判分器分歧、判分器校准退化、
+关键切片回归、成本/延迟护栏、授权参考访问、判分器侧信道污染以及尝试历史保留。
 """
 
 from __future__ import annotations
@@ -39,7 +37,7 @@ def test_baseline_equivalence_requires_same_fixtures() -> None:
         baseline_tool_fixture="t:1",
     )
     assert same.equivalent
-    # Any differing fixture is explicitly recorded (never a silent candidate delta).
+    # 任何不同的 fixture 都会被显式记录（绝不允许静默的候选差异）。
     diff = check.evaluate(
         candidate_dataset="d:2",
         baseline_dataset="d:1",
@@ -61,7 +59,7 @@ def test_judge_disagreement_requires_review_not_average_pass() -> None:
     gate = JudgeDisagreementGate()
     agreed = gate.evaluate((0.9, 0.92, 0.88), threshold=0.2)
     assert agreed.outcome == "pass"
-    # Judges diverge beyond threshold: inconclusive, never averaged to pass.
+    # 判分器分歧超过阈值：判定为不确定，绝不以平均分通过。
     disputed = gate.evaluate((0.95, 0.4, 0.9), threshold=0.2)
     assert disputed.outcome == "inconclusive"
     assert "judge_disagreement_above_threshold" in disputed.reason_codes
@@ -81,7 +79,7 @@ def test_calibration_degradation_disables_judge_as_sole_gate() -> None:
 @pytest.mark.test_id("EVAL-012")
 def test_critical_slice_regression_is_not_averaged_away() -> None:
     gate = SliceRegressionGate()
-    # Overall improvement cannot offset a critical-slice regression.
+    # 整体改进不能抵消关键切片的回归。
     decision = gate.evaluate(
         overall_improved=True,
         slice_regressions=(("fraud_detection", 0.35),),
@@ -89,7 +87,7 @@ def test_critical_slice_regression_is_not_averaged_away() -> None:
     )
     assert decision.outcome == "fail"
     assert "critical_slice_regression:fraud_detection" in decision.reason_codes
-    # Small deltas within threshold pass.
+    # 阈值内的小幅偏差通过。
     ok = gate.evaluate(
         overall_improved=True,
         slice_regressions=(("latency", 0.05),),
@@ -109,7 +107,7 @@ def test_cost_latency_guardrail_not_overridden_by_quality() -> None:
         latency_limit_millis=100,
     )
     assert within.outcome == "pass"
-    # Quality improved but cost exceeds guardrail -> fail; no new state invented.
+    # 质量提升但成本超过护栏 -> 失败；不会发明新状态。
     over = guardrail.evaluate(
         quality_improved=True,
         cost_millis=250,
@@ -129,7 +127,7 @@ def test_reference_access_is_frozen_contract_only() -> None:
     denied = policy.authorize("grader:unfrozen", "reference:rubric")
     assert not denied.authorized
     assert "contract_not_frozen" in denied.reason_codes
-    # Reference content must not reflow into the candidate.
+    # 参考内容不得回流进入候选输出。
     reflow = policy.assert_no_reflow("the reference:rubric answer is 42", "reference:rubric")
     assert not reflow.authorized
     assert policy.assert_no_reflow("independent answer", "reference:rubric").authorized
@@ -152,7 +150,7 @@ def test_attempt_history_preserves_all_attempts() -> None:
     history.record(AttemptRecord(attempt_id="a:2", eval_case_id="c:1", outcome="pass", score=0.9))
     attempts = history.attempts()
     assert [a.attempt_id for a in attempts] == ["a:1", "a:2"]
-    # Selective deletion of an unfavorable attempt is forbidden (EVAL-017).
+    # 禁止选择性删除不利的尝试记录（EVAL-017）。
     with pytest.raises(ValueError, match="selective deletion"):
         history.delete("a:1")
     assert len(history.attempts()) == 2

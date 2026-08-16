@@ -1,9 +1,8 @@
-"""Invocation integrity: a Provider Adapter never mutates the frozen invocation (PRM-010).
+"""调用完整性：Provider Adapter 绝不变异冻结的调用（PRM-010）。
 
-An adapter may not add a system prompt, enable unapproved tools, change the
-response schema or silently switch routes. ``verify_invocation_integrity`` fails
-the conformance check when any such mutation is observed; any fallback must form
-a new frozen invocation rather than mutate the current one.
+Adapter 不得添加系统提示、启用未批准的工具、更改响应模式或静默切换路由。
+``verify_invocation_integrity`` 在观察到任何此类变异时判定一致性检查失败；任何降级
+都必须形成新的冻结调用，而不是变异当前调用。
 """
 
 from __future__ import annotations
@@ -14,7 +13,7 @@ from ueaf.ports import ModelInvocation
 
 
 class InvocationMutationError(ValueError):
-    """Raised when a Provider Adapter mutates the frozen invocation (PRM-010)."""
+    """当 Provider Adapter 变异冻结的调用时抛出（PRM-010）。"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,7 +34,7 @@ def verify_invocation_integrity(
     added_system_prompt: bool = False,
     enabled_unapproved_tools: tuple[str, ...] = (),
 ) -> InvocationIntegrityResult:
-    """Verify an adapter did not mutate the frozen invocation surface."""
+    """验证 adapter 未变异冻结的调用表面。"""
     reasons: list[str] = []
     if returned_output_schema_ref != request.output_schema_ref:
         reasons.append("output_schema_changed")
@@ -56,7 +55,7 @@ def assert_integrity(
     added_system_prompt: bool = False,
     enabled_unapproved_tools: tuple[str, ...] = (),
 ) -> None:
-    """Raise ``InvocationMutationError`` when the adapter mutates the invocation."""
+    """当 adapter 变异调用时抛出 ``InvocationMutationError``。"""
     result = verify_invocation_integrity(
         request,
         returned_output_schema_ref=returned_output_schema_ref,

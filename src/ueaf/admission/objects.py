@@ -1,7 +1,7 @@
-"""Admission-boundary objects (core spec 01 §7, §7.3).
+"""准入边界对象（核心规范 01 §7、§7.3）。
 
-Only the trusted admission boundary may construct ``PrincipalContext`` and
-immutable ``TaskEnvelope`` / ``RequestEnvelope``.
+只有受信任的准入边界才能构造 ``PrincipalContext`` 以及不可变的 ``TaskEnvelope`` /
+``RequestEnvelope``。
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ PrincipalType = Literal[
     "end_user", "calling_service", "agent", "workload", "human_approver"
 ]
 
-# Deprecated legacy alias mapping (RUN-006): never accepted for new writes.
+# 已废弃的旧版别名映射（RUN-006）：新写入绝不接受。
 _LEGACY_RISK_ALIASES: Mapping[str, RiskClass] = {
     "R0": "compute_only",
     "R1": "read_only",
@@ -36,7 +36,7 @@ class DelegationRef:
 
 @dataclass(frozen=True, slots=True)
 class PrincipalContext:
-    """Trusted combination security context; immutable once constructed."""
+    """受信任的组合安全上下文；构造后不可变。"""
 
     meta: ContractMeta
     principal_id: str
@@ -76,7 +76,7 @@ class PrincipalContext:
 
 @dataclass(frozen=True, slots=True)
 class RequestEnvelope:
-    """Immutable external ingress record produced by edge pre-validation."""
+    """由边缘预校验产生的不可变外部入站记录。"""
 
     meta: ContractMeta
     request_id: str
@@ -99,7 +99,7 @@ class RequestEnvelope:
 
 @dataclass(frozen=True, slots=True)
 class TaskEnvelope:
-    """Immutable task input created by the admission boundary."""
+    """由准入边界创建的不可变任务输入。"""
 
     meta: ContractMeta
     task_id: str
@@ -127,7 +127,7 @@ class TaskEnvelope:
             raise ValueError("TaskEnvelope.revision must be >= 1")
 
     def with_legacy_risk_alias(self, legacy: str) -> TaskEnvelope:
-        """Migration-only mapping; never used for new writes (RUN-006)."""
+        """仅用于迁移的映射；新写入绝不使用（RUN-006）。"""
         risk = _LEGACY_RISK_ALIASES.get(legacy)
         if risk is None:
             raise ValueError(f"unknown legacy risk alias {legacy!r}")
@@ -147,7 +147,7 @@ class TaskEnvelope:
 
 @dataclass(frozen=True, slots=True)
 class BudgetEnvelope:
-    """Explicit budget dimensions; missing dimension == explicit contract default."""
+    """显式预算维度；缺失维度 == 显式合约默认值。"""
 
     meta: ContractMeta
     budget_id: str
@@ -178,7 +178,7 @@ class BudgetEnvelope:
                 raise ValueError(f"BudgetEnvelope.{field_name} must be >= 0")
 
     def within(self, used: Mapping[str, int]) -> bool:
-        """Return True when every bounded dimension used <= budget."""
+        """当每个有界维度的使用量 <= 预算时返回 True。"""
 
         def ok(key: str, limit: int | None) -> bool:
             return limit is None or used.get(key, 0) <= limit

@@ -1,4 +1,4 @@
-"""Database integration primitives."""
+"""数据库集成原语。"""
 
 from ueaf.infrastructure.db.metadata import metadata
 

@@ -12,3 +12,6 @@ htmlcov/
 .DS_Store
 .idea/
 .vscode/
+
+# RAG 测试语料库（含真实抓取与合成文档），不纳入版本管理、不上传
+document/

@@ -1,9 +1,8 @@
-"""JetStream consumer sequence-gap detection tests (CON-013 outbox fan-out).
+"""JetStream 消费者序号缺口检测测试（CON-013 发件箱扇出）。
 
-Uses a fake JetStream layer mimicking nats-py so the durable-consumer logic
-(dedupe on redelivery, forward-gap detection) is exercised without a broker;
-the real-NATS path is covered by the container e2e test (skipped when the
-broker is unreachable).
+使用模拟 nats-py 的假 JetStream 层，以便在无 broker 的情况下验证持久化消费者
+逻辑（重投递去重、前向缺口检测）；真实 NATS 路径由容器端到端测试覆盖
+（当 broker 不可达时跳过）。
 """
 
 from __future__ import annotations
@@ -109,9 +108,9 @@ async def test_consumer_detects_forward_sequence_gap_and_dedupes() -> None:
     msgs = [
         _FakeMsg(_wire(_entry(1)), "ueaf.events.ueaf.run.created", 1, redelivered=False),
         _FakeMsg(_wire(_entry(2)), "ueaf.events.ueaf.run.created", 2, redelivered=False),
-        # stream seq 3 is missing -> forward gap
+        # 缺少 stream seq 3，构成前向缺口
         _FakeMsg(_wire(_entry(4)), "ueaf.events.ueaf.run.created", 4, redelivered=False),
-        # redelivery of seq 2 -> duplicate
+        # seq 2 被重投递，构成重复
         _FakeMsg(_wire(_entry(2)), "ueaf.events.ueaf.run.created", 2, redelivered=True),
     ]
     js = _FakeJetStream(msgs)
@@ -130,7 +129,7 @@ async def test_consumer_detects_forward_sequence_gap_and_dedupes() -> None:
 @pytest.mark.test_id("CON-013")
 async def test_outbox_wire_roundtrip_through_envelope_codec() -> None:
     entry = _entry(7)
-    # The publisher's wire format must decode back into an equivalent envelope.
+    # 发布者的线上格式必须能解码回等价的事件信封。
 
     from ueaf.infrastructure.queue.publisher import _envelope_from_dict
 

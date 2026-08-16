@@ -1,12 +1,10 @@
-"""Run Coordinator — authoritative State Writer for ``RunRecord``/``TaskState``.
+"""Run Coordinator —— ``RunRecord``/``TaskState`` 的权威 State Writer。
 
-Drives the closed run state machine with CAS/revision, fencing-token checks
-and transactional outbox events (CON-013). Edge pre-validation rejections must
-never reach this class (RUN-005).
+以 CAS/revision、fencing-token 校验和事务性 outbox 事件驱动封闭的 Run 状态机
+（CON-013）。边界预校验拒绝绝不进入此类（RUN-005）。
 
-All public operations are async so the SQL repositories (asyncpg) can run in
-the same event loop as FastAPI; in-memory repositories satisfy the same async
-protocol.
+所有公开操作均为异步，使 SQL 仓库（asyncpg）能在与 FastAPI 相同的事件循环中
+运行；内存仓库同样满足该异步协议。
 """
 
 from __future__ import annotations
@@ -56,7 +54,7 @@ _Method = TypeVar("_Method", bound=Callable[..., Any])
 
 
 def _transactional(method: _Method) -> _Method:  # noqa: UP047 (method decorator typing)
-    """Wrap an authoritative async operation in a single DB transaction when SQL mode."""
+    """在 SQL 模式下，将权威异步操作包装进单个数据库事务。"""
 
     @wraps(method)
     async def wrapper(self: RunCoordinator, *args: object, **kwargs: object) -> Any:
@@ -84,7 +82,7 @@ class RunCreateInput:
 
 
 class RunCoordinator:
-    """Root lifecycle owner: create, admit, wait, resume, retry, pause, cancel, terminal."""
+    """生命周期根所有者：create、admit、wait、resume、retry、pause、cancel、terminal。"""
 
     def __init__(
         self,
@@ -112,7 +110,7 @@ class RunCoordinator:
         *,
         clock: object | None = None,
     ) -> RunCoordinator:
-        """Build a coordinator backed by SQL repositories (authoritative DB mode)."""
+        """构建由 SQL 仓库支撑的协调器（权威数据库模式）。"""
         return cls(
             runs=SqlRunRecordRepository(database),
             tasks=SqlTaskStateRepository(database),
@@ -123,7 +121,7 @@ class RunCoordinator:
             database=database,
         )
 
-    # -- read --------------------------------------------------------------
+    # -- 读取 --------------------------------------------------------------
 
     async def get_run(self, run_id: str) -> RunRecord | None:
         return await self._runs.get(run_id)
@@ -131,11 +129,11 @@ class RunCoordinator:
     async def require_run(self, run_id: str) -> RunRecord:
         return await self._runs.require(run_id)
 
-    # -- creation ----------------------------------------------------------
+    # -- 创建 ----------------------------------------------------------
 
     @_transactional
     async def create_run(self, input_: RunCreateInput) -> RunRecord:
-        """Create TaskState + RunRecord(queued) with frozen bindings (RUN-007)."""
+        """创建 TaskState + RunRecord(queued)，并冻结绑定（RUN-007）。"""
         moment = self._now()
         task = input_.task_envelope
         run_id = new_object_id("run")
@@ -200,13 +198,13 @@ class RunCoordinator:
         ))
         return record
 
-    # -- admission ---------------------------------------------------------
+    # -- 准入 ---------------------------------------------------------
 
     @_transactional
     async def begin_admission(
         self, run_id: str, *, actor_ref: str | None = None
     ) -> RunRecord:
-        """queued -> admitting (admission lease acquired)."""
+        """queued -> admitting（已获取准入租约）。"""
         return await self._transition(
             run_id,
             to_phase="admitting",
@@ -227,7 +225,7 @@ class RunCoordinator:
         *,
         actor_ref: str | None = None,
     ) -> RunRecord:
-        """Apply a validated admission result: running / waiting / terminal."""
+        """应用已验证的准入结果：running / waiting / terminal。"""
         run = await self._runs.require(run_id)
         if run.phase != "admitting":
             raise StateMachineError(run.phase, "running")
@@ -286,13 +284,13 @@ class RunCoordinator:
             actor_ref=actor_ref,
         )
 
-    # -- lifecycle commands ------------------------------------------------
+    # -- 生命周期命令 ------------------------------------------------
 
     @_transactional
     async def acquire_lease(
         self, run_id: str, *, holder_id: str, actor_ref: str | None = None
     ) -> RunRecord:
-        """Acquire (or renew) the execution lease with a monotonic fencing token."""
+        """以单调递增的 fencing token 获取（或续订）执行租约。"""
         run = await self._runs.require(run_id)
         if run.phase not in ("admitting", "running", "retrying"):
             raise StateMachineError(
@@ -341,10 +339,10 @@ class RunCoordinator:
         fencing_token: int,
         actor_ref: str | None = None,
     ) -> RunRecord:
-        """Extend a held lease; rejects stale holders (RUN-003)."""
+        """延长已持有的租约；拒绝过期持有者（RUN-003）。"""
         run = await self._runs.require(run_id)
         self._ensure_lease(run, lease_id, fencing_token)
-        assert run.lease is not None  # _ensure_lease guarantees an active lease
+        assert run.lease is not None  # _ensure_lease 保证存在有效租约
         moment = self._now()
         if not run.lease.is_held_at(moment):
             from ueaf.common.error import ERROR_CODES
@@ -477,7 +475,7 @@ class RunCoordinator:
 
     @_transactional
     async def cancel(self, run_id: str, *, actor_ref: str | None = None) -> RunRecord:
-        """Legal cancel accepted; no new actions started."""
+        """接受合法的取消；不再启动新的 action。"""
         run = await self._runs.require(run_id)
         if run.phase == "terminal":
             return run
@@ -510,7 +508,7 @@ class RunCoordinator:
             actor_ref=actor_ref,
         )
 
-    # -- internals ---------------------------------------------------------
+    # -- 内部实现 ---------------------------------------------------------
 
     async def _register_wait(
         self,
@@ -576,7 +574,7 @@ class RunCoordinator:
         return updated
 
     def _ensure_lease(self, run: RunRecord, lease_id: str, fencing_token: int) -> None:
-        """Reject writes that are not the current lease holder (RUN-003)."""
+        """拒绝非当前租约持有者的写入（RUN-003）。"""
         if run.lease is None:
             from ueaf.common.error import ERROR_CODES
 
@@ -603,7 +601,7 @@ class RunCoordinator:
         run = await self._runs.require(run_id)
         if run.phase == "terminal":
             if run.completion_disposition == disposition:
-                return run  # idempotent replay (spec 02 §5.2)
+                return run  # 幂等重放（spec 02 §5.2）
             raise StateMachineError(run.phase, "terminal", "terminal_conflict")
         if disposition == "completed" and run.phase not in (
             "running", "waiting", "retrying"

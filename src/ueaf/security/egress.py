@@ -1,8 +1,7 @@
-"""Egress / SSRF policy: block untrusted outbound access (SEC-014).
+"""出口 / SSRF 策略：阻止不受信任的对外访问（SEC-014）。
 
-Untrusted tools or generated code may attempt to reach non-allowlisted
-targets. ``EgressPolicy`` checks a requested host/URL against an allowlist and
-generates a Security evidence reference when access is blocked.
+不受信任的工具或生成代码可能尝试访问未列入白名单的目标。``EgressPolicy`` 依据白名单
+检查请求的主机/URL，当访问被阻止时生成一条 Security 证据引用。
 """
 
 from __future__ import annotations
@@ -24,7 +23,7 @@ class EgressDecision:
 
 
 class EgressPolicy:
-    """Deny-by-default egress allowlist for untrusted execution (SEC-014)."""
+    """针对不受信任执行的默认拒绝出口白名单（SEC-014）。"""
 
     def __init__(
         self,

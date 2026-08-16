@@ -1,1 +1,1 @@
-"""Developer platform: framework adapter registry (functional module 10)."""
+"""开发者平台：框架适配器注册表（功能模块 10）。"""

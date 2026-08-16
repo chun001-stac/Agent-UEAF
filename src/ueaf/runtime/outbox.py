@@ -1,8 +1,8 @@
-"""Transactional outbox for authoritative state/event atomicity (CON-013).
+"""权威状态/事件原子性的事务性 outbox（CON-013）。
 
-Business row change + outbox insert happen in the same local transaction. The
-publisher drains entries and emits immutable ``EventEnvelope`` instances to a
-broker/event bus exactly once (at-least-once with dedupe by ``event_id``).
+业务行变更与 outbox 插入在同一本地事务中完成。发布者按序消费条目，并将不可变的
+``EventEnvelope`` 实例发送到 broker/事件总线（at-least-once 语义，按 ``event_id``
+去重）。
 """
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ class OutboxStore(Protocol):
 
 
 class InMemoryOutboxStore:
-    """In-memory outbox; suitable for tests and single-process vertical slices."""
+    """内存 outbox；适用于测试和单进程垂直切片。"""
 
     def __init__(self) -> None:
         self._entries: list[OutboxEntry] = []
@@ -83,7 +83,7 @@ class InMemoryOutboxStore:
 
 
 class InMemoryEventBus:
-    """Test/local event bus that consumes outbox entries into EventEnvelopes."""
+    """测试/本地事件总线：将 outbox 条目消费为 EventEnvelope。"""
 
     def __init__(self) -> None:
         self.events: list[EventEnvelope] = []
@@ -91,7 +91,7 @@ class InMemoryEventBus:
 
     def publish(self, entry: OutboxEntry) -> bool:
         if entry.event_id in self._seen:
-            return False  # at-least-once dedupe by event_id
+            return False  # 按 event_id 去重（at-least-once）
         self._seen.add(entry.event_id)
         self.events.append(
             EventEnvelope(

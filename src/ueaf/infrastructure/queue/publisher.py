@@ -1,10 +1,8 @@
-"""Outbox publisher adapters.
+"""outbox 发布器适配器。
 
-The transactional outbox (CON-013) is drained by a publisher that emits each
-entry at-least-once and relies on broker-level dedupe (NATS ``Nats-Msg-Id`` or
-an in-memory event_id set) so consumers see exactly-once semantics. Publishing
-succeeds only after the broker accepts the message; the outbox row is then
-marked published.
+事务性 outbox（CON-013）由发布器排空：每个条目至少投递一次，并依赖代理级别的
+去重（NATS ``Nats-Msg-Id`` 或内存中的 event_id 集合），使消费者看到恰好一次
+的语义。只有代理接受消息后发布才算成功；随后 outbox 行被标记为已发布。
 """
 
 from __future__ import annotations
@@ -53,7 +51,7 @@ def _to_envelope(entry: OutboxEntry) -> EventEnvelope:
 
 
 def _envelope_from_dict(data: dict[str, Any]) -> EventEnvelope:
-    """Rebuild an EventEnvelope from the JSON wire dict (datetime -> ISO strings)."""
+    """从 JSON wire 字典重建 EventEnvelope（datetime -> ISO 字符串）。"""
 
     kwargs: dict[str, Any] = {}
     for key, value in data.items():
@@ -70,7 +68,7 @@ def _envelope_from_dict(data: dict[str, Any]) -> EventEnvelope:
 
 
 class InMemoryOutboxPublisher:
-    """Test/local publisher: dedupes by event_id, keeps delivered envelopes."""
+    """测试/本地发布器：按 event_id 去重，保留已投递的信封。"""
 
     def __init__(self) -> None:
         self._seen: set[str] = set()
@@ -93,12 +91,11 @@ class InMemoryOutboxPublisher:
 
 
 class NatsJetStreamOutboxPublisher:
-    """Publishes outbox entries to a NATS JetStream stream.
+    """将 outbox 条目发布到 NATS JetStream 流。
 
-    ``js`` is a JetStream context (nats.js). Each message carries the
-    ``Nats-Msg-Id`` header set to the event id so JetStream server-side
-    deduplication drops redeliveries within the stream's dedup window. The
-    ``nats`` dependency is imported lazily so the module imports without it.
+    ``js`` 是 JetStream 上下文（nats.js）。每条消息都携带 ``Nats-Msg-Id``
+    头，其值设为事件 id，使 JetStream 服务端在流的去重窗口内丢弃重复投递。
+    ``nats`` 依赖为懒导入，因此缺少它时模块仍可正常导入。
     """
 
     def __init__(self, js: object, *, subject_prefix: str = "ueaf.events") -> None:
@@ -112,7 +109,7 @@ class NatsJetStreamOutboxPublisher:
         ack = await self._js.publish(  # type: ignore[attr-defined]
             subject, body, headers={"Nats-Msg-Id": entry.event_id}
         )
-        # Server-side dedup: a duplicate message id is acknowledged but not stored.
+        # 服务端去重：重复的消息 id 会被确认但不存储。
         if getattr(ack, "duplicate", False) or (
             hasattr(ack, "info") and getattr(ack.info, "duplicate", False)
         ):

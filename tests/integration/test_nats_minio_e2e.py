@@ -1,9 +1,8 @@
-"""NATS JetStream + MinIO end-to-end integration tests.
+"""NATS JetStream + MinIO 端到端集成测试。
 
-Exercises the real broker/object-store path: outbox -> NATS JetStream stream ->
-durable consumer (sequence-gap detection), and artifact put/get against MinIO.
-Skipped when the containers are unreachable (CI without the docker services) or
-the optional dependencies (``nats``, ``boto3``) are not installed.
+验证真实 broker/对象存储链路：outbox -> NATS JetStream 流 -> 持久化消费者
+（序号缺口检测），以及针对 MinIO 的产物 put/get。当容器不可达（未启动 docker
+服务的 CI 环境）或可选依赖（``nats``、``boto3``）未安装时跳过。
 """
 
 from __future__ import annotations
@@ -94,13 +93,13 @@ async def test_outbox_publishes_to_live_jetstream_and_consumes_exactly_once() ->
         await outbox.append(entry_a)
         await outbox.append(entry_b)
 
-        # Drain the outbox to the broker; both rows are marked published.
+        # 将发件箱排空到 broker；两行都会被标记为已发布。
         assert await publisher.drain(outbox) == 2
         assert await outbox.dedupe_event_id(entry_a.event_id)
         assert await outbox.dedupe_event_id(entry_b.event_id)
-        assert await publisher.drain(outbox) == 0  # nothing left
+        assert await publisher.drain(outbox) == 0  # 没有剩余内容
 
-        # A durable consumer receives both events with no forward gaps.
+        # 持久化消费者接收两个事件，且无前向缺口。
         delivered = await consumer.fetch("worker-e2e", max_events=2)
         names = sorted(event.event_name for event, _seq in delivered)
         assert names == ["ueaf.run.created", "ueaf.run.phase_changed"]
@@ -127,7 +126,7 @@ async def test_artifact_roundtrip_through_live_minio() -> None:
     try:
         client.create_bucket(Bucket=MINIO_BUCKET)
     except ClientError as error:
-        # BucketAlreadyOwnedByYou / already exists is fine.
+        # BucketAlreadyOwnedByYou / 桶已存在的情况可忽略。
         if "BucketAlready" not in str(error):
             raise
 
@@ -141,8 +140,8 @@ async def test_artifact_roundtrip_through_live_minio() -> None:
     fetched = store.get(key)
     assert fetched == payload
 
-    # Immutability: the same key with different content must not silently replace.
+    # 不可变性：同一 key 的不同内容不得被静默替换。
     with pytest.raises(ValueError):
         store.put(key, b"different-content")
-    # Idempotent re-put of identical content is allowed.
+    # 相同内容的幂等重复写入是允许的。
     store.put(key, payload, content_type="application/json")

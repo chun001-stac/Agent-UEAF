@@ -1,15 +1,12 @@
-"""RAG retrieval: authorized hybrid, degraded fallback, query rewrite, multi-query.
+"""RAG 检索：授权混合、降级兜底、查询改写、多查询。
 
-RAG-009 authorized hybrid retrieval: lexical and vector retrieval stay within
-the authorized collection.
-RAG-010 degraded lexical fallback: when embedding/rerankers are unavailable,
-degrade to lexical only inside the authorized set, with an explicit
-degraded/coverage gap — never widening the source set.
-RAG-014 query rewrite preserves constraints: a rewrite must keep
-tenant/purpose/region/source/freshness/citation constraints; on failure the
-original query is used.
-RAG-015 bounded multi-query: multi-entity expansion is bounded by a versioned
-limit (reference 4); no unbounded fan-out and no authorization widening.
+RAG-009 授权混合检索：词法与向量检索都限定在授权集合内。
+RAG-010 降级词法兜底：当嵌入/重排不可用时，在授权集合内降级为仅词法检索，
+并显式标记 degraded/coverage gap——绝不扩大来源集合。
+RAG-014 查询改写保留约束：改写必须保留 tenant/purpose/region/source/
+freshness/citation 约束；失败时回退到原始查询。
+RAG-015 有界多查询：多实体扩展受版本化上限（reference 4）约束；无无界扇出、
+无授权扩大。
 """
 
 from __future__ import annotations
@@ -22,7 +19,7 @@ from ueaf.rag.index import Chunk, RetrievalIndex
 
 @dataclass(frozen=True, slots=True)
 class RetrievalConstraint:
-    """Immutable constraints that a rewrite must never drop (RAG-014)."""
+    """改写绝不能丢弃的不可变约束（RAG-014）。"""
 
     tenant_id: str
     purpose: str
@@ -55,7 +52,7 @@ class RetrievalResult:
 
 
 class AuthorizedRetrieval:
-    """Lexical retrieval confined to an authorized source allowlist (RAG-009/010)."""
+    """限定在授权来源白名单内的词法检索（RAG-009/010）。"""
 
     def __init__(self, *, sources: tuple[str, ...]) -> None:
         self._sources = frozenset(sources)
@@ -70,12 +67,12 @@ class AuthorizedRetrieval:
     ) -> tuple[RetrievalResult, ...]:
         allowlist = constraint.source_allowlist or self._sources
         candidates = index.search(terms)
-        # RAG-009/010: never widen beyond the authorized set.
+        # RAG-009/010：绝不超出授权集合扩大范围。
         candidates = tuple(c for c in candidates if c.source_ref in allowlist)
         degraded = not embedding_available
         coverage_gap = None
         if degraded:
-            # Explicit degraded/coverage gap; lexical only, inside the set.
+            # 显式的 degraded/coverage gap；仅词法检索，且在集合内。
             coverage_gap = "embedding_unavailable:lexical_fallback_within_authorized_set"
         scored = sorted(
             candidates,
@@ -96,7 +93,7 @@ class QueryPlan:
 
 
 class QueryRewriter:
-    """Deterministic rewrite that preserves constraints and is bounded (RAG-014/015)."""
+    """保留约束且有界限制的确定性改写（RAG-014/015）。"""
 
     def __init__(self, *, multi_query_limit: int = 4) -> None:
         if multi_query_limit < 1:
@@ -110,17 +107,17 @@ class QueryRewriter:
         constraint: RetrievalConstraint,
         entities: tuple[str, ...] = (),
     ) -> QueryPlan:
-        # Never drop constraints: the plan records the constraint digest.
+        # 绝不丢弃约束：计划会记录约束摘要。
         if not entities:
             return QueryPlan(query, (query,), constraint.digest())
-        # Bounded multi-query expansion (RAG-015): never beyond the limit and
-        # each expansion keeps the same constraint (no authorization widening).
+        # 有界多查询扩展（RAG-015）：绝不超过上限，且每次扩展都保持相同约束
+        # （不扩大授权范围）。
         bounded = entities[: self._limit]
         queries = tuple(f"{query} {entity}" for entity in bounded)
         return QueryPlan(query, queries, constraint.digest())
 
     def safe_original(self, *, constraint: RetrievalConstraint) -> bool:
-        # A rewrite that lost constraints falls back to the original query.
+        # 丢失约束的改写会回退到原始查询。
         return True
 
 

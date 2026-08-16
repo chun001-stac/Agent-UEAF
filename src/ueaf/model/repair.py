@@ -1,9 +1,8 @@
-"""Bounded structural repair vs semantic/security no-repair (PRM-007/008).
+"""有界结构修复 vs 语义/安全不修复（PRM-007/008）。
 
-Recoverable JSON/typed-output structural errors may be repaired with bounded
-passes (PRM-007). Semantic or security failures — missing evidence, safety hard
-fails, over-scope ToolIntents, business semantic conflicts, unknown providers or
-model refusals — must never be "repaired away" by a repair prompt (PRM-008).
+可恢复的 JSON/类型化输出结构错误可以通过有界的轮次进行修复（PRM-007）。语义或安全
+失败——证据缺失、安全硬失败、超出范围的 ToolIntent、业务语义冲突、未知提供方或模型
+拒答——绝不允许通过修复提示词“修复掉”（PRM-008）。
 """
 
 from __future__ import annotations
@@ -15,7 +14,7 @@ _NON_REPAIRABLE_FINISH_REASONS: frozenset[str] = frozenset({"content_filter", "t
 
 
 class NonRepairableFailure(ValueError):
-    """A semantic/security failure that must not be repaired (PRM-008)."""
+    """不得修复的语义/安全失败（PRM-008）。"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,12 +26,12 @@ class RepairResult:
 
 
 def is_non_repairable_failure(kind: str, finish_reason: str) -> bool:
-    """Semantic/security failures are never structurally repaired (PRM-008)."""
+    """语义/安全失败绝不进行结构修复（PRM-008）。"""
     return kind in _NON_REPAIRABLE_KINDS or finish_reason in _NON_REPAIRABLE_FINISH_REASONS
 
 
 class StructuralRepairer:
-    """Fixes only recoverable structural errors, with a hard pass bound."""
+    """仅修复可恢复的结构错误，并带有硬性轮次上限。"""
 
     def __init__(self, *, max_passes: int = 1) -> None:
         if max_passes < 1:
@@ -61,7 +60,7 @@ class StructuralRepairer:
 
 
 def _repair_truncated_json(content: str) -> str:
-    """Close unclosed JSON structural delimiters (recoverable truncation)."""
+    """闭合未闭合的 JSON 结构定界符（可恢复的截断）。"""
     if not content.strip():
         return content
     stripped = content.rstrip()

@@ -1,4 +1,4 @@
-"""Shared builders/fakes for V1 reference implementation tests."""
+"""V1 参考实现测试的共享构造器/假实现。"""
 
 from __future__ import annotations
 
@@ -154,12 +154,11 @@ def admission_controller(
 
 
 async def clean_authoritative_tables(database: Database) -> None:
-    """Delete all rows from authoritative tables (test isolation).
+    """删除权威表中的所有行（测试隔离）。
 
-    SQL integration tests assume a clean authority DB; a real PostgreSQL left
-    over from a previous run (or a shared CI DB) otherwise violates unique-key
-    assumptions (e.g. ``task-1``). Truncation restores hermeticity regardless of
-    driver/backing store.
+    SQL 集成测试假设权威数据库是干净的；否则，上次运行遗留的真实 PostgreSQL
+    （或共享的 CI 数据库）会违反唯一键假设（例如 ``task-1``）。无论驱动或底层
+    存储是什么，截断都能恢复封闭性。
     """
 
     from sqlalchemy import delete

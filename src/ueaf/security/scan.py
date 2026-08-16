@@ -1,9 +1,8 @@
-"""Credential scanning: no credential material in content domains (SEC-003).
+"""凭据扫描：内容域中不允许出现凭据材料（SEC-003）。
 
-Prompts, tool args, ordinary logs/traces/event payloads and the Evolution
-Working Set must never carry credential material. ``CredentialScanner`` applies
-conservative patterns and raises ``CredentialScanError`` when a scan domain
-contains a match.
+提示词、工具参数、普通日志/轨迹/事件载荷以及进化工作集（Working Set）绝不允许携带
+凭据材料。``CredentialScanner`` 使用保守的模式进行匹配，当某个扫描域命中时抛出
+``CredentialScanError``。
 """
 
 from __future__ import annotations
@@ -12,29 +11,29 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-# Conservative credential markers (avoid noisy false positives on ordinary text).
+# 保守的凭据标记（避免对普通文本产生大量误报）。
 _CREDENTIAL_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"(?i)\b(?:password|passwd)\s*[=:]\s*[^\s,;]{4,}"),
     re.compile(r"(?i)\b(?:api[_-]?key|secret[_-]?key|client[_-]?secret|access[_-]?key)\s*[=:]\s*[^\s,;]{8,}"),
     re.compile(r"(?i)\bauthorization\s*:\s*bearer\s+[A-Za-z0-9._-]{12,}"),
     re.compile(r"\bsk-[A-Za-z0-9]{16,}"),
     re.compile(r"\bghp_[A-Za-z0-9]{20,}"),
-    re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),  # JWT-ish
+    re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),  # 类似 JWT 的形式
 )
 
 
 class CredentialScanError(RuntimeError):
-    """Raised when credential material is found in a content domain (SEC-003)."""
+    """在内容域中发现凭据材料时抛出（SEC-003）。"""
 
 
 class CredentialScanner:
-    """Scans named content domains for credential material."""
+    """扫描指定的内容域以查找凭据材料。"""
 
     def __init__(self, patterns: tuple[re.Pattern[str], ...] | None = None) -> None:
         self._patterns = patterns or _CREDENTIAL_PATTERNS
 
     def find_in(self, text: str) -> list[str]:
-        """Return redacted pattern names matched in ``text`` (never the value)."""
+        """返回 ``text`` 中命中的脱敏模式名（绝不返回值本身）。"""
         found: list[str] = []
         for pattern in self._patterns:
             match = pattern.search(text)
@@ -52,7 +51,7 @@ class CredentialScanner:
         event_payload: Mapping[str, Any] | None = None,
         working_set: Mapping[str, Any] | None = None,
     ) -> list[str]:
-        """Scan every provided domain; returns a list of domain names with hits."""
+        """扫描所有提供的域；返回有命中的域名列表。"""
         hits: list[str] = []
         domains: dict[str, str] = {
             "prompt": prompt or "",
@@ -72,7 +71,7 @@ class CredentialScanner:
         return hits
 
     def assert_clean(self, **domains: Any) -> None:
-        """Raise ``CredentialScanError`` if any domain contains credentials."""
+        """若任一域包含凭据则抛出 ``CredentialScanError``。"""
         hits = self.scan(**domains)
         if hits:
             raise CredentialScanError(

@@ -1,1 +1,1 @@
-"""Artifact storage adapters (in-memory + S3/MinIO compatible)."""
+"""制品存储适配器（内存 + S3/MinIO 兼容）。"""

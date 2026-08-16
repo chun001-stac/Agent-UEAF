@@ -1,7 +1,7 @@
-"""API error handling: map domain/port failures to ``ProblemDetail`` responses.
+"""API 错误处理：将领域/端口失败映射为 ``ProblemDetail`` 响应。
 
-Cross-process errors use ``ProblemDetail`` (never a public ErrorEnvelope).
-Retryability and safe messages are preserved from the source error.
+跨进程错误统一使用 ``ProblemDetail``（绝不使用公开的 ErrorEnvelope）。
+重试性与安全消息从源错误中原样保留。
 """
 
 from __future__ import annotations

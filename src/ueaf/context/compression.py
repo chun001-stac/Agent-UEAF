@@ -1,9 +1,7 @@
-"""History compression lineage (CTX-005).
+"""历史压缩谱系（CTX-005）。
 
-Compression is traceable: every compressed summary records its input refs,
-output ref, rule/model version and loss/omissions. Beyond a reference depth, a
-compressed summary must be rebuilt from authoritative history rather than
-compressed further ("summary of a summary" is never unbounded).
+压缩是可追溯的：每个压缩摘要都记录其输入引用、输出引用、规则/模型版本以及损失/省略。
+超过参考深度后，压缩摘要必须从权威历史重建，而不是继续压缩（“摘要的摘要”绝非无界）。
 """
 
 from __future__ import annotations
@@ -39,7 +37,7 @@ class CompressionRecord:
 
 @dataclass(slots=True)
 class CompressionLineage:
-    """Tracks compression depth and rebuilds beyond the reference depth (CTX-005)."""
+    """跟踪压缩深度，并在超过参考深度时重建（CTX-005）。"""
 
     max_depth: int = 3
     records: list[CompressionRecord] = field(default_factory=list)
@@ -53,11 +51,11 @@ class CompressionLineage:
         return len(self.records)
 
     def needs_rebuild(self) -> bool:
-        """Beyond the reference depth, rebuild instead of compressing further."""
+        """超过参考深度时，重建而不是继续压缩。"""
         return self.depth >= self.max_depth
 
     def rebuild_from(self, authoritative_refs: tuple[str, ...]) -> CompressionRecord:
-        """Start a fresh lineage from authoritative history (resets depth)."""
+        """从权威历史开始新的谱系（重置深度）。"""
         self.records.clear()
         record = CompressionRecord(
             summary_ref="summary:rebuilt",

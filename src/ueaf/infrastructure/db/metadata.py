@@ -1,4 +1,4 @@
-"""Shared SQLAlchemy metadata without prematurely defining domain tables."""
+"""共享的 SQLAlchemy metadata，暂不提前定义领域表。"""
 
 from sqlalchemy import MetaData
 

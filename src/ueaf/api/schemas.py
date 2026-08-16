@@ -1,8 +1,7 @@
-"""Pydantic v2 wire models for the V1 control-plane API.
+"""V1 控制平面 API 的 Pydantic v2 wire 模型。
 
-Wire field names are ``snake_case`` (core spec 01 §2.2). Domain dataclasses
-are mapped to/from these transport models at the API boundary; ORM rows are
-never exposed directly.
+Wire 字段名为 ``snake_case``（核心规范 01 §2.2）。领域 dataclass 在 API 边界处
+与这些传输模型相互映射；ORM 行绝不直接暴露。
 """
 
 from __future__ import annotations
@@ -16,7 +15,7 @@ RequestChannel = Literal["http", "websocket", "queue"]
 
 
 class ProblemDetailOut(BaseModel):
-    """Cross-process error body (ProblemDetail wire shape)."""
+    """跨进程错误体（ProblemDetail wire 形态）。"""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -34,7 +33,7 @@ class ProblemDetailOut(BaseModel):
 
 
 class RequestIn(BaseModel):
-    """External ingress submitted for edge pre-validation (RUN-005)."""
+    """提交给边界预校验（RUN-005）的外部入站请求。"""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -51,7 +50,7 @@ class RequestIn(BaseModel):
 
 
 class RunCreateIn(BaseModel):
-    """Payload to create an immutable task envelope + queued Run."""
+    """用于创建不可变任务信封 + 排队 Run 的载荷。"""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -81,7 +80,7 @@ class AdmissionIn(BaseModel):
 
 
 class RunOut(BaseModel):
-    """Public RunRecord projection (never exposes ORM internals)."""
+    """公开的 RunRecord 投影（绝不暴露 ORM 内部）。"""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -114,7 +113,7 @@ class AdmissionResultOut(BaseModel):
 
 
 class CommandIn(BaseModel):
-    """CommandEnvelope wire shape; idempotency enforced by the state writer."""
+    """CommandEnvelope 的 wire 形态；幂等性由状态写入器保证。"""
 
     model_config = ConfigDict(extra="forbid")
 

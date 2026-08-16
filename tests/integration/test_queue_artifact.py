@@ -1,4 +1,4 @@
-"""Queue/artifact wiring tests (outbox publisher + object storage)."""
+"""队列/产物装配测试（发件箱发布器 + 对象存储）。"""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ async def test_in_memory_publisher_drains_and_dedupes_outbox() -> None:
     assert await publisher.drain(outbox) == 1
     assert await outbox.dedupe_event_id(entry.event_id)
 
-    # Nothing left to publish; redelivery is deduped by event_id.
+    # 没有可发布的内容；重投递按 event_id 去重。
     assert await publisher.drain(outbox) == 0
     assert len(publisher.events) == 1
     assert publisher.events[0].event_name == "ueaf.run.created"
@@ -74,7 +74,7 @@ class _FakeJetStream:
         msg_id = headers.get("Nats-Msg-Id", "")
         self.calls.append((subject, payload, dict(headers)))
         if msg_id in self._seen:
-            return _FakeAck(duplicate=True)  # JetStream dedup drop
+            return _FakeAck(duplicate=True)  # JetStream 去重丢弃
         self._seen.add(msg_id)
         return _FakeAck(duplicate=False)
 
@@ -105,7 +105,7 @@ def test_artifact_store_put_get_digest_and_immutability() -> None:
     assert ref.digest == hashlib.sha256(payload).hexdigest()
     assert ref.size == len(payload)
 
-    # Artifacts are immutable: same key with different content is rejected.
+    # 产物不可变：同一 key 的不同内容会被拒绝。
     with pytest.raises(ValueError, match="already exists"):
         store.put("result:1", b"different-content")
 

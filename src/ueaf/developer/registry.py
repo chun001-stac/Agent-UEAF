@@ -1,8 +1,7 @@
-"""Adapter registry for external agent runtimes (functional module 10).
+"""外部 agent 运行时适配器注册表（功能模块 10）。
 
-External frameworks (LangGraph, OpenAI Agents SDK, ...) plug in via a
-RuntimeAdapter; the developer registry tracks which adapters are available and
-which contract versions they support.
+外部框架（LangGraph、OpenAI Agents SDK 等）通过 RuntimeAdapter 接入；开发者注册表
+跟踪哪些适配器可用以及它们支持的合约版本。
 """
 
 from __future__ import annotations
@@ -28,14 +27,14 @@ class AdapterEntry:
 
 
 class RuntimeAdapter(Protocol):
-    """Minimal structural type for a pluggable external runtime."""
+    """可插拔外部运行时的最小结构类型。"""
 
     def DescribeRuntime(self) -> RuntimeCapabilities: ...
 
 
 @dataclass(slots=True)
 class AdapterRegistry:
-    """Maps adapter refs to runtime adapter instances + capabilities."""
+    """将适配器引用映射到运行时适配器实例 + 能力。"""
 
     _factories: dict[str, Callable[[], RuntimeAdapter]] = field(default_factory=dict)
 

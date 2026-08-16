@@ -1,4 +1,4 @@
-"""Runtime / run-state canonical objects (core spec 01 §9, spec 02 §3)."""
+"""运行时/运行状态规范对象（core spec 01 §9，spec 02 §3）。"""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ WAIT_REASONS: frozenset[str] = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class RunLease:
-    """Execution lease; monotonic fencing token isolates stale writers."""
+    """执行租约；单调递增的 fencing token 用于隔离过期写入者。"""
 
     lease_id: str
     holder_id: str
@@ -64,7 +64,7 @@ class BudgetSnapshotRef:
 
 @dataclass(frozen=True, slots=True)
 class RunRecord:
-    """Canonical run aggregate; phase/disposition/wait_reason stay orthogonal."""
+    """规范 Run 聚合；phase/disposition/wait_reason 保持相互正交。"""
 
     meta: ContractMeta
     run_id: str
@@ -127,7 +127,7 @@ class RunRecord:
 
 @dataclass(frozen=True, slots=True)
 class TaskState:
-    """Mutable task-domain state; deterministic progress only, not summaries."""
+    """可变的任务域状态；只记录确定性进展，不记录摘要。"""
 
     meta: ContractMeta
     task_id: str
@@ -146,7 +146,7 @@ class TaskState:
 
 @dataclass(frozen=True, slots=True)
 class Checkpoint:
-    """Recoverable run position; does not prove external side effects absent."""
+    """可恢复的运行位置；不证明不存在外部副作用。"""
 
     meta: ContractMeta
     checkpoint_id: str

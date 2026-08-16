@@ -1,1 +1,1 @@
-"""Eval domain: isolated read-only EvalRun slice + gates (EVAL-*)."""
+"""评测领域：隔离的只读 EvalRun 切片 + 门控（EVAL-*）。"""

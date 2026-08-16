@@ -1,12 +1,10 @@
-"""Evolution gates: OBJ-002/003, REP-003, ETH-003.
+"""Evolution 门：OBJ-002/003、REP-003、ETH-003。
 
-OBJ-002 guardrail: quality gains never override cost/latency guardrails —
-"not improved" is a legitimate objective outcome.
-OBJ-003 evidence confidence: insufficient business-KPI evidence yields
-"inconclusive", never a fabricated improvement.
-REP-003 escalation requires evidence: a failure alone never auto-widens scope.
-ETH-003 R4 supply chain: R4 generated code must pass static, secret, SBOM,
-sandbox, integration and security checks.
+OBJ-002 护栏：质量提升绝不覆盖成本/延迟护栏——“未改善”是合法的目标结果。
+OBJ-003 证据置信度：业务 KPI 证据不足时产生“inconclusive”，绝不虚构改善。
+REP-003 升级需要证据：仅凭失败绝不自动扩大范围。
+ETH-003 R4 供应链：R4 生成的代码必须通过静态、密钥、SBOM、沙箱、
+集成与安全检查。
 """
 
 from __future__ import annotations
@@ -24,7 +22,7 @@ class ObjectiveDecision:
 
 
 class ObjectiveEvaluator:
-    """Hard constraints + guardrails + evidence confidence for an objective."""
+    """针对目标的硬约束 + 护栏 + 证据置信度。"""
 
     def evaluate(
         self,
@@ -37,10 +35,10 @@ class ObjectiveEvaluator:
         evidence_confidence: float,
         confidence_threshold: float,
     ) -> ObjectiveDecision:
-        # OBJ-003: insufficient business-KPI evidence -> inconclusive.
+        # OBJ-003：业务 KPI 证据不足 -> inconclusive。
         if evidence_confidence < confidence_threshold:
             return ObjectiveDecision("inconclusive", ("insufficient_evidence_confidence",))
-        # OBJ-002: quality gains never override cost/latency guardrails.
+        # OBJ-002：质量提升绝不覆盖成本/延迟护栏。
         if cost_millis > cost_guardrail_millis or latency_millis > latency_guardrail_millis:
             return ObjectiveDecision("not_improved", ("guardrail_exceeded",))
         if not quality_improved:
@@ -56,7 +54,7 @@ class EscalationDecision:
 
 
 class EscalationPolicy:
-    """Scope escalation requires evidence, never a bare failure (REP-003)."""
+    """范围升级需要证据，绝不仅凭失败（REP-003）。"""
 
     def escalate(
         self, *, current_scope: str, failure: str, evidence_refs: tuple[str, ...]
@@ -83,7 +81,7 @@ _REQUIRED_R4_CHECKS: tuple[str, ...] = (
 
 
 class SupplyChainGate:
-    """R4 generated code must pass all supply-chain checks (ETH-003)."""
+    """R4 生成的代码必须通过全部供应链检查（ETH-003）。"""
 
     def evaluate(
         self,

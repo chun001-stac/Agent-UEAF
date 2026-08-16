@@ -1,8 +1,8 @@
-"""SQL persistence layer tests (implementation spec 03).
+"""SQL 持久化层测试（实施规范 03）。
 
-Validates DB-level CAS/fencing, transactional outbox atomicity and full run
-lifecycle over the async SQLAlchemy repositories. Runs against async SQLite
-(local, aiosqlite) or a real PostgreSQL when ``UEAF_DATABASE_URL`` is set (CI).
+在异步 SQLAlchemy 仓库上验证数据库级 CAS/fencing、事务性发件箱原子性以及完整
+run 生命周期。在设置 ``UEAF_DATABASE_URL``（CI）时针对异步 SQLite（本地，
+aiosqlite）或真实 PostgreSQL 运行。
 """
 
 from __future__ import annotations
@@ -96,7 +96,7 @@ async def test_sql_coordinator_full_lifecycle() -> None:
     assert terminal.phase == "terminal"
     assert terminal.completion_disposition == "completed"
 
-    # Authority state is durable: reload from the DB in a fresh session.
+    # 权威状态是持久的：在新的会话中从数据库重新加载。
     repo = SqlRunRecordRepository(database)
     async with database.async_session_context():
         reloaded = await repo.require(terminal.run_id)
@@ -109,14 +109,14 @@ async def test_sql_coordinator_full_lifecycle() -> None:
 async def test_db_level_cas_rejects_stale_revision() -> None:
     database, coordinator = await _sql_coordinator()
     run = await _create_run(coordinator)
-    # Advance authority state so the persisted revision moves past the snapshot.
+    # 推进权威状态，使持久化的 revision 超过快照。
     await coordinator.begin_admission(run.run_id)
     repo = SqlRunRecordRepository(database)
     async with database.async_session_context():
         current = await repo.require(run.run_id)
     assert current.revision > run.revision
 
-    # An update carrying an out-of-date expected_revision must be rejected by CAS.
+    # 携带过期 expected_revision 的更新必须被 CAS 拒绝。
     with pytest.raises(RevisionConflict):
         async with database.async_session_context():
             await repo.update(current, expected_revision=run.revision)
@@ -129,7 +129,7 @@ async def test_db_level_fencing_rejects_stale_token() -> None:
     leased = await coordinator.acquire_lease(running.run_id, holder_id="worker-a")
     assert leased.lease.fencing_token == 1
 
-    # A stale fencing token (< current persisted token) must be rejected.
+    # 过期 fencing token（小于当前持久化 token）必须被拒绝。
     with pytest.raises(ValueError, match="stale_fencing"):
         await coordinator.heartbeat(
             leased.run_id,
@@ -137,7 +137,7 @@ async def test_db_level_fencing_rejects_stale_token() -> None:
             fencing_token=0,
         )
 
-    # Direct repository-level fencing check too.
+    # 也直接进行仓库级别的 fencing 检查。
     repo = SqlRunRecordRepository(database)
     async with database.async_session_context():
         current = await repo.require(running.run_id)
@@ -158,11 +158,11 @@ async def test_outbox_and_state_are_atomic_in_one_transaction() -> None:
 
     async with database.async_session_context():
         pre = await repo.require(run.run_id)
-        # Capture an existing outbox event_id to force a duplicate on the next tx.
+        # 捕获一个已有的发件箱 event_id，以便在下一个事务中制造重复。
         existing = (await outbox.unpublished())[0].event_id
 
-    # A duplicate outbox insert fails the whole transaction; the async session
-    # context rolls back the run phase change atomically (CON-013).
+    # 重复的发件箱插入会使整个事务失败；异步会话上下文会原子地
+    # 回滚 run 阶段变更（CON-013）。
     with pytest.raises(ValueError, match="duplicate outbox"):
         async with database.async_session_context():
             changed = replace(pre, phase="admitting", revision=pre.revision + 1)
@@ -171,7 +171,7 @@ async def test_outbox_and_state_are_atomic_in_one_transaction() -> None:
 
     async with database.async_session_context():
         after = await repo.require(run.run_id)
-    # The phase change was NOT committed because outbox insert failed atomically.
+    # 由于发件箱插入原子性失败，阶段变更未被提交。
     assert after.phase == "queued"
     assert after.revision == pre.revision
 

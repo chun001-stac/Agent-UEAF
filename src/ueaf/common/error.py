@@ -1,8 +1,8 @@
-"""Cross-process error contract.
+"""跨进程错误契约。
 
-Per core spec 03 and implementation spec 02 §6, cross-process / API errors use
-``ProblemDetail``; Port errors use ``PortResult<T> / PortError`` (defined in
-``ueaf.ports``). There is deliberately no public ``ErrorEnvelope``.
+按 core spec 03 与 implementation spec 02 §6，跨进程/API 错误使用
+``ProblemDetail``；端口错误使用 ``PortResult<T> / PortError``（定义于
+``ueaf.ports``）。有意不提供公开的 ``ErrorEnvelope``。
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ _PROBLEM_CATEGORIES = (
 
 @dataclass(frozen=True, slots=True)
 class ProblemDetail:
-    """Cross-process error body; safe message only, diagnostics behind refs."""
+    """跨进程错误体；只含安全消息，诊断信息位于引用之后。"""
 
     code: str
     category: str
@@ -58,7 +58,7 @@ class ProblemDetail:
             raise ValueError("ProblemDetail.source must not be empty")
 
 
-# Stable machine-readable error codes used by the V1 reference implementation.
+# V1 参考实现使用的稳定、机器可读的错误码。
 ERROR_CODES = {
     "INVALID_STATE_TRANSITION": "invalid_state_transition",
     "STALE_FENCING": "stale_fencing_token",

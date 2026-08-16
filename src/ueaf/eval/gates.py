@@ -1,8 +1,7 @@
-"""Eval gate slices: EVAL-006/009/010/012/013/014/016/017.
+"""评测门控切片：EVAL-006/009/010/012/013/014/016/017。
 
-Each gate produces a decision from deterministic inputs; none of them creates a
-new public outcome state (e.g. ``not_improved``) — they reuse
-``pass|fail|inconclusive`` (EVAL-013).
+每个门控都基于确定性输入产生判定；它们都不创建新的公共结果状态（例如 ``not_improved``），
+而是复用 ``pass|fail|inconclusive``（EVAL-013）。
 """
 
 from __future__ import annotations
@@ -13,7 +12,7 @@ from typing import Literal
 GateLikeOutcome = Literal["pass", "fail", "inconclusive"]
 
 
-# ---- EVAL-006 baseline equivalence ---------------------------------------
+# ---- EVAL-006 基线等价性 ---------------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,7 +22,7 @@ class BaselineEquivalenceDecision:
 
 
 class BaselineEquivalenceCheck:
-    """Baseline/Candidate must share dataset/environment/budget/capability/tool fixture."""
+    """Baseline/Candidate 必须共享数据集/环境/预算/能力/工具夹具。"""
 
     def evaluate(
         self,
@@ -53,7 +52,7 @@ class BaselineEquivalenceCheck:
         return BaselineEquivalenceDecision(not reasons, tuple(reasons))
 
 
-# ---- EVAL-009 judge disagreement -----------------------------------------
+# ---- EVAL-009 评测分歧 -----------------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,7 +63,7 @@ class DisagreementDecision:
 
 
 class JudgeDisagreementGate:
-    """Repeated/multiple judges with spread above threshold need review (EVAL-009)."""
+    """多次/多个评测器得分差超过阈值时需要复核（EVAL-009）。"""
 
     def evaluate(self, scores: tuple[float, ...], threshold: float) -> DisagreementDecision:
         if not scores:
@@ -77,7 +76,7 @@ class JudgeDisagreementGate:
         return DisagreementDecision("pass", spread, ("agreement",))
 
 
-# ---- EVAL-010 judge calibration -------------------------------------------
+# ---- EVAL-010 评测校准 -------------------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +87,7 @@ class CalibrationDecision:
 
 
 class JudgeCalibration:
-    """A judge below the agreement threshold cannot be the sole Quality Gate basis."""
+    """低于一致率阈值的评测器不能作为质量门控的唯一依据。"""
 
     def evaluate(self, agreement_rate: float, threshold: float) -> CalibrationDecision:
         if agreement_rate < threshold:
@@ -96,7 +95,7 @@ class JudgeCalibration:
         return CalibrationDecision(True, agreement_rate, ("calibrated",))
 
 
-# ---- EVAL-012 critical slice regression -----------------------------------
+# ---- EVAL-012 关键切片回归 -----------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,7 +105,7 @@ class SliceRegressionDecision:
 
 
 class SliceRegressionGate:
-    """A critical-slice regression beyond the hard threshold fails the gate."""
+    """关键切片回归超过硬阈值时门控失败。"""
 
     def evaluate(
         self,
@@ -123,7 +122,7 @@ class SliceRegressionGate:
         return SliceRegressionDecision("pass", ("no_critical_slice_regression",))
 
 
-# ---- EVAL-013 cost / latency guardrail ------------------------------------
+# ---- EVAL-013 成本/延迟护栏 ------------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,7 +132,7 @@ class CostLatencyDecision:
 
 
 class CostLatencyGuardrail:
-    """Quality gains never override cost/latency guardrails (EVAL-013)."""
+    """质量提升绝不能覆盖成本/延迟护栏（EVAL-013）。"""
 
     def evaluate(
         self,
@@ -150,12 +149,12 @@ class CostLatencyGuardrail:
         if latency_limit_millis is not None and latency_millis > latency_limit_millis:
             reasons.append("latency_guardrail_exceeded")
         if reasons:
-            # Reuses fail/conditional; never invents a new outcome state.
+            # 复用 fail/conditional；绝不发明新的结果状态。
             return CostLatencyDecision("fail", tuple(reasons))
         return CostLatencyDecision("pass", ("within_guardrails",))
 
 
-# ---- EVAL-014 authorized reference access ---------------------------------
+# ---- EVAL-014 授权参考访问 ---------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,7 +164,7 @@ class ReferenceAccessDecision:
 
 
 class ReferenceAccessPolicy:
-    """Only a frozen Grader/Judge contract may read rubric/reference answers."""
+    """只有冻结的 Grader/Judge 合约才能读取评分标准/参考答案。"""
 
     def __init__(self, *, frozen_contract_refs: tuple[str, ...]) -> None:
         self._frozen = frozenset(frozen_contract_refs)
@@ -178,13 +177,13 @@ class ReferenceAccessPolicy:
     def assert_no_reflow(
         self, candidate_content: str, reference_ref: str
     ) -> ReferenceAccessDecision:
-        # Reference content must not flow back into the candidate output.
+        # 参考内容不得回流到候选输出中。
         if reference_ref in candidate_content:
             return ReferenceAccessDecision(False, ("reference_reflowed_to_candidate",))
         return ReferenceAccessDecision(True, ("no_reflow",))
 
 
-# ---- EVAL-016 side-channel contamination -----------------------------------
+# ---- EVAL-016 侧信道污染 -----------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,7 +193,7 @@ class ContaminationDecision:
 
 
 class SideChannelDetector:
-    """Judge inputs through an unfrozen side channel invalidate the result."""
+    """通过未冻结的侧信道提供的评测输入会使结果失效。"""
 
     ALLOWED_CHANNELS: frozenset[str] = frozenset(
         {"case_inputs", "rubric", "frozen_reference", "judge_prompt"}
@@ -207,7 +206,7 @@ class SideChannelDetector:
         return ContaminationDecision(False, ("clean",))
 
 
-# ---- EVAL-017 attempt history preservation ---------------------------------
+# ---- EVAL-017 尝试历史保留 ---------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -219,7 +218,7 @@ class AttemptRecord:
 
 
 class AttemptHistory:
-    """All attempts are preserved for evidence aggregation (EVAL-017)."""
+    """所有尝试都会被保留以供证据聚合（EVAL-017）。"""
 
     def __init__(self) -> None:
         self._attempts: dict[str, AttemptRecord] = {}
@@ -232,7 +231,7 @@ class AttemptHistory:
         return tuple(self._attempts.values())
 
     def delete(self, attempt_id: str) -> None:
-        # Selective deletion of an unfavorable attempt is rejected (EVAL-017).
+        # 选择性删除不利尝试会被拒绝（EVAL-017）。
         raise ValueError(f"attempt {attempt_id} is preserved; selective deletion is forbidden")
 
 

@@ -1,8 +1,7 @@
-"""Artifact store: controlled storage for large/high-sensitivity results.
+"""制品存储：面向大型/高敏感度结果的可控存储。
 
-Per ACT-016, large or high-sensitivity results go to a controlled artifact
-store; wire results keep only minimal safe summaries/refs. Artifacts are
-immutable and content-addressed by sha256 digest.
+依据 ACT-016，大型或高敏感度的结果存入受控的制品存储；wire 结果仅保留最小
+化的安全摘要/引用。制品不可变，并以 sha256 摘要作为内容寻址。
 """
 
 from __future__ import annotations
@@ -33,7 +32,7 @@ def _digest(data: bytes) -> str:
 
 
 class InMemoryArtifactStore:
-    """Immutable in-memory artifact store for tests / local development."""
+    """用于测试/本地开发的不可变内存制品存储。"""
 
     def __init__(self) -> None:
         self._objects: dict[str, tuple[bytes, str | None]] = {}
@@ -58,11 +57,11 @@ class InMemoryArtifactStore:
 
 
 class S3ArtifactStore:
-    """S3 / MinIO-compatible artifact store via boto3.
+    """通过 boto3 实现的 S3 / MinIO 兼容制品存储。
 
-    ``client`` may be injected for tests; otherwise a boto3 client is built
-    lazily from ``endpoint_url`` (MinIO) or default AWS configuration.
-    ``boto3`` is imported lazily so the module imports without the dependency.
+    ``client`` 可注入以用于测试；否则会从 ``endpoint_url``（MinIO）或默认
+    AWS 配置懒构建 boto3 客户端。``boto3`` 为懒导入，因此缺少该依赖时模块
+    仍可正常导入。
     """
 
     def __init__(
@@ -92,8 +91,8 @@ class S3ArtifactStore:
 
     def put(self, key: str, data: bytes, *, content_type: str | None = None) -> ArtifactRef:
         object_key = f"{self._prefix}/{key}"
-        # Immutability (ACT-016): an existing object must not be silently
-        # replaced with different content.
+        # 不可变性（ACT-016）：已存在的对象绝不能静默地
+        # 被不同内容替换。
         if self.exists(key):
             existing = self.get(key)
             if existing != data:

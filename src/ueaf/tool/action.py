@@ -1,8 +1,7 @@
-"""Tool domain: ToolIntent, ActionRecord, ActionReceipt, ActionCoordinator.
+"""工具领域：ToolIntent、ActionRecord、ActionReceipt、ActionCoordinator。
 
-The ActionCoordinator is the authoritative State Writer for actions. External
-side effects happen only after policy/approval/reservation (TX-A/TX-B/TX-C),
-and unknown outcomes enter reconciliation instead of blind retry (ACT-003/013).
+ActionCoordinator 是动作的权威状态写入方（State Writer）。外部副作用仅在策略/审批/
+预留之后发生（TX-A/TX-B/TX-C），未知结果进入对账而非盲目重试（ACT-003/013）。
 """
 
 from __future__ import annotations
@@ -36,7 +35,7 @@ _ACTION_DISPOSITIONS: frozenset[str] = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class ActionRecord:
-    """Canonical action aggregate (wire + persisted authority object)."""
+    """动作的规范聚合（线上传输 + 持久化的权威对象）。"""
 
     meta: ContractMeta
     action_id: str
@@ -79,7 +78,7 @@ class ActionRecord:
 
 @dataclass(frozen=True, slots=True)
 class ActionReceipt:
-    """External side-effect receipt; status uses the closed public vocabulary."""
+    """外部副作用回执；状态使用封闭的公共词表。"""
 
     action_receipt_id: str
     action_key: str
@@ -98,7 +97,7 @@ class ActionReceipt:
     integrity_ref: str | None = None
 
     def __post_init__(self) -> None:
-        # ACT-010: only the public outcome vocabulary is exposed.
+        # ACT-010：仅暴露公共结果词表。
         if self.status not in {"succeeded", "failed", "unknown"}:
             raise ValueError(f"invalid ActionReceipt.status {self.status!r}")
         if self.attempt < 1:
@@ -134,16 +133,16 @@ def _validate_transition(from_phase: ActionPhase, to_phase: ActionPhase) -> None
 
 
 class ActionCoordinator:
-    """Authoritative action State Writer with CAS/revision and fencing checks."""
+    """带 CAS/版本号与 fencing 检查的权威动作状态写入方。"""
 
     def __init__(self, *, producer_version: str = "0.1.0") -> None:
         self._records: dict[str, ActionRecord] = {}
         self._by_key: dict[str, str] = {}  # action_key -> action_id
         self._receipts: dict[str, ActionReceipt] = {}
-        self._deadlines: dict[str, datetime] = {}  # action_id -> absolute_deadline
+        self._deadlines: dict[str, datetime] = {}  # action_id -> 绝对截止时间
         self._producer_version = producer_version
 
-    # -- TX-A: stable identity before policy (ACT-001) ----------------------
+    # -- TX-A：策略判定前的稳定身份（ACT-001） ----------------------
 
     def create_action(
         self,
@@ -157,7 +156,7 @@ class ActionCoordinator:
     ) -> ActionRecord:
         existing = self._by_key.get(fingerprint.action_key)
         if existing is not None:
-            return self._records[existing]  # idempotent (ACT-002)
+            return self._records[existing]  # 幂等（ACT-002）
         moment = now or _now()
         action_id = new_object_id("action")
         record = ActionRecord(
@@ -193,7 +192,7 @@ class ActionCoordinator:
             return self._transition(action, "validating")
         return self._terminal(action, "invalid", ("schema_or_resource_invalid",))
 
-    # -- authorization -------------------------------------------------------
+    # -- 授权 -------------------------------------------------------
 
     def authorize(
         self,
@@ -225,7 +224,7 @@ class ActionCoordinator:
             idempotency_reservation_ref=f"reservation:{action.action_key}",
         )
 
-    # -- TX-B: reservation ---------------------------------------------------
+    # -- TX-B：预留 ---------------------------------------------------
 
     def reserve(
         self,
@@ -244,7 +243,7 @@ class ActionCoordinator:
         )
         return updated
 
-    # -- execution (outside the DB transaction) ------------------------------
+    # -- 执行（在数据库事务之外） ------------------------------
 
     def begin_execution(
         self,
@@ -266,7 +265,7 @@ class ActionCoordinator:
         fencing_token: int,
         now: datetime | None = None,
     ) -> ActionRecord:
-        """Renew the execution lease, never past the absolute deadline (ACT-012)."""
+        """续租执行租约，绝不超过绝对截止时间（ACT-012）。"""
         self._require(action)
         self._check_fencing(action, fencing_token)
         moment = now or _now()
@@ -278,11 +277,11 @@ class ActionCoordinator:
         )
 
     def set_deadline(self, action: ActionRecord, deadline: datetime) -> None:
-        """Bind an absolute deadline after which no worker may advance the action."""
+        """绑定绝对截止时间，此后任何工作进程都不得推进该动作。"""
         self._require(action)
         self._deadlines[action.action_id] = deadline
 
-    # -- retry (ACT-014) -----------------------------------------------------
+    # -- 重试（ACT-014） -----------------------------------------------------
 
     def retry(
         self,
@@ -293,12 +292,11 @@ class ActionCoordinator:
         evidence_ref: str,
         now: datetime | None = None,
     ) -> ActionRecord:
-        """Start the next attempt only with a proven `failed` receipt.
+        """仅在已证实为 `failed` 的回执基础上启动下一次尝试。
 
-        ACT-014: the previous attempt must have terminally failed with a
-        receipt/evidence proving non-occurrence or definite failure; the action
-        must be retryable, budgeted and within its deadline. ``action_key`` is
-        unchanged — the next attempt is the same logical side effect.
+        ACT-014：前一次尝试必须以回执/证据证明“未发生”或“确定失败”而终止；动作
+        必须可重试、在预算内且在截止时间之内。``action_key`` 保持不变——下一次
+        尝试仍是同一逻辑副作用。
         """
         self._require(action)
         moment = now or _now()
@@ -329,7 +327,7 @@ class ActionCoordinator:
         self._records[action.action_id] = updated
         return updated
 
-    # -- TX-C: record observation --------------------------------------------
+    # -- TX-C：记录观测结果 --------------------------------------------
 
     def record_receipt(
         self,
@@ -371,7 +369,7 @@ class ActionCoordinator:
             terminal_reason_codes=(),
         )
 
-    # -- reconciliation ------------------------------------------------------
+    # -- 对账 ------------------------------------------------------
 
     def reconcile(
         self,
@@ -397,7 +395,7 @@ class ActionCoordinator:
             updated_at=_now(),
         )
 
-    # -- helpers -------------------------------------------------------------
+    # -- 辅助方法 -------------------------------------------------------------
 
     def get(self, action_id: str) -> ActionRecord | None:
         return self._records.get(action_id)
@@ -413,7 +411,7 @@ class ActionCoordinator:
             raise ValueError(f"stale_fencing_token: {fencing_token}")
 
     def _check_deadline(self, action: ActionRecord, moment: datetime) -> None:
-        """Reject advancement once the absolute deadline has passed (ACT-012)."""
+        """一旦超过绝对截止时间即拒绝推进（ACT-012）。"""
         deadline = self._deadlines.get(action.action_id)
         if deadline is not None and moment > deadline:
             raise ActionStateError(f"action deadline passed: {deadline.isoformat()}")

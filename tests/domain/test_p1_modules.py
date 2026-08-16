@@ -1,4 +1,4 @@
-"""P1 domain modules: turns, recovery, memory, definitions, workflow, ops, secrets."""
+"""P1 领域模块：turns、recovery、memory、definitions、workflow、ops、secrets。"""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ async def test_recovery_manager_restores_run_with_fresh_lease() -> None:
             actor_ref="principal:1",
         )
     )
-    # A recovered run was executing before the crash -> admit it first.
+    # 被恢复的 run 在崩溃前正在执行 -> 先对其执行准入。
     admitting = await coordinator.begin_admission(run.run_id)
     result = support.admission_controller().evaluate(
         admitting, support.task_envelope(), support.budget(), support.principal()
@@ -113,7 +113,7 @@ async def test_recovery_manager_restores_run_with_fresh_lease() -> None:
     assert result.record.lease is not None
     assert result.record.lease.fencing_token == 1
 
-    # A checkpoint must bind the same run (RUN-004 crash consistency).
+    # 检查点必须绑定同一个 run（RUN-004 崩溃一致性）。
     checkpoint = new_checkpoint(run)
     checkpoints.save(checkpoint)
     bad = await manager.recover(
@@ -139,11 +139,11 @@ def test_memory_service_requires_consent_for_sensitive_memory() -> None:
         confidence=0.9,
         required_consent=True,
     )
-    # Sensitive candidates are never materialized without consent (governance).
+    # 敏感候选在未获同意时绝不会被物化（治理要求）。
     with pytest.raises(MemoryGovernanceError):
         service.promote(sensitive)
 
-    # Non-sensitive candidates promote to governed MemoryRecord (recallable).
+    # 非敏感候选会升级为受治理的 MemoryRecord（可召回）。
     safe = MemoryCandidate(
         meta=_meta("MemoryCandidate", "cand:2"),
         candidate_id="cand:2",

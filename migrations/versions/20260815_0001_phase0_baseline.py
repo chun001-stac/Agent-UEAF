@@ -1,4 +1,4 @@
-"""Establish the empty Phase 0 database baseline.
+"""建立空的 Phase 0 数据库基线。
 
 Revision ID: 20260815_0001
 Revises:
@@ -14,8 +14,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    """Record the baseline without inventing domain tables."""
+    """记录基线，不创建任何领域表。"""
 
 
 def downgrade() -> None:
-    """Remove the empty baseline without changing database objects."""
+    """移除空基线，不改变任何数据库对象。"""

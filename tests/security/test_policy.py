@@ -1,4 +1,4 @@
-"""Phase 3 security / policy tests (SEC-*, ACT-015)."""
+"""阶段 3 安全 / 策略测试（SEC-*、ACT-015）。"""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def test_action_vocabulary_is_controlled() -> None:
         support.principal(roles=("analyst",)), _fp(), now=support.now()
     )
     assert allowed.outcome == "allow"
-    # A different (unmatched) action is denied.
+    # 不同的（未匹配的）action 会被拒绝。
     other = ActionFingerprint(
         tenant_id=support.TENANT, principal_id="principal-user-1",
         capability_ref="cap:delete_all", capability_version="1.0.0",
@@ -52,7 +52,7 @@ def test_resource_canonicalization() -> None:
     pdp = PolicyDecisionPoint(
         rules=(PolicyRule("r1", "cap:read_report", "orders/*", "allow", ("analyst",)),)
     )
-    # fnmatch-style resource pattern applies consistently to both spellings.
+    # fnmatch 风格的资源模式对两种拼写一致生效。
     a = pdp.evaluate(support.principal(roles=("analyst",)), _fp("orders/1"), now=support.now())
     b = pdp.evaluate(support.principal(roles=("analyst",)), _fp("orders/2"), now=support.now())
     assert a.outcome == "allow"
@@ -66,7 +66,7 @@ def test_cached_decision_is_not_a_local_pdp() -> None:
     )
     decision = pdp.evaluate(support.principal(roles=("analyst",)), _fp(), now=support.now())
     assert decision.outcome == "allow"
-    # Expired decisions must not be reused as if freshly authorized.
+    # 过期的决策不得被当作新授权重复使用。
     expired = pdp.evaluate(
         support.principal(roles=("analyst",)), _fp(),
         now=datetime(2020, 1, 1, tzinfo=UTC),

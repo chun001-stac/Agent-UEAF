@@ -1,9 +1,8 @@
-"""MCP tool metadata is discovery-only; it never changes risk/approval/policy (SEC-012).
+"""MCP 工具元数据仅供发现，绝不影响风险/审批/策略（SEC-012）。
 
-An MCP tool description may claim ``safe``, ``no approval`` or
-``admin-approved``. Those claims are discovery metadata only: UEAF risk
-classification, approval requirements and policy decisions are owned by the
-PDP, never by MCP self-description.
+MCP 工具描述可能声称 ``safe``、``no approval`` 或 ``admin-approved``。这些声明仅属于
+发现元数据：UEAF 的风险分级、审批要求与策略判定由 PDP 拥有，绝不取决于 MCP 的
+自我描述。
 """
 
 from __future__ import annotations
@@ -13,7 +12,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class MCPToolMetadata:
-    """Discovery metadata parsed from an MCP tool description (SEC-012)."""
+    """从 MCP 工具描述中解析出的发现元数据（SEC-012）。"""
 
     tool_name: str
     description: str
@@ -39,7 +38,7 @@ class MCPToolMetadata:
 
 
 def is_discovery_claim_only(metadata: MCPToolMetadata) -> bool:
-    """MCP claims never bind: risk/approval/policy stay with UEAF (SEC-012)."""
+    """MCP 声明不具约束力：风险/审批/策略仍由 UEAF 决定（SEC-012）。"""
     return True
 
 

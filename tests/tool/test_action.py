@@ -1,4 +1,4 @@
-"""Phase 3 action lifecycle acceptance tests (ACT-*)."""
+"""阶段 3 action 生命周期验收测试（ACT-*）。"""
 
 from __future__ import annotations
 
@@ -66,13 +66,13 @@ def test_action_identity_is_stable_before_policy() -> None:
     coordinator, pdp = _coordinator()
     fp = _fingerprint()
     action = _created_action(coordinator, fingerprint=fp, validate=False)
-    # Identity is fixed at create time, before any policy evaluation.
+    # 身份在创建时即固定，早于任何策略评估。
     assert action.action_key == fp.action_key
     assert action.action_fingerprint == fp.action_fingerprint
     validated = coordinator.validate(action, valid=True)
     decision = _allowed_decision(pdp, fp)
     authorized = coordinator.authorize(validated, decision)
-    assert authorized.action_key == action.action_key  # unchanged
+    assert authorized.action_key == action.action_key  # 不变
 
 
 @pytest.mark.test_id("ACT-002")
@@ -80,7 +80,7 @@ def test_action_key_is_idempotent() -> None:
     coordinator, _ = _coordinator()
     fp = _fingerprint()
     first = _created_action(coordinator, fingerprint=fp)
-    second = _created_action(coordinator, fingerprint=fp)  # same logical action
+    second = _created_action(coordinator, fingerprint=fp)  # 相同的逻辑 action
     assert first.action_id == second.action_id
     assert first.action_key == second.action_key
 
@@ -104,7 +104,7 @@ def test_timeout_unknown_enters_reconciliation_not_blind_retry() -> None:
     reconciling = coordinator.record_receipt(action, receipt)
     assert reconciling.phase == "reconciling"
     assert reconciling.reconciliation_state["status"] == "unknown"
-    # No second write was scheduled — the action is not re-executed.
+    # 没有调度第二次写入 —— action 不会被重新执行。
     assert reconciling.attempt == 1
 
 
@@ -140,13 +140,13 @@ def test_approval_fail_closed() -> None:
     decision = pdp_hw.evaluate(support.principal(roles=("trader",)), fp, now=support.now())
     assert decision.outcome == "require_approval"
     with pytest.raises(ValueError, match="approval_request_ref"):
-        coordinator.authorize(action, decision)  # approval infrastructure missing -> fail closed
+        coordinator.authorize(action, decision)  # 审批基础设施缺失 -> fail closed
 
 
 @pytest.mark.test_id("ACT-007")
 def test_canonical_argument_identity_is_order_and_digit_stable() -> None:
     a = _fingerprint(args={"amount": Decimal("10.00"), "symbol": "IF"})
-    # Reordered + digit-normalized arguments must canonicalize to the same identity.
+    # 重排 + 数字规范化的参数必须规范化到相同的身份。
     b = _fingerprint(args={"symbol": "IF", "amount": Decimal("10.0")})
     assert a.action_fingerprint == b.action_fingerprint
 
@@ -156,7 +156,7 @@ def test_fingerprint_binds_only_canonical_fields() -> None:
     a = _fingerprint(args={"symbol": "IF"})
     b = _fingerprint(args={"symbol": "IF", "decorative": "x"})
     assert a.action_fingerprint != b.action_fingerprint
-    # Changing principal identity changes the fingerprint.
+    # 更改 principal 身份会改变指纹。
     c = ActionFingerprint(
         tenant_id=support.TENANT, principal_id="principal-other",
         capability_ref="cap:create_order", capability_version="1.0.0",
@@ -173,7 +173,7 @@ def test_policy_cannot_change_action_identity() -> None:
     before_key = action.action_key
     before_fp = action.action_fingerprint
     coordinator.authorize(action, _allowed_decision(pdp, fp))
-    # Semantic change requires a new action; policy never rewrites identity.
+    # 语义变更需要新的 action；策略永远不会重写身份。
     assert action.action_key == before_key
     assert action.action_fingerprint == before_fp
 
@@ -184,7 +184,7 @@ def test_stale_fencing_result_cannot_commit_terminal() -> None:
     action = _created_action(coordinator)
     action = coordinator.authorize(action, _allowed_decision(pdp))
     action = coordinator.begin_execution(action, fencing_token=2)
-    # A stale worker with an older fencing token cannot advance authority.
+    # 持有较旧 fencing token 的过期工作进程无法推进授权。
     with pytest.raises(ValueError, match="stale_fencing_token"):
         coordinator.begin_execution(action, fencing_token=1)
 
@@ -207,7 +207,7 @@ def test_unknown_reconciliation_no_second_business_write() -> None:
     resolved = coordinator.reconcile(reconciling, resolved_status="succeeded", evidence_ref="ev:1")
     assert resolved.phase == "terminal"
     assert resolved.disposition == "executed"
-    # Only one business write path existed throughout.
+    # 全程只有一条业务写入路径。
     assert resolved.latest_receipt_ref == "receipt:u:1"
 
 

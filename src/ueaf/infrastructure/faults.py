@@ -1,10 +1,9 @@
-"""Failure-injection utilities for recovery / resilience tests (P2-B).
+"""用于恢复/韧性测试（P2-B）的故障注入工具。
 
-A ``FailureInjector`` controls where a scenario should fail next, and
-``FailingOutboxStore`` wraps an outbox so a broker/DB fault can be simulated
-mid-transaction. These are used by the formal ``tests/failure_injection`` suite
-to prove atomic rollback (CON-013), fencing (RUN-003), timeout-unknown
-reconciliation (ACT-003) and at-least-once redelivery (ACT-013).
+``FailureInjector`` 控制场景下一步应在何处失败，``FailingOutboxStore`` 包装
+outbox，从而可在事务中途模拟 broker/DB 故障。这些由正式的
+``tests/failure_injection`` 套件用于验证原子回滚（CON-013）、fencing
+（RUN-003）、timeout-unknown 对账（ACT-003）与至少一次重投递（ACT-013）。
 """
 
 from __future__ import annotations
@@ -15,7 +14,7 @@ from ueaf.runtime.outbox import OutboxEntry, OutboxStore
 
 
 class FailureInjector:
-    """Deterministic fault switch: fail the next N matching operations."""
+    """确定性故障开关：使接下来 N 个匹配的操作失败。"""
 
     def __init__(self) -> None:
         self._fail_remaining: dict[str, int] = {}
@@ -44,7 +43,7 @@ class FailureInjector:
 
 
 class FailingOutboxStore:
-    """Wraps an outbox store and raises on ``append`` when the injector fires."""
+    """包装 outbox 存储，当注入器触发时在 ``append`` 上抛出异常。"""
 
     def __init__(self, inner: OutboxStore, injector: FailureInjector) -> None:
         self._inner = inner

@@ -1,7 +1,7 @@
-"""Edge pre-validation (functional module 01, spec 02 §4.1).
+"""边缘预校验（功能模块 01，规范 02 §4.1）。
 
-Edge pre-validation is separate from Run admission. A rejection here must not
-create a ``RunRecord`` or ``RunAdmissionResult`` (RUN-005).
+边缘预校验与 Run 准入相互独立。此处的拒绝绝不能创建 ``RunRecord`` 或
+``RunAdmissionResult``（RUN-005）。
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ class EdgeValidationResult:
 
 
 class EdgePreValidator:
-    """Deterministic, read-only pre-checks before any run/task object exists."""
+    """在任何运行/任务对象存在之前进行的确定性、只读预检。"""
 
     def __init__(
         self,

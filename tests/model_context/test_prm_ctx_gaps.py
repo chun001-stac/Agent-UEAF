@@ -1,10 +1,8 @@
-"""PRM + CTX gap tests: PRM-005/006/007/008/010 and CTX-003/004/005/006/007.
+"""PRM + CTX 缺口测试：PRM-005/006/007/008/010 与 CTX-003/004/005/006/007。
 
-Covers the Prompt/Model and Context slices missing from the reference
-implementation: output/capability reserves, route-vs-frozen-manifest capacity,
-bounded structural repair vs no-repair, adapter invocation integrity, critical
-context overflow, superseded history, compression lineage, conflict
-preservation, and manifest rebuild on authority change.
+覆盖参考实现中缺失的 Prompt/Model 与 Context 切片：输出/能力预留、路由与冻结
+manifest 的容量关系、有界结构修复与不修复、适配器调用完整性、关键上下文溢出、
+被取代的历史、压缩谱系、冲突保留，以及权限变更时的 manifest 重建。
 """
 
 from __future__ import annotations
@@ -59,8 +57,8 @@ def _manifest() -> ContextManifest:
 @pytest.mark.test_id("PRM-005")
 def test_output_and_capability_reserve_not_crowded_out() -> None:
     compiler = PromptCompiler(instruction_text="instruction")
-    # Input fits budget alone but not once reserves are included -> structured
-    # budget failure, never a plausible contract.
+    # 仅输入本身在预算内，但计入预留后超出 -> 结构化预算失败，
+    # 绝不会生成看似合理的契约。
     with pytest.raises(PromptTokenBudgetExceeded):
         compiler.compile(
             PromptCompileRequest(
@@ -78,7 +76,7 @@ def test_output_and_capability_reserve_not_crowded_out() -> None:
                 safety_reserve_tokens=100,
             )
         )
-    # When reserves fit, the contract compiles.
+    # 当预留可容纳时，契约可以编译。
     contract = compiler.compile(
         PromptCompileRequest(
             request_id="r:2",
@@ -101,13 +99,13 @@ def test_output_and_capability_reserve_not_crowded_out() -> None:
 def test_route_cannot_fit_frozen_manifest_is_rejected_not_mutated() -> None:
     gate = RouteCapacityGate(reserve_tokens=128)
     manifest = _manifest()
-    # Route too small for the frozen manifest -> rejected.
+    # 路由对于冻结的 manifest 来说过小 -> 被拒绝。
     decision = gate.evaluate(manifest, route_capacity_tokens=64)
     assert decision.rejected
     assert "route_cannot_fit_frozen_manifest" in decision.reason_codes
-    # The frozen manifest is never mutated: it keeps its evidence refs.
+    # 冻结的 manifest 永不被修改：它保留其 evidence 引用。
     assert manifest.evidence_pack_refs == ("source:1", "source:2")
-    # A sufficient route accepts the manifest unchanged.
+    # 充足的路由原样接受该 manifest。
     assert gate.evaluate(manifest, route_capacity_tokens=4096).accepted
     assert estimate_manifest_tokens(manifest) > 0
 
@@ -119,7 +117,7 @@ def test_structural_repair_is_bounded() -> None:
     assert result.repaired is True
     assert result.pass_count <= 1
     assert result.content == '{"amount": "10.00"}'
-    # Already well-formed content is not rewritten.
+    # 已经格式良好的内容不会被重写。
     ok = repairer.repair('{"amount": "10.00"}')
     assert ok.repaired is False
     assert ok.content == '{"amount": "10.00"}'
@@ -127,7 +125,7 @@ def test_structural_repair_is_bounded() -> None:
 
 @pytest.mark.test_id("PRM-008")
 def test_semantic_and_security_failures_are_not_repaired() -> None:
-    # Refusal / content_filter / no_progress are never structurally repaired.
+    # refusal / content_filter / no_progress 永远不会被结构修复。
     assert is_non_repairable_failure("refusal", "stop")
     assert is_non_repairable_failure("final_response", "content_filter")
     assert is_non_repairable_failure("no_progress", "stop")
@@ -149,13 +147,13 @@ def test_provider_adapter_cannot_mutate_invocation() -> None:
         output_schema_ref="schema://out/1.0.0",
         deadline_at=MOMENT,
     )
-    # Unchanged invocation passes.
+    # 未变更的调用通过校验。
     assert_integrity(
         request,
         returned_output_schema_ref="schema://out/1.0.0",
         returned_model_route_ref="route:primary",
     )
-    # Changing the schema or route, or adding a system prompt, fails conformance.
+    # 更改 schema 或路由，或添加 system prompt，会导致一致性校验失败。
     with pytest.raises(InvocationMutationError, match="output_schema_changed"):
         assert_integrity(
             request,
@@ -215,11 +213,11 @@ def test_critical_context_overflow_is_deterministic_failure() -> None:
 @pytest.mark.test_id("CTX-004")
 def test_superseded_history_does_not_override_correction() -> None:
     builder = ContextBuilder(principal_scopes=("orders:read",))
-    # A newer correction supersedes the older summary; the old summary never
-    # overrides the correction, and the supersession is recorded (CTX-004).
+    # 更新的更正取代旧的摘要；旧摘要永远不会覆盖更正，
+    # 且取代关系会被记录（CTX-004）。
     builder.record_superseded("source:correction", "source:old-summary")
     assert builder.superseded_refs["source:correction"] == "source:old-summary"
-    # The pack keeps the correction (higher trust) over the superseded summary.
+    # 打包时保留更正（更高信任度）而非被取代的摘要。
     builder = ContextBuilder(
         sources=[
             SourceDocument(
@@ -242,14 +240,11 @@ def test_superseded_history_does_not_override_correction() -> None:
         principal_scopes=("orders:read",),
     )
     result = builder.build(_context_request())
-    assert (
-        result.value.evidence_pack_refs
-        == (
-            "source:correction",
-            "source:old-summary",
-        )
-        or "source:correction" in result.value.evidence_pack_refs
-    )
+    # 打包时保留更正（更高信任度）而非被取代的摘要；装配内容见 source_refs，
+    # evidence_pack_refs 引用 EvidencePack id（RAG-013 可追溯性）。
+    assert result.value.evidence_pack_refs
+    assert "source:correction" in result.value.source_refs
+    assert "source:old-summary" in result.value.source_refs
 
 
 @pytest.mark.test_id("CTX-005")
@@ -275,7 +270,7 @@ def test_compression_lineage_is_traceable_and_bounded() -> None:
             loss=3,
         )
     )
-    # Beyond the reference depth, rebuild instead of compressing further.
+    # 超过参考深度后，进行重建而不是继续压缩。
     assert lineage.needs_rebuild() is True
     rebuilt = lineage.rebuild_from(("source:1", "source:2"))
     assert rebuilt.input_refs == ("source:1", "source:2")
@@ -293,7 +288,7 @@ def test_conflicts_are_preserved_not_deduped() -> None:
         statement="revenue is 100",
     )
     registry.register(conflict)
-    # A second authorized source conflicts; it is preserved, not dropped.
+    # 第二个已授权的来源产生冲突；它被保留而不是丢弃。
     second = ClaimConflict(
         claim_ref="claim:revenue",
         source_refs=("source:b",),
@@ -302,8 +297,8 @@ def test_conflicts_are_preserved_not_deduped() -> None:
     )
     merged = registry.register(second)
     assert set(merged.source_refs) == {"source:a", "source:b"}
-    assert merged.statement == "revenue is 100"  # first-write preserved with both sources
-    # Conflicts only surface when their sources are in the pack.
+    assert merged.statement == "revenue is 100"  # 首写保留，同时携带两个来源
+    # 只有当冲突来源在打包中时，冲突才会显现。
     assert len(registry.evidence_pack_conflicts(("source:a", "source:b"))) == 1
     assert len(registry.evidence_pack_conflicts(("source:c",))) == 0
 
@@ -321,9 +316,9 @@ def test_manifest_rebuild_on_authority_change() -> None:
         budget_ref="budget:1",
         route_requirement_ref="route:primary",
     )
-    # Same authority inputs -> no rebuild.
+    # 相同的权限输入 -> 无需重建。
     assert rebuild_required(base, base) is False
-    # Any authority-input change forces a rebuild (CTX-007).
+    # 任何权限输入的变更都会强制重建（CTX-007）。
     import dataclasses
 
     for field_value in (

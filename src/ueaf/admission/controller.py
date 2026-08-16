@@ -1,8 +1,7 @@
-"""Run admission (core spec 02 §4, functional module 01).
+"""运行准入（核心规范 02 §4，功能模块 01）。
 
-``RunAdmissionResult`` is the only Run-level admission aggregate result and is
-produced only after a ``RunRecord(phase=queued)`` exists. Edge pre-validation
-rejections must not create any run/admission object (RUN-005).
+``RunAdmissionResult`` 是唯一的运行级准入聚合结果，且仅在 ``RunRecord(phase=queued)``
+存在之后产生。边缘预校验的拒绝绝不能创建任何运行/准入对象（RUN-005）。
 """
 
 from __future__ import annotations
@@ -53,7 +52,7 @@ class RunAdmissionResult:
 
 
 class ReleaseManifestGate(Protocol):
-    """Fail-closed check on the release bound to a run."""
+    """对绑定到运行的发版进行默认失败检查。"""
 
     def lifecycle_is_usable(self, release_manifest_ref: str) -> bool: ...
 
@@ -61,7 +60,7 @@ class ReleaseManifestGate(Protocol):
 
 
 class PolicyDecisionRefs(Protocol):
-    """Deny-by-default policy source for admission (SEC-004, ACT-015)."""
+    """准入的默认拒绝策略来源（SEC-004、ACT-015）。"""
 
     def resolved_policy_decision_refs(self, run_id: str) -> tuple[str, ...]: ...
 
@@ -76,7 +75,7 @@ class AdmissionCheckResult:
 
 
 class AdmissionController:
-    """Deterministic run admission; no second governance decision."""
+    """确定性运行准入；不做第二次治理决策。"""
 
     def __init__(
         self,
@@ -100,7 +99,7 @@ class AdmissionController:
         *,
         now: datetime | None = None,
     ) -> RunAdmissionResult:
-        """Evaluate admission for an existing queued run (deny-by-default)."""
+        """评估现有排队运行的准入（默认拒绝）。"""
         moment = now or utcnow()
         result_id = f"run-admission:{run.run_id}:{run.revision}"
         base_meta = ContractMeta(
@@ -180,7 +179,7 @@ class AdmissionController:
             expires_at=self._expiry(moment, 300),
         )
 
-    # -- checks ------------------------------------------------------------
+    # -- 检查 ------------------------------------------------------------
 
     def _check_release(self, run: RunRecord, task: TaskEnvelope) -> AdmissionCheckResult:
         if not run.release_id:
@@ -220,8 +219,8 @@ class AdmissionController:
         return AdmissionCheckResult(True, (), ("adapter-binding-frozen",))
 
     def _capacity_available(self) -> bool:
-        # Deterministic single-process default: capacity is available unless a
-        # controller-level flag is set. Subclasses/profiles may override.
+        # 确定性单进程默认行为：除非设置了控制器级标志，否则容量可用。
+        # 子类/配置文件可覆盖此行为。
         return getattr(self, "_capacity_ok", True)
 
     @staticmethod

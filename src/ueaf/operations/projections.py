@@ -1,6 +1,6 @@
-"""RunSummary projection built from authoritative run events (0 LLM default).
+"""基于权威运行事件构建的 RunSummary 投影（默认 0 LLM）。
 
-Projection only: never a State Writer, never decides terminal state.
+仅投影：绝不是状态写入方，绝不决定终态。
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ class RunSummary:
 
 @dataclass(slots=True)
 class RunSummaryProjector:
-    """Derives a run summary by folding run-domain events (deterministic)."""
+    """通过折叠运行域事件推导运行摘要（确定性）。"""
 
     _summaries: dict[str, RunSummary] = field(default_factory=dict)
 

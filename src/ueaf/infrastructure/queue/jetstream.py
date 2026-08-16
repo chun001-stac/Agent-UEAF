@@ -1,13 +1,12 @@
-"""NATS JetStream bootstrap + consumer with sequence-gap detection.
+"""NATS JetStream 引导 + 带序列号缺口检测的消费者。
 
-The transactional outbox (CON-013) is drained by a publisher; subscribers need a
-durable JetStream consumer so a restarted worker resumes exactly where it left
-off. ``JetStreamConsumer`` tracks per-stream sequence numbers and reports gaps
-(``SequenceGap``) when a message's stream sequence jumps ahead of the last
-delivered one — a signal that deliveries were missed and reconciliation is
-required before the consumer blindly processes the next event.
+事务性 outbox（CON-013）由发布器排空；订阅方需要一个持久化 JetStream 消费者，
+使重启后的 worker 能精确地从上次位置恢复。``JetStreamConsumer`` 跟踪每个流的
+序列号，当某条消息的流序列号跳过了上一条已投递的序列号时报告缺口
+（``SequenceGap``）—— 这意味着有投递被遗漏，消费者在盲目处理下一条事件前
+需要进行对账。
 
-The ``nats`` dependency is imported lazily so the module imports without it.
+``nats`` 依赖为懒导入，因此缺少它时模块仍可正常导入。
 """
 
 from __future__ import annotations
@@ -21,18 +20,18 @@ from ueaf.common.envelope import EventEnvelope
 
 @dataclass(frozen=True, slots=True)
 class StreamConfig:
-    """JetStream stream configuration used for idempotent bootstrap."""
+    """用于幂等引导的 JetStream 流配置。"""
 
     name: str = "UEAF_EVENTS"
     subjects: tuple[str, ...] = ("ueaf.events.*",)
-    max_age_seconds: int = 86400  # 24h
+    max_age_seconds: int = 86400  # 24 小时
     max_msgs: int = 100_000
-    dedup_window_seconds: int = 120  # server-side dedup window (Nats-Msg-Id)
+    dedup_window_seconds: int = 120  # 服务端去重窗口（Nats-Msg-Id）
 
 
 @dataclass(frozen=True, slots=True)
 class SequenceGap:
-    """Detected delivery gap: a stream sequence was skipped."""
+    """检测到的投递缺口：某个流序列号被跳过。"""
 
     subject: str
     expected_sequence: int
@@ -49,7 +48,7 @@ class ConsumerStats:
 
 
 class JetStreamConsumer:
-    """Durable consumer over a JetStream stream with sequence-gap detection."""
+    """JetStream 流上的持久化消费者，带序列号缺口检测。"""
 
     def __init__(self, nc: object, js: object, *, stream: StreamConfig | None = None) -> None:
         self._nc = nc
@@ -58,7 +57,7 @@ class JetStreamConsumer:
         self.stats = ConsumerStats()
 
     async def bootstrap_stream(self) -> Any:
-        """Create the stream if absent; returns the stream info object."""
+        """若流不存在则创建；返回流信息对象。"""
         try:
             return await self._js.stream_info(  # type: ignore[attr-defined]
                 self._stream.name
@@ -76,7 +75,7 @@ class JetStreamConsumer:
             )
 
     async def consumer_info(self, consumer_name: str) -> Any:
-        """Return the durable consumer info or ``None`` if it does not exist."""
+        """返回持久化消费者信息，若不存在则返回 ``None``。"""
         try:
             return await self._js.consumer_info(  # type: ignore[attr-defined]
                 self._stream.name, consumer_name
@@ -87,11 +86,10 @@ class JetStreamConsumer:
     async def subscribe(
         self, consumer_name: str, *, durable: bool = True
     ) -> AsyncIterator[tuple[EventEnvelope, int]]:
-        """Subscribe; yields ``(event, stream_sequence)`` per delivered message.
+        """订阅；每条已投递消息产出 ``(event, stream_sequence)``。
 
-        Duplicates (JetStream ``redelivered``) are counted and skipped; a
-        forward sequence jump is recorded as a ``SequenceGap`` but the message
-        is still yielded so the caller can decide to reconcile or skip.
+        重复消息（JetStream ``redelivered``）会被计数并跳过；向前的序列号跳变
+        记录为 ``SequenceGap``，但消息仍会产出，以便调用方决定对账还是跳过。
         """
         kwargs = {}
         if durable:
@@ -133,7 +131,7 @@ class JetStreamConsumer:
     async def fetch(
         self, consumer_name: str, *, max_events: int = 16, timeout: float = 1.0
     ) -> list[tuple[EventEnvelope, int]]:
-        """Collect up to ``max_events`` events, then unsubscribe."""
+        """最多收集 ``max_events`` 条事件，然后取消订阅。"""
         events: list[tuple[EventEnvelope, int]] = []
         async for event, seq in self.subscribe(consumer_name, durable=True):
             events.append((event, seq))

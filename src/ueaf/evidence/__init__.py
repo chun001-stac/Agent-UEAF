@@ -1,1 +1,1 @@
-"""Evidence domain: L0/L1/L2 evidence flow (Phase 5)."""
+"""证据领域：L0/L1/L2 证据流（阶段 5）。"""

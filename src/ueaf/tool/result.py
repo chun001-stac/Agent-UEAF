@@ -1,11 +1,9 @@
-"""ToolResult projection: minimal safe summaries (ACT-016/017, module 05).
+"""ToolResult 投影：最小化安全摘要（ACT-016/017，模块 05）。
 
-The Result Projector turns a raw tool/provider response into a minimal
-``ToolResult`` whose status uses only the public outcome vocabulary
-(``succeeded|failed|unknown`` — ACT-010). Large or high-sensitivity payloads
-are routed to a controlled artifact store, and credential-like fields are
-scrubbed so their values never enter arguments, summaries, receipts or traces
-(ACT-017).
+Result Projector 将工具/提供方的原始响应转换为最小化的 ``ToolResult``，其状态仅使用
+公共结果词表（``succeeded|failed|unknown`` — ACT-010）。体积较大或高敏感度的载荷
+被路由到受控的 artifact 存储，凭据类字段会被脱敏，使其值绝不进入参数、摘要、回执
+或轨迹（ACT-017）。
 """
 
 from __future__ import annotations
@@ -18,11 +16,11 @@ from ueaf.common.identifiers import new_object_id
 
 PublicToolStatus = Literal["succeeded", "failed", "unknown"]
 
-# Public outcome vocabulary exposed by Tool/Gateway (ACT-010). Anything else
-# (e.g. "definite_not_executed") is an internal condition, never public.
+# Tool/Gateway 暴露的公共结果词表（ACT-010）。其他任何值（例如
+# "definite_not_executed"）都属于内部条件，绝不对外公开。
 PUBLIC_STATUS_VALUES: frozenset[str] = frozenset({"succeeded", "failed", "unknown"})
 
-# Credential-like keys that must never have their values projected (ACT-017).
+# 凭据类键，其值绝不允许被投影（ACT-017）。
 DEFAULT_SECRET_KEYS: frozenset[str] = frozenset(
     {
         "password",
@@ -45,7 +43,7 @@ DEFAULT_SECRET_KEYS: frozenset[str] = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class ToolResult:
-    """Minimal safe projection of a tool side-effect (never carries credentials)."""
+    """工具副作用的最小化安全投影（绝不携带凭据）。"""
 
     tool_result_id: str
     action_key: str
@@ -62,7 +60,7 @@ class ToolResult:
 
 
 class ResultProjector:
-    """Builds minimal, secret-free ``ToolResult`` projections (ACT-016/017)."""
+    """构建最小化、无密钥的 ``ToolResult`` 投影（ACT-016/017）。"""
 
     def __init__(
         self,
@@ -87,7 +85,7 @@ class ResultProjector:
         summary: str | None = None,
         citations: tuple[str, ...] = (),
     ) -> ToolResult:
-        """Scrub secrets from ``raw`` and produce a safe ToolResult."""
+        """从 ``raw`` 中脱敏密钥并生成安全的 ToolResult。"""
         _scrubbed, excluded = _scrub_secrets(raw, self._secret_keys)
         size = _encoded_size(_scrubbed)
 
@@ -111,7 +109,7 @@ class ResultProjector:
 
         key = f"{action_key}/result"
         data = json.dumps(scrubbed, sort_keys=True, default=str).encode("utf-8")
-        # Structural protocol: put(key, data, content_type=...) -> ArtifactRef
+        # 结构协议：put(key, data, content_type=...) -> ArtifactRef
         ref = self._artifact_store.put(  # type: ignore[union-attr]
             key, data, content_type="application/json"
         )
@@ -121,7 +119,7 @@ class ResultProjector:
 def _scrub_secrets(
     value: Any, secret_keys: frozenset[str], path: str = ""
 ) -> tuple[Any, tuple[str, ...]]:
-    """Recursively replace secret values with a placeholder; never leaks them."""
+    """递归地将密钥值替换为占位符；绝不泄露它们。"""
     if isinstance(value, dict):
         scrubbed: dict[str, Any] = {}
         excluded: list[str] = []

@@ -1,8 +1,7 @@
-"""Route capacity gate: a frozen ContextManifest is never mutated (PRM-006).
+"""路由容量门控：冻结的 ContextManifest 绝不被变异（PRM-006）。
 
-Module 03 (Model/Prompt) selects a route; if that route cannot fit the already
-frozen ContextManifest produced by Module 04, the request fails with a
-structured budget problem instead of truncating or rewriting the manifest.
+模块 03（Model/Prompt）选择路由；如果该路由无法容纳模块 04 已生成的冻结
+ContextManifest，请求将以结构化的预算问题失败，而不是截断或重写清单。
 """
 
 from __future__ import annotations
@@ -25,12 +24,12 @@ class RouteCapacityDecision:
 
 
 def estimate_manifest_tokens(manifest: ContextManifest) -> int:
-    """Deterministic token estimate for a frozen manifest (never mutated)."""
+    """冻结清单的确定性 token 估算（绝不变异）。"""
     return 64 + len(manifest.evidence_pack_refs) * 24 + len(manifest.integrity_ref or "")
 
 
 class RouteCapacityGate:
-    """Checks a route can fit the frozen manifest; manifest is read-only (PRM-006)."""
+    """检查路由能否容纳冻结的清单；清单只读（PRM-006）。"""
 
     def __init__(self, *, reserve_tokens: int = 128) -> None:
         self._reserve_tokens = reserve_tokens

@@ -1,7 +1,7 @@
-"""OpenTelemetry TelemetryPort collector tests (EVD-005).
+"""OpenTelemetry TelemetryPort 采集器测试（EVD-005）。
 
-Exercises the OTel-backed collector with an injected fake tracer (no SDK
-dependency required) and the graceful no-op fallback when the SDK is absent.
+使用注入的伪 tracer（无需 SDK 依赖）演练基于 OTel 的采集器，以及
+在 SDK 缺失时优雅降级为 no-op 的回退行为。
 """
 
 from __future__ import annotations
@@ -108,8 +108,8 @@ def test_otel_collector_emits_metrics_without_high_cardinality_labels() -> None:
             )
         ]
     )
-    # Metrics/logs forward through the SDK path without a hard dependency;
-    # the collector still reports acceptance to the caller.
+    # 指标/日志在无硬依赖的情况下经由 SDK 路径转发；
+    # 采集器仍然向调用方报告接受情况。
     assert collector.enabled is True
 
 
@@ -127,7 +127,7 @@ def test_otel_collector_falls_back_to_noop_without_sdk() -> None:
             occurred_at=MOMENT,
         )
     )
-    # The no-op fallback still acknowledges acceptance (EVD-005), never failing.
+    # no-op 回退仍然确认接受（EVD-005），绝不会失败。
     assert result.value.accepted_count == 1
     audit = collector.EmitAudit(
         AuditRecord(

@@ -1,9 +1,8 @@
-"""Tool Gateway gap tests: ACT-006/010/012/014/017.
+"""Tool Gateway 缺口测试：ACT-006/010/012/014/017。
 
-Covers the Tool module slices missing from the reference implementation:
-permission-denied no-self-elevation (Tool Gateway), the public outcome
-vocabulary conformance, lease deadline bounding, proof-based failed retry, and
-credential exclusion from arguments/fingerprint/results.
+覆盖参考实现中缺失的 Tool 模块切片：拒绝权限时不自我提权（Tool Gateway）、
+公开结果词汇表的一致性、租约期限约束、基于证明的失败重试，
+以及凭据从 arguments/fingerprint/results 中的排除。
 """
 
 from __future__ import annotations
@@ -70,14 +69,14 @@ def test_permission_denied_forms_evidence_and_never_elevates() -> None:
     assert result.error.certainty == "not_executed"
     assert result.error.code == "permission_denied"
 
-    # A deny forms an Evidence reference carried on the error (ACT-006).
+    # 拒绝会形成携带在错误上的 Evidence 引用（ACT-006）。
     assert result.error.message_ref is not None
     assert result.error.message_ref.startswith("evidence:")
     evidence_ref = result.error.message_ref.removeprefix("evidence:")
     assert gateway.evidence_for(_denied_key(gateway)) is not None
 
-    # The deny must NOT self-elevate: the action is terminal `denied`, never
-    # reserved/executing, and no widened scope is introduced.
+    # 拒绝不得自我提权：action 是终态 `denied`，绝不会
+    # reserved/executing，也不会引入被扩大的范围。
     action = gateway._coordinator.get(_denied_key(gateway))  # type: ignore[arg-type]
     assert action is None or action.phase in ("proposed", "terminal")
     if action is not None and action.phase == "terminal":
@@ -86,7 +85,7 @@ def test_permission_denied_forms_evidence_and_never_elevates() -> None:
 
 
 def _denied_key(gateway: ToolGateway) -> str:
-    # Rebuild the exact canonical key the gateway computed (arguments scrubbed).
+    # 重建网关计算出的精确规范 key（参数已擦除）。
     from ueaf.tool.result import _scrub_secrets
 
     safe, _ = _scrub_secrets({"amount": "10.00"}, DEFAULT_SECRET_KEYS)
@@ -103,8 +102,8 @@ def _denied_key(gateway: ToolGateway) -> str:
 
 @pytest.mark.test_id("ACT-010")
 def test_public_outcome_vocabulary_is_closed() -> None:
-    # Only the public vocabulary is exposed (ACT-010); internal conditions such
-    # as "definite_not_executed" must never appear as public enum values.
+    # 只暴露公开词汇表（ACT-010）；诸如 "definite_not_executed" 之类的内部条件
+    # 绝不得作为公开枚举值出现。
     assert PUBLIC_STATUS_VALUES == frozenset({"succeeded", "failed", "unknown"})
     with pytest.raises(ValueError):
         ToolResult(
@@ -115,7 +114,7 @@ def test_public_outcome_vocabulary_is_closed() -> None:
             content_schema_ref="schema://x/1.0.0",
         )
 
-    # PortError exposes certainty/retryability from the closed vocabulary.
+    # PortError 从封闭词汇表暴露 certainty/retryability。
     err = PortError(
         code="timeout",
         category="execution",
@@ -129,7 +128,7 @@ def test_public_outcome_vocabulary_is_closed() -> None:
     assert err.certainty == "unknown"
     assert err.retryability == "after_reconciliation"
 
-    # ActionReceipt.status is restricted to the public vocabulary.
+    # ActionReceipt.status 仅限于公开词汇表。
     with pytest.raises(ValueError):
         ActionReceipt(  # type: ignore[call-arg]
             action_receipt_id="r:1",
@@ -154,16 +153,16 @@ def test_lease_renewal_bounded_by_absolute_deadline() -> None:
     )
     action = coordinator.validate(action, valid=True)
     decision = _pdp().evaluate(support.principal(roles=("trader",)), _fingerprint())
-    action = coordinator.authorize(action, decision)  # -> reserved (allow)
+    action = coordinator.authorize(action, decision)  # -> reserved（allow）
 
-    # A deadline in the past: the expired worker must not advance authority.
+    # 期限已过：过期的工作进程不得推进授权。
     coordinator.set_deadline(action, support.now() - timedelta(seconds=1))
     with pytest.raises(ActionStateError, match="deadline"):
         coordinator.begin_execution(action, fencing_token=1, now=support.now())
     with pytest.raises(ActionStateError, match="deadline"):
         coordinator.renew_lease(action, fencing_token=1, now=support.now())
 
-    # A future deadline allows execution to proceed.
+    # 未来的期限允许继续执行。
     coordinator2 = ActionCoordinator()
     action2 = coordinator2.create_action(
         tool_intent_ref="tool-intent:1",
@@ -209,13 +208,13 @@ def test_failed_retry_requires_proof_and_preserves_action_key() -> None:
     assert failed.phase == "terminal"
     assert failed.disposition == "failed"
 
-    # No retry without retryability / budget / proof.
+    # 没有 retryability / 预算 / 证明时不进行重试。
     with pytest.raises(ActionStateError):
         coordinator.retry(failed, retryable=False, budget_remaining=1, evidence_ref="ev:1")
     with pytest.raises(ActionStateError):
         coordinator.retry(failed, retryable=True, budget_remaining=0, evidence_ref="ev:1")
 
-    # A proven, budgeted retry starts the next attempt with the SAME action_key.
+    # 有证明且预算充足的重试以相同的 action_key 开始下一次尝试。
     next_attempt = coordinator.retry(
         failed, retryable=True, budget_remaining=2, evidence_ref="ev:1"
     )
@@ -227,7 +226,7 @@ def test_failed_retry_requires_proof_and_preserves_action_key() -> None:
 
 @pytest.mark.test_id("ACT-017")
 def test_credentials_never_enter_arguments_fingerprint_or_results() -> None:
-    # Fingerprint canonical arguments scrub secrets before hashing.
+    # 指纹的规范参数在哈希前会擦除秘密。
     fp = ActionFingerprint(
         tenant_id=support.TENANT,
         principal_id="principal-user-1",
@@ -238,9 +237,9 @@ def test_credentials_never_enter_arguments_fingerprint_or_results() -> None:
     )
     fingerprint_payload = fp.canonical_arguments
     assert "super-secret-token-xyz" not in str(fingerprint_payload)
-    assert "api_key" in fingerprint_payload  # key present but value redacted
+    assert "api_key" in fingerprint_payload  # key 存在但值已脱敏
 
-    # Tool Gateway scrubs arguments before creating the action fingerprint.
+    # Tool Gateway 在创建 action 指纹前会擦除参数中的秘密。
     gateway = _gateway()
     result = gateway.submit(
         _intent(),
@@ -249,12 +248,12 @@ def test_credentials_never_enter_arguments_fingerprint_or_results() -> None:
         arguments={"amount": "10.00", "password": "p@ssw0rd"},
     )
     assert isinstance(result, Success)
-    # The redacted value never appears in the canonical arguments / fingerprint.
+    # 脱敏后的值永远不会出现在规范参数 / 指纹中。
     action = gateway._coordinator.get(result.value.action_id)  # type: ignore[union-attr]
     assert "p@ssw0rd" not in action.action_fingerprint
     assert "p@ssw0rd" not in str(action)
 
-    # ResultProjector never leaks credentials into the ToolResult.
+    # ResultProjector 永远不会将凭据泄露到 ToolResult 中。
     projector = ResultProjector()
     tool_result = projector.project(
         action_key="k",

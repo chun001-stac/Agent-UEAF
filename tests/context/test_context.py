@@ -1,4 +1,4 @@
-"""Phase 2 context ownership / RAG ACL tests (CTX-*, RAG-001)."""
+"""阶段 2 上下文所有权 / RAG ACL 测试（CTX-*、RAG-001）。"""
 
 from __future__ import annotations
 
@@ -44,8 +44,12 @@ def test_context_builder_is_the_only_writer_of_context_manifest() -> None:
     )
     result = builder.build(_request())
     assert isinstance(result, Success)
-    assert "secret:1" not in result.value.evidence_pack_refs
-    assert "doc:1" in result.value.evidence_pack_refs
+    # ACL 先于相关性：未授权来源绝不进入装配内容（source_refs）。
+    assert "secret:1" not in result.value.source_refs
+    assert "doc:1" in result.value.source_refs
+    # RAG-013：Manifest 可追溯回其 EvidencePack（evidence_pack_refs 引用包 id）。
+    assert len(result.value.evidence_pack_refs) == 1
+    assert result.value.evidence_pack_refs[0].startswith("evidence-pack:")
 
 
 @pytest.mark.test_id("CTX-002")
@@ -60,7 +64,7 @@ def test_packing_priority_is_deterministic_by_trust() -> None:
     )
     result = builder.build(_request())
     assert isinstance(result, Success)
-    packed = list(result.value.evidence_pack_refs)
+    packed = list(result.value.source_refs)
     assert packed[0] == "high:1"
     assert set(packed) == {"high:1", "low:1", "mid:1"}
 
@@ -74,7 +78,28 @@ def test_low_priority_cannot_starve_reserve() -> None:
     )
     result = builder.build(_request())
     assert isinstance(result, Success)
-    assert len(result.value.evidence_pack_refs) == 3
+    assert len(result.value.source_refs) == 3
+
+
+@pytest.mark.test_id("CTX-008")
+def test_tier0_is_not_truncated_before_high_when_over_capacity() -> None:
+    # M1：来源数量超过 max_snippets 时，Tier 0 关键证据绝不能被先截断。
+    builder = ContextBuilder(
+        sources=[
+            _source("tier0:1", scopes=SCOPE, trust="tier0"),
+            _source("low:1", scopes=SCOPE, trust="low"),
+            _source("high:1", scopes=SCOPE, trust="high"),
+            _source("high:2", scopes=SCOPE, trust="high"),
+        ],
+        principal_scopes=SCOPE,
+        max_snippets=2,
+    )
+    result = builder.build(_request())
+    assert isinstance(result, Success)
+    packed = list(result.value.source_refs)
+    # tier0 必须被保留（优先于 high/low），且排在首位。
+    assert packed[0] == "tier0:1"
+    assert "tier0:1" in packed
 
 
 @pytest.mark.test_id("RAG-001")
@@ -88,4 +113,4 @@ def test_acl_filter_precedes_relevance_selection() -> None:
     )
     result = builder.build(_request())
     assert isinstance(result, Success)
-    assert result.value.evidence_pack_refs == ("allowed:1",)
+    assert result.value.source_refs == ("allowed:1",)

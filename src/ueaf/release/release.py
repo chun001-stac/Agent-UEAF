@@ -1,9 +1,8 @@
-"""Release Control (Phase 4).
+"""发版控制（阶段 4）。
 
-``ReleaseCandidate`` is never loaded by runtime/routing (REL-001). Activation
-verifies the full chain (Candidate -> Gates -> ReleaseDecision -> Manifest)
-and fails closed on any violation (REL-004). ``ReleaseManifest`` uses plural
-version-set fields and an immutable lifecycle (REL-002/005).
+``ReleaseCandidate`` 绝不被运行时/路由加载（REL-001）。激活会校验完整链路
+（Candidate -> Gates -> ReleaseDecision -> Manifest），任何违规都默认失败（REL-004）。
+``ReleaseManifest`` 使用复数形式的版本集字段和不可变的生命周期（REL-002/005）。
 """
 
 from __future__ import annotations
@@ -32,7 +31,7 @@ _MANIFEST_LIFECYCLES: frozenset[str] = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class ReleaseCandidate:
-    """Immutable candidate artifact; never loaded by runtime/routing."""
+    """不可变的候选制品；绝不被运行时/路由加载。"""
 
     meta: ContractMeta
     release_candidate_id: str
@@ -61,7 +60,7 @@ class ReleaseDecision:
 
 @dataclass(frozen=True, slots=True)
 class ReleaseManifest:
-    """Approved, immutable version set with plural version-set fields (CON-010)."""
+    """已批准、不可变的版本集，使用复数版本集字段（CON-010）。"""
 
     meta: ContractMeta
     release_id: str
@@ -97,7 +96,7 @@ class ReleaseActivationError(RuntimeError):
 
 
 class ReleaseActivationVerifier:
-    """Reference verifier: resolves authority facts and binds digests (REL-004)."""
+    """参考校验器：解析权威事实并绑定摘要（REL-004）。"""
 
     def __init__(self, *, known_digests: Mapping[str, str] | None = None) -> None:
         self._known_digests = dict(known_digests or {})
@@ -148,7 +147,7 @@ class ReleaseActivationVerifier:
 
 
 class ReleaseController:
-    """Owns the activation chain and fail-closed transitions (REL-003/004/005)."""
+    """拥有激活链与默认失败转换（REL-003/004/005）。"""
 
     def __init__(
         self,
@@ -194,8 +193,8 @@ class ReleaseController:
         release_decision: ReleaseDecision,
         environment: str,
     ) -> ReleaseManifest:
-        """Fail-closed activation chain (REL-004)."""
-        # Every object in the chain must verify against its canonical schema.
+        """默认失败的激活链（REL-004）。"""
+        # 链中的每个对象都必须对照其规范模式进行校验。
         if not self._verifier.verify_integrity("ReleaseCandidate", candidate):
             raise ReleaseActivationError("candidate integrity failed")
         if not self._verifier.verify_integrity("ReleaseDecision", release_decision):

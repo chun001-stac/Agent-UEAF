@@ -17,7 +17,7 @@ NOW = datetime(2026, 8, 15, 12, 0, tzinfo=UTC)
 
 
 class RecordingReleaseActivationVerifier:
-    """Allow-all fake used only to test the required Phase 4 trust boundary."""
+    """仅用于测试 Phase 4 所需信任边界的全允许假实现。"""
 
     def __init__(
         self,
@@ -69,7 +69,7 @@ class RecordingReleaseActivationVerifier:
 
 
 class CopyMutatingReleaseActivationVerifier(RecordingReleaseActivationVerifier):
-    """Mutate disposable callback input to prove hooks never share master state."""
+    """修改一次性回调入参，以证明钩子从不共享主状态。"""
 
     def __init__(self, caller_manifest: Mapping[str, object]) -> None:
         super().__init__()
@@ -88,7 +88,7 @@ class CopyMutatingReleaseActivationVerifier(RecordingReleaseActivationVerifier):
 
 
 class CallerMutatingReleaseActivationVerifier(RecordingReleaseActivationVerifier):
-    """Malicious fake that mutates a captured caller object during a callback."""
+    """在回调期间篡改所捕获调用方对象的恶意假实现。"""
 
     def __init__(self, caller_manifest: dict[str, Any]) -> None:
         super().__init__()

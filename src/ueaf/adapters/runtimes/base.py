@@ -1,9 +1,9 @@
-"""Deterministic runtime adapter (CI-safe) driving the controlled smoke chain.
+"""驱动受控冒烟链的确定性运行时适配器（CI 安全）。
 
-The chain ``ContextBuildPort -> ModelStepPort -> StructuredDecision`` runs
-inside AdvanceRun using only the whitelisted ports from the execution context
-(ADP-001, ADP-002). It never produces EvalResult / QualityGateDecision /
-ReleaseDecision — this is the non-Eval runtime smoke only.
+``ContextBuildPort -> ModelStepPort -> StructuredDecision`` 链路在
+AdvanceRun 内部运行，仅使用执行上下文中的白名单端口（ADP-001、ADP-002）。
+它绝不产生 EvalResult / QualityGateDecision / ReleaseDecision —— 这仅用于
+非 Eval 的运行时冒烟测试。
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from ueaf.ports import (
 
 
 class _StaticEventStream:
-    """Async iterator over a fixed list of RuntimeEvents."""
+    """对固定 RuntimeEvents 列表的异步迭代器。"""
 
     def __init__(self, events: list[RuntimeEvent]) -> None:
         self._events = events
@@ -47,7 +47,7 @@ class _StaticEventStream:
 
 
 class DeterministicRuntimeAdapter:
-    """Runs one controlled step per AdvanceRun call (single-turn smoke)."""
+    """每次 AdvanceRun 调用运行一个受控步骤（单轮冒烟测试）。"""
 
     def __init__(
         self,
@@ -138,7 +138,7 @@ class DeterministicRuntimeAdapter:
             observed_at=datetime.now(UTC),
         )
 
-    # -- internals ---------------------------------------------------------
+    # -- 内部实现 ---------------------------------------------------------
 
     def _step(
         self, run_id: str, ctx: RuntimeExecutionContext
@@ -146,7 +146,7 @@ class DeterministicRuntimeAdapter:
         events: list[RuntimeEvent] = []
         seq = self._sequence.get(run_id, 0)
 
-        # 1) ContextBuildPort (core SPI only)
+        # 1) ContextBuildPort（仅核心 SPI）
         manifest_result = ctx.context_build_port.build(
             self._context_request(run_id, ctx)
         )
@@ -157,7 +157,7 @@ class DeterministicRuntimeAdapter:
             self._event(run_id, seq + 1, "context_built", manifest_ref or "context:omitted")
         )
 
-        # 2) ModelStepPort (frozen prompt/route/output schema)
+        # 2) ModelStepPort（冻结的 prompt/route/output schema）
         invocation = ModelInvocation(
             model_invocation_id=f"model-invoke:{run_id}:{seq + 2}",
             run_id=run_id,

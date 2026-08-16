@@ -1,4 +1,4 @@
-"""Common envelope / error / meta contract tests (Phase 0/1 foundations)."""
+"""通用 envelope / error / meta 契约测试（阶段 0/1 基础）。"""
 
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ def test_contract_meta_is_present_and_consistent_on_persisted_objects() -> None:
 
 @pytest.mark.test_id("CON-002")
 def test_single_event_envelope_no_reduced_variant() -> None:
-    # V1 exposes exactly one public EventEnvelope shape; constructors validate it.
+    # V1 只暴露一种公开的 EventEnvelope 形态；构造函数对其做校验。
     event = EventEnvelope(
         event_id="evt:1",
         event_name="ueaf.run.created",
@@ -99,7 +99,7 @@ def test_event_naming_is_ueaf_domain_past_tense() -> None:
     with pytest.raises(ValueError, match="invalid event_name"):
         EventEnvelope(
             event_id="evt:1",
-            event_name="run.commit_terminal",  # imperative / not ueaf.*
+            event_name="run.commit_terminal",  # 命令式命名 / 非 ueaf.* 前缀
             event_version="1.0.0",
             occurred_at=MOMENT,
             recorded_at=MOMENT,
@@ -118,7 +118,7 @@ def test_event_naming_is_ueaf_domain_past_tense() -> None:
     with pytest.raises(ValueError, match="invalid event_name"):
         EventEnvelope(
             event_id="evt:2",
-            event_name="ueaf.Run.PhaseChanged",  # PascalCase forbidden
+            event_name="ueaf.Run.PhaseChanged",  # 禁止 PascalCase 命名
             event_version="1.0.0",
             occurred_at=MOMENT,
             recorded_at=MOMENT,
@@ -195,7 +195,7 @@ def test_canonical_principal_context_tenant_consistency() -> None:
 
 @pytest.mark.test_id("CON-009")
 def test_task_risk_class_is_separate_from_evolution_repair_level() -> None:
-    # New TaskEnvelope writes reject deprecated R0..R3 aliases (RUN-006).
+    # 新的 TaskEnvelope 写入拒绝已弃用的 R0..R3 别名（RUN-006）。
     with pytest.raises(ValueError, match="invalid risk_class"):
         TaskEnvelope(
             meta=_meta("TaskEnvelope", "task:1"),
@@ -204,11 +204,11 @@ def test_task_risk_class_is_separate_from_evolution_repair_level() -> None:
             goal="g",
             completion_criteria=("c",),
             constraints={},
-            risk_class="R1",  # deprecated alias not accepted
+            risk_class="R1",  # 不接受已弃用的别名
             owner_ref="principal:1",
             budget_ref="budget:1",
         )
-    # Migration reader may map the legacy alias explicitly.
+    # 迁移读取器可能显式映射旧版别名。
     migrated = support.task_envelope(risk_class="read_only").with_legacy_risk_alias("R2")
     assert migrated.risk_class == "reversible_write"
 
@@ -239,7 +239,7 @@ def test_command_envelope_validation() -> None:
             command_name="ueaf.run.commit_terminal",
             command_version="1.0.0",
             issued_at=MOMENT,
-            deadline_at=MOMENT,  # not after issued_at
+            deadline_at=MOMENT,  # 不晚于 issued_at
             tenant_id=support.TENANT,
             actor_ref="principal:1",
             target_type="RunRecord",

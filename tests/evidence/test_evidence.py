@@ -1,4 +1,4 @@
-"""Phase 5 evidence / telemetry acceptance tests (EVD-*)."""
+"""阶段 5 evidence / telemetry 验收测试（EVD-*）。"""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def test_normal_path_uses_zero_llm_tokens() -> None:
         now=MOMENT + timedelta(minutes=1),
     )
 
-    # None of the deterministic mappings below involve an LLM call.
+    # 下方的确定性映射都不涉及 LLM 调用。
     assert observations
     assert summary.observation_count >= 1
     assert window.total_observations >= 1
@@ -72,7 +72,7 @@ def test_high_cardinality_ids_are_not_metric_labels() -> None:
             )
         ]
     )
-    # Metric name is coarse; run/trace ids never become labels.
+    # 指标名粒度较粗；run/trace id 永远不会成为标签。
     assert collector.metrics[0].metric_name == "run_latency"
     assert collector.metrics[0].value == 100
 
@@ -81,8 +81,7 @@ def test_high_cardinality_ids_are_not_metric_labels() -> None:
 def test_evidence_gap_is_explicit() -> None:
     pipeline = EvidencePipeline(tenant_id=support.TENANT)
     summary = pipeline.run_summary("run:missing")
-    # A run with no observations produces a visible zero-observation summary,
-    # never silently treated as healthy.
+    # 没有观测的 run 会产生可见的零观测摘要，绝不被静默视为健康。
     assert summary.observation_count == 0
     assert summary.error_codes == ()
 
@@ -90,7 +89,7 @@ def test_evidence_gap_is_explicit() -> None:
 @pytest.mark.test_id("EVD-005")
 def test_telemetry_port_exposes_core_semantics_only() -> None:
     collector = InMemoryTelemetryCollector()
-    # Core SPI methods are the only public surface.
+    # 核心 SPI 方法是唯一的公开接口。
     assert callable(collector.EmitTrace)
     assert callable(collector.EmitMetric)
     assert callable(collector.EmitLog)
@@ -108,7 +107,7 @@ def test_single_anomaly_is_not_a_trigger_candidate() -> None:
     candidate = pipeline.detect_trigger_candidate(
         error_code="error", component="langgraph", message="single failure"
     )
-    assert candidate is None  # insufficient aggregate evidence
+    assert candidate is None  # 聚合证据不足
 
 
 @pytest.mark.test_id("EVO-002")
@@ -137,5 +136,5 @@ def test_trigger_gate_requires_aggregate_evidence() -> None:
 def test_error_fingerprint_is_stable_and_deduplicating() -> None:
     a = ErrorFingerprint.build("E100", "Provider timeout after 1234ms", "model")
     b = ErrorFingerprint.build("E100", "Provider timeout after 5678ms", "model")
-    # High-cardinality ids (timings) do not split the fingerprint.
+    # 高基数 id（如耗时）不会拆分指纹。
     assert a == b

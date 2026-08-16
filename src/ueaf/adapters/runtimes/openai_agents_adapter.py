@@ -1,9 +1,7 @@
-"""OpenAI Agents SDK read-only conformance adapter (Adapter #2).
+"""OpenAI Agents SDK 只读一致性适配器（适配器 #2）。
 
-Only a read-only conformance skeleton: it advertises capabilities truthfully,
-routes every model/tool interaction through the whitelisted ports, and
-explicitly rejects unsupported capabilities (ADP-003). It never fabricates
-authoritative events (ADP-005).
+仅提供只读的一致性骨架：如实上报能力，将每一次模型/工具交互都经由白名单端口
+路由，并明确拒绝不支持的能力（ADP-003）。绝不编造权威事件（ADP-005）。
 """
 
 from __future__ import annotations
@@ -30,7 +28,7 @@ from .base import _StaticEventStream
 
 
 class OpenAIAgentsReadOnlyAdapter:
-    """Read-only conformance skeleton; unsupported capabilities fail closed."""
+    """只读一致性骨架；不支持的能力默认失败关闭。"""
 
     def __init__(self, *, allow_tool_calls: bool = False) -> None:
         self._allow_tool_calls = allow_tool_calls
@@ -61,7 +59,7 @@ class OpenAIAgentsReadOnlyAdapter:
         )
 
     def AdvanceRun(self, request: RuntimeAdvanceRequest) -> RuntimeEventStream:
-        # Read-only step: only a deterministic final_response decision is allowed.
+        # 只读步骤：仅允许确定性 final_response 决策。
         if not self._allow_tool_calls:
             return _StaticEventStream(
                 [

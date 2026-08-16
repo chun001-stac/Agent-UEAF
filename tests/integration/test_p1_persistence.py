@@ -1,9 +1,8 @@
-"""P1 persistence tests: action/turn/memory SQL repositories (impl spec 03).
+"""P1 持久化测试：action/turn/memory SQL 仓库（实施规范 03）。
 
-Validates DB-level CAS/fencing and canonical-object round-trips for the P1
-authority objects (``ActionRecord``, ``ActionReceipt``, ``TurnRecord``,
-``MemoryRecord``) against async SQLite or a real PostgreSQL
-(``UEAF_DATABASE_URL``).
+针对异步 SQLite 或真实 PostgreSQL（``UEAF_DATABASE_URL``）验证 P1 权威对象
+（``ActionRecord``、``ActionReceipt``、``TurnRecord``、``MemoryRecord``）
+的数据库级 CAS/fencing 以及规范对象往返。
 """
 
 from __future__ import annotations
@@ -92,7 +91,7 @@ async def test_action_record_persistence_enforces_cas_and_fencing() -> None:
     assert reloaded.meta.contract_name == "ActionRecord"
     assert reloaded.phase == "validating"
 
-    # Advance authority state (fencing token set, revision bumped).
+    # 推进权威状态（设置 fencing token、递增 revision）。
     advanced = replace(
         reloaded,
         phase="authorizing",
@@ -102,12 +101,12 @@ async def test_action_record_persistence_enforces_cas_and_fencing() -> None:
     async with database.async_session_context():
         await repo.update(advanced, expected_revision=reloaded.revision, fencing_token=1)
 
-    # A stale revision update must be rejected by DB-level CAS.
+    # 过期 revision 的更新必须被数据库级 CAS 拒绝。
     with pytest.raises(RevisionConflict):
         async with database.async_session_context():
             await repo.update(advanced, expected_revision=1, fencing_token=1)
 
-    # A stale fencing token must be rejected.
+    # 过期的 fencing token 必须被拒绝。
     with pytest.raises(StaleFencing):
         async with database.async_session_context():
             await repo.update(
@@ -116,7 +115,7 @@ async def test_action_record_persistence_enforces_cas_and_fencing() -> None:
                 fencing_token=0,
             )
 
-    # Run-scoped query returns the persisted action.
+    # 按 run 范围查询可返回已持久化的 action。
     async with database.async_session_context():
         actions = await repo.list_for_run("run:1")
     assert [a.action_id for a in actions] == [action.action_id]
@@ -146,12 +145,12 @@ async def test_action_receipt_persistence_is_append_only_and_roundtrips() -> Non
     async with database.async_session_context():
         await repo.create(receipt)
 
-    # Duplicate receipt_id is rejected (append-only).
+    # 重复的 receipt_id 会被拒绝（仅追加）。
     with pytest.raises(ValueError, match="already exists"):
         async with database.async_session_context():
             await repo.create(receipt)
 
-    # Canonical object round-trips with all fields preserved.
+    # 规范对象往返时保留全部字段。
     async with database.async_session_context():
         reloaded = await repo.get("receipt:1")
     assert reloaded is not None
@@ -193,14 +192,14 @@ async def test_turn_record_persistence_preserves_run_sequence() -> None:
         async with database.async_session_context():
             await repo.add(turn)
 
-    # Authoritative per-run sequence is preserved on reload (RUN-008).
+    # 重新加载时保持每个 run 的权威序号（RUN-008）。
     async with database.async_session_context():
         reloaded = await repo.list_for_run("run:9")
     assert [t.turn_no for t in reloaded] == [1, 2, 3]
     assert [t.outcome for t in reloaded] == ["tool_intents", "tool_intents", "final_response"]
     assert reloaded[0].meta.object_id == "turn:1"
 
-    # Duplicate turn_id is rejected (append-only).
+    # 重复的 turn_id 会被拒绝（仅追加）。
     with pytest.raises(ValueError, match="already exists"):
         async with database.async_session_context():
             await repo.add(turns[0])
@@ -235,7 +234,7 @@ async def test_memory_record_persistence_serves_governed_recall() -> None:
     assert reloaded.sensitivity == "internal"
     assert reloaded.status == "active"
 
-    # Governed recall by subject, optionally filtered by status.
+    # 按主体进行受治理的召回，可选按状态过滤。
     async with database.async_session_context():
         all_records = await repo.list_for_subject("principal:1")
         active = await repo.list_for_subject("principal:1", status="active")

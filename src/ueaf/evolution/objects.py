@@ -1,9 +1,9 @@
-"""Evolution canonical objects (V1 strict scope, AGENTS.md §3).
+"""Evolution 规范对象（V1 严格范围，AGENTS.md §3）。
 
-Only these five canonical objects may exist:
+只允许存在这五个规范对象：
 EvolutionTrigger / EvolutionRun / GenomeManifest / MutationProposal /
-EvolutionAuthorityPolicy. RepairLevel concepts are R0..R5, wire r0..r5, and
-MutationProposal.repair_level accepts only r1..r4.
+EvolutionAuthorityPolicy。RepairLevel 概念为 R0..R5，线上为 r0..r5，
+MutationProposal.repair_level 只接受 r1..r4。
 """
 
 from __future__ import annotations
@@ -55,7 +55,7 @@ class EvolutionRun:
 
 @dataclass(frozen=True, slots=True)
 class MutationPatch:
-    """One structural change in a MutationProposal (patch shape, MUT-008)."""
+    """MutationProposal 中的一个结构性变更（patch 形状，MUT-008）。"""
 
     target_ref: str
     path: str
@@ -88,7 +88,7 @@ class MutationProposal:
 
 @dataclass(frozen=True, slots=True)
 class GenomeManifest:
-    """Immutable genome candidate produced by machine validation (MUT-007)."""
+    """由机器校验产生的不可变 genome 候选（MUT-007）。"""
 
     meta: ContractMeta
     genome_id: str
@@ -104,7 +104,7 @@ class GenomeManifest:
 
 @dataclass(frozen=True, slots=True)
 class EvolutionAuthorityPolicy:
-    """Governance contract for the evolution kernel (never recursively mutated)."""
+    """evolution kernel 的治理契约（绝不递归变更）。"""
 
     meta: ContractMeta
     evolution_authority_policy_id: str
@@ -122,7 +122,7 @@ class EvolutionAuthorityPolicy:
 
 @dataclass(frozen=True, slots=True)
 class SubjectProfile:
-    """Declares the mutable surface for one subject (MUT-005/006)."""
+    """声明单个 subject 的可变表面（MUT-005/006）。"""
 
     meta: ContractMeta
     profile_id: str
@@ -131,7 +131,7 @@ class SubjectProfile:
     frozen_fields: tuple[str, ...] = ()
     allowed_repair_levels: tuple[MutationRepairLevel, ...] = ("r1", "r2")
     max_patch_fields: int = 2
-    # Numeric bounds for declared mutable fields (MUT-003 range reject).
+    # 已声明可变字段的数值边界（MUT-003 范围拒绝）。
     field_ranges: Mapping[str, tuple[float, float]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -141,7 +141,7 @@ class SubjectProfile:
 
 @dataclass(frozen=True, slots=True)
 class ObjectiveProfile:
-    """Hard constraints first, then weighted objectives, then tie-break (OBJ-*)."""
+    """先硬约束，再加权目标，最后打破平局（OBJ-*）。"""
 
     meta: ContractMeta
     profile_id: str

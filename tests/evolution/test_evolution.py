@@ -1,4 +1,4 @@
-"""Phase 6 evolution acceptance tests (EVO/REP/MUT/OBJ/STR/ETH, CON-011)."""
+"""Phase 6 演化验收测试（EVO/REP/MUT/OBJ/STR/ETH、CON-011）。"""
 
 from __future__ import annotations
 
@@ -101,10 +101,10 @@ def _trigger(kernel, *, candidate_ref="candidate:1", evidence=("ev:1",), **kw):
 @pytest.mark.test_id("EVO-002")
 def test_trigger_gate_requires_evidence_and_dedupes() -> None:
     kernel = _kernel()
-    assert _trigger(kernel, evidence=()) is None  # no evidence -> no trigger
+    assert _trigger(kernel, evidence=()) is None  # 无证据 -> 不触发
     first = _trigger(kernel)
     assert first is not None
-    # Cooldown/dedupe: same candidate is not re-triggered.
+    # 冷却/去重：同一候选不会再次触发。
     assert _trigger(kernel) is None
 
 
@@ -120,7 +120,7 @@ def test_no_evolution_needed_is_a_legal_disposition() -> None:
 def test_symptom_is_not_the_repair_target() -> None:
     kernel = _kernel()
     routing = kernel.route(symptom_code="timeout", evidence_refs=("ev:1",))
-    # The router decides whether to evolve; the symptom itself is not mutated.
+    # 路由器决定是否演化；症状本身不会被修改。
     assert routing.outcome == "MUTATION"
     assert routing.repair_level == "r1"
 
@@ -184,7 +184,7 @@ def test_undeclared_field_is_rejected() -> None:
 
 @pytest.mark.test_id("MUT-002")
 def test_frozen_field_is_rejected() -> None:
-    # A whitelisted field that is currently frozen must be rejected as frozen.
+    # 处于白名单但当前被冻结的字段必须作为冻结字段被拒绝。
     validator = MutationValidator(
         subject=_subject(mutable=("release_id", "budget.max_steps"), frozen=("release_id",)),
         authority=_authority(),
@@ -216,7 +216,7 @@ def test_repair_level_mismatch_is_rejected() -> None:
         run_ref="r:1",
         target_ref="agent:1",
         repair_level="r3",
-        change_summary="x",  # topology-level change not allowed
+        change_summary="x",  # 不允许拓扑级变更
         changes=(MutationPatch("agent:1", "budget.max_steps", "replace", 1, 2),),
     )
     result = validator.validate(proposal)
@@ -225,7 +225,7 @@ def test_repair_level_mismatch_is_rejected() -> None:
 
 @pytest.mark.test_id("MUT-005")
 def test_effective_surface_intersection() -> None:
-    # Profile allows the field, but the authority policy disables mutation.
+    # Profile 允许该字段，但权威策略禁用了修改。
     validator = MutationValidator(subject=_subject(), authority=_authority(allow_mutation=False))
     proposal = MutationProposal(
         meta=_meta("MutationProposal", "m:5"),
@@ -256,7 +256,7 @@ def test_first_sparse_profile_is_bounded() -> None:
             working_set={"repair_field": "budget.max_steps", "before": 5, "after": 8},
         ),
     )
-    assert run.status == "completed"  # single candidate, single field
+    assert run.status == "completed"  # 单一候选、单一字段
 
 
 @pytest.mark.test_id("MUT-007")
@@ -274,7 +274,7 @@ def test_genome_materialization_requires_validated_proposal() -> None:
         ),
     )
     assert run.status == "completed"
-    assert kernel._genomes  # a GenomeManifest candidate was materialized
+    assert kernel._genomes  # 已物化出一个 GenomeManifest 候选
 
 
 @pytest.mark.test_id("MUT-008")
@@ -314,7 +314,7 @@ def test_tie_break_is_deterministic() -> None:
         profile_id="obj:2",
         tie_break_rule="lowest_repair_level",
     )
-    # No free-form LLM in tie-break; the rule is a fixed string.
+    # 平局裁决不使用自由形式的 LLM；规则是固定字符串。
     assert objective.tie_break_rule == "lowest_repair_level"
 
 
@@ -327,7 +327,7 @@ def test_strategy_input_is_bounded() -> None:
         symptom_code="timeout",
         working_set={"repair_field": "budget.max_steps"},
     )
-    # Bounded read-only working set; no full-history scan exposed.
+    # 受限的只读工作集；不暴露全历史扫描。
     assert inputs.working_set == {"repair_field": "budget.max_steps"}
 
 
@@ -360,7 +360,7 @@ def test_repeated_failed_proposal_is_not_resubmitted() -> None:
         working_set={"repair_field": "budget.max_steps", "before": 5, "after": 8},
         known_failed_fingerprints=("agent:1:budget.max_steps",),
     )
-    assert strategy.propose(inputs) is None  # no evidence-free repeat
+    assert strategy.propose(inputs) is None  # 无证据时不重复
 
 
 @pytest.mark.test_id("STR-004")
@@ -372,14 +372,14 @@ def test_strategy_has_no_release_authority() -> None:
             strategy_id="llm_guided_sparse_mutation",
         )
     )
-    assert not hasattr(strategy, "release")  # cannot sign releases
+    assert not hasattr(strategy, "release")  # 不能签署发布
 
 
 @pytest.mark.test_id("ETH-001")
 def test_delayed_injection_cannot_expand_surface() -> None:
     kernel = _kernel(mutable=("budget.max_steps",))
     trigger = _trigger(kernel)
-    # Malicious "instruction" inside working set cannot declare new fields.
+    # 工作集内的恶意“指令”不能声明新字段。
     run = kernel.run_evolution(
         trigger,
         strategy_input=StrategyInput(
@@ -396,7 +396,7 @@ def test_delayed_injection_cannot_expand_surface() -> None:
         ),
     )
     assert run.status in ("completed", "no_evolution_needed")
-    # Mutation surface stayed bounded to the profile.
+    # 修改范围保持受限于 profile。
     assert kernel.subject.mutable_fields == ("budget.max_steps",)
 
 
@@ -416,7 +416,7 @@ def test_trigger_flooding_is_bounded() -> None:
 @pytest.mark.test_id("ETH-004")
 def test_budget_exhaustion_terminates_normally() -> None:
     kernel = _kernel()
-    # max_proposals_per_run=1 => a second evolution is not started unboundedly.
+    # max_proposals_per_run=1 => 不会无界地启动第二次演化。
     assert kernel.authority.max_proposals_per_run == 1
 
 
@@ -435,8 +435,8 @@ def test_evolution_build_chain_proposal_to_genome_to_candidate() -> None:
         ),
     )
     assert run.status == "completed"
-    # The chain went MutationProposal -> GenomeManifest -> ReleaseCandidate hook.
+    # 链路为 MutationProposal -> GenomeManifest -> ReleaseCandidate 钩子。
     proposal = kernel._proposals[run.proposal_ref]
     assert proposal.status in ("validated", "proposed")
-    genome = kernel._genomes  # materialized
+    genome = kernel._genomes  # 已物化
     assert len(genome) == 1

@@ -1,4 +1,4 @@
-"""Workflow coordinator for multi-agent handoff."""
+"""多 agent 交接的工作流协调器。"""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from ueaf.ports import HandoffEnvelope, HandoffProgress, PortResult, Success
 
 
 class HandoffPort(Protocol):
-    """Core SPI used by the workflow coordinator to submit handoffs."""
+    """工作流协调器用于提交交接的核心 SPI。"""
 
     def submit(self, envelope: HandoffEnvelope) -> PortResult[HandoffProgress]: ...
 
@@ -27,7 +27,7 @@ class InMemoryWorkflowStore:
 
 
 class WorkflowCoordinator:
-    """Coordinates handoffs between agents via the core HandoffPort."""
+    """通过核心 HandoffPort 协调 agent 之间的交接。"""
 
     def __init__(
         self, handoff_port: HandoffPort, store: InMemoryWorkflowStore | None = None

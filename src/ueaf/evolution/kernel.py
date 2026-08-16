@@ -1,9 +1,9 @@
-"""Evolution Kernel (V1) — the vertical slice.
+"""Evolution Kernel（V1）—— 垂直切片。
 
-Trigger gate (EVO-002) -> RepairRouter (REP-001..005) -> sparse strategy
-(STR-*) -> MutationValidator (MUT-*) -> GenomeManifest materialization
-(MUT-007) -> candidate build hook (CON-011). The governance kernel is never
-recursively mutated and R5 routes to independent governance (REP-004).
+触发门（EVO-002）-> RepairRouter（REP-001..005）-> 稀疏策略（STR-*）
+-> MutationValidator（MUT-*）-> GenomeManifest 物化（MUT-007）
+-> 候选构建钩子（CON-011）。治理 kernel 绝不递归变更，
+R5 路由到独立治理（REP-004）。
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ class RepairRouting:
 
 @dataclass(slots=True)
 class EvolutionKernel:
-    """Small controlled evolution kernel (V1)."""
+    """小型受控的 evolution kernel（V1）。"""
 
     authority: EvolutionAuthorityPolicy
     subject: SubjectProfile
@@ -57,7 +57,7 @@ class EvolutionKernel:
     _genomes: dict[str, GenomeManifest] = field(default_factory=dict)
     _recent_trigger_keys: set[str] = field(default_factory=set)
 
-    # -- trigger gate ------------------------------------------------------
+    # -- 触发门 ------------------------------------------------------
 
     def register_trigger(
         self,
@@ -67,14 +67,14 @@ class EvolutionKernel:
         evidence_refs: tuple[str, ...],
         cooldown_expires_at: datetime | None = None,
     ) -> EvolutionTrigger | None:
-        """EVO-002 gate: dedupe + cooldown + evidence before an EvolutionTrigger."""
+        """EVO-002 门：创建 EvolutionTrigger 前先去重 + 冷却 + 证据校验。"""
         if len(self._triggers) >= self.authority.max_triggers_per_window:
-            return None  # ETH-002: trigger flooding bounded
+            return None  # ETH-002：触发洪泛有界
         key = candidate_ref
         if key in self._recent_trigger_keys:
-            return None  # cooldown/dedupe
+            return None  # 冷却/去重
         if not evidence_refs:
-            return None  # EVO-003: no evidence -> no evolution
+            return None  # EVO-003：无证据 -> 不演进
         if cooldown_expires_at is None:
             cooldown_expires_at = self._now() + timedelta(seconds=self.authority.cooldown_seconds)
         trigger_id = new_object_id("trigger")
@@ -90,10 +90,10 @@ class EvolutionKernel:
         self._recent_trigger_keys.add(key)
         return trigger
 
-    # -- repair routing -----------------------------------------------------
+    # -- 修复路由 -----------------------------------------------------
 
     def route(self, *, symptom_code: str, evidence_refs: tuple[str, ...]) -> RepairRouting:
-        """REP-001..005 four-way router."""
+        """REP-001..005 四路路由器。"""
         if symptom_code.startswith("governance"):
             return RepairRouting("ROUTE_GOVERNANCE", ("r5_governance",))
         if not evidence_refs:
@@ -102,7 +102,7 @@ class EvolutionKernel:
             return RepairRouting("OPERATIONAL_ONLY", ("operational_remediation",))
         return RepairRouting("MUTATION", (), "r1")
 
-    # -- vertical slice ------------------------------------------------------
+    # -- 垂直切片 ------------------------------------------------------
 
     def run_evolution(
         self,
@@ -110,7 +110,7 @@ class EvolutionKernel:
         *,
         strategy_input: StrategyInput | None = None,
     ) -> EvolutionRun:
-        """Trigger -> router -> strategy -> validator -> genome -> candidate."""
+        """Trigger -> router -> strategy -> validator -> genome -> candidate。"""
         run_id = new_object_id("evolution-run")
         run = EvolutionRun(
             meta=self._meta("EvolutionRun", run_id),
@@ -159,7 +159,7 @@ class EvolutionKernel:
             self._runs[run_id] = done
             return done
 
-        # Attach proposal identity + meta, then machine-validate.
+        # 附加 proposal 身份 + meta，然后进行机器校验。
         proposal = self._finalize_proposal(draft, trigger)
         validation = self.validator.validate(proposal)
         if not validation.valid:
@@ -179,7 +179,7 @@ class EvolutionKernel:
         genome = self.materialize(validated)
         candidate_ref: str | None = None
         if self.candidate_build_hook is not None:
-            candidate_ref = self.candidate_build_hook(genome)  # CON-011 chain
+            candidate_ref = self.candidate_build_hook(genome)  # CON-011 链路
 
         completed = EvolutionRun(
             meta=run.meta,
@@ -194,7 +194,7 @@ class EvolutionKernel:
         return completed
 
     def materialize(self, proposal: MutationProposal) -> GenomeManifest:
-        """MUT-007: proposal -> immutable GenomeManifest candidate."""
+        """MUT-007：proposal -> 不可变 GenomeManifest 候选。"""
         if proposal.status != "validated":
             raise ValueError("only a validated proposal can be materialized")
         genome_id = new_object_id("genome")
@@ -209,7 +209,7 @@ class EvolutionKernel:
         self._genomes[genome_id] = genome
         return genome
 
-    # -- helpers ------------------------------------------------------------
+    # -- 辅助方法 ------------------------------------------------------------
 
     def _finalize_proposal(
         self, draft: ProposalDraft, trigger: EvolutionTrigger

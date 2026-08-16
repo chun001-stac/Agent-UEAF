@@ -1,11 +1,9 @@
-"""Tool Gateway — ToolIntentPort reference implementation (module 05).
+"""工具网关 — ToolIntentPort 参考实现（模块 05）。
 
-Bridges a model ``ToolIntent`` into the authoritative ``ActionCoordinator``:
-canonical fingerprint first (ACT-001/007), then validation and PDP
-authorization. A ``deny`` forms an Evidence reference and returns a
-``Rejected`` result — it never self-elevates or widens the principal's scope
-(ACT-006). An ``require_approval`` decision becomes a controlled interruption
-waiting on approval.
+将模型的 ``ToolIntent`` 桥接到权威的 ``ActionCoordinator``：先计算规范指纹
+（ACT-001/007），再进行校验与 PDP 授权。``deny`` 会形成 Evidence 引用并返回
+``Rejected`` 结果——绝不自行提权或扩大主体权限范围（ACT-006）。
+``require_approval`` 判定则变成等待审批的受控中断。
 """
 
 from __future__ import annotations
@@ -34,7 +32,7 @@ from ueaf.tool.result import DEFAULT_SECRET_KEYS, _scrub_secrets
 
 @dataclass(frozen=True, slots=True)
 class PermissionDenied:
-    """Evidence-forming deny outcome; never a scope elevation (ACT-006)."""
+    """形成证据的拒绝结果；绝不是权限范围的提升（ACT-006）。"""
 
     action_ref: ActionRecordRef
     evidence_ref: str
@@ -42,7 +40,7 @@ class PermissionDenied:
 
 
 class ToolGateway:
-    """ToolIntentPort reference implementation over ActionCoordinator + PDP."""
+    """基于 ActionCoordinator + PDP 的 ToolIntentPort 参考实现。"""
 
     def __init__(
         self,
@@ -68,9 +66,9 @@ class ToolGateway:
         purpose: str = "execution",
         now: datetime | None = None,
     ) -> PortResult[ActionRecordRef | ControlledInterruption | PermissionDenied]:
-        """Canonicalize, create the ActionRecord, validate and authorize."""
+        """规范化、创建 ActionRecord、校验并授权。"""
         moment = now or utcnow()
-        # Credentials never enter arguments/fingerprint (ACT-017).
+        # 凭据绝不进入参数/指纹（ACT-017）。
         safe_arguments, _ = _scrub_secrets(dict(arguments), DEFAULT_SECRET_KEYS)
         fingerprint = ActionFingerprint(
             tenant_id=self._tenant_id,
@@ -96,7 +94,7 @@ class ToolGateway:
             principal, fingerprint, environment="prod", now=moment
         )
         if decision.outcome == "deny":
-            # ACT-006: form an Evidence reference, never self-elevate.
+            # ACT-006：形成 Evidence 引用，绝不自行提权。
             evidence_ref = new_object_id("evidence")
             self._evidence_refs[action.action_key] = evidence_ref
             self._coordinator.authorize(action, decision)  # terminal denied

@@ -1,8 +1,7 @@
-"""ModelStepPort reference implementation with a deterministic CI fake model.
+"""带确定性 CI 假模型的 ModelStepPort 参考实现。
 
-Prompt/Context/ModelRoute/output schema are frozen before invocation; only the
-final ``StructuredDecision`` returned by the port is authoritative (stream
-fragments are never treated as decisions).
+Prompt/Context/ModelRoute/输出模式在调用前冻结；只有端口返回的最终 ``StructuredDecision``
+具有权威性（流片段绝不视为决策）。
 """
 
 from __future__ import annotations
@@ -33,7 +32,7 @@ _DECISION_SCHEMA_REF = "schema://structured-decision/1.0.0"
 
 @dataclass(frozen=True, slots=True)
 class FakeModelResult:
-    """Deterministic provider result used in CI (never a live provider)."""
+    """用于 CI 的确定性提供方结果（绝不是在线提供方）。"""
 
     kind: DecisionKind
     content: str = ""
@@ -42,10 +41,10 @@ class FakeModelResult:
 
 
 class DeterministicFakeModel:
-    """Maps a frozen ModelInvocation to a deterministic result.
+    """将冻结的 ModelInvocation 映射为确定性结果。
 
-    A pluggable ``policy`` callable lets tests script outcomes (refusal, tool
-    intents, no_progress, etc.) without any network access.
+    可插拔的 ``policy`` 可调用对象让测试无需任何网络访问即可编排结果（refusal、tool
+    intents、no_progress 等）。
     """
 
     def __init__(
@@ -64,7 +63,7 @@ class DeterministicFakeModel:
 
 
 class ModelStep:
-    """Implements the core ModelStepPort contract (typed invoke)."""
+    """实现核心 ModelStepPort 合约（类型化 invoke）。"""
 
     def __init__(self, model: DeterministicFakeModel, *, output_schema_ref: str) -> None:
         self._model = model
@@ -113,5 +112,5 @@ class ModelStep:
 
     @staticmethod
     def _turn_id_from(request: ModelInvocation) -> str:
-        # ModelInvocation carries no turn_id in the core SPI; derive deterministically.
+        # ModelInvocation 在核心 SPI 中不携带 turn_id；这里做确定性推导。
         return f"turn:{request.run_id}:{sha256_hex(request.prompt_contract_ref)[:8]}"

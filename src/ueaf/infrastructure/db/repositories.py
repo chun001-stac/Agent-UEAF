@@ -1,8 +1,7 @@
-"""In-memory authoritative repositories with CAS/revision semantics.
+"""具备 CAS/版本号语义的内存权威仓库。
 
-Port-first default for local/CI: repositories are the only write path for
-authoritative state. A PostgreSQL-backed implementation can swap in later
-without changing the coordinator logic.
+面向本地/CI 的端口优先默认实现：仓库是权威状态的唯一写入路径。后续可无缝替换
+为 PostgreSQL 后端实现，而无需改动协调器逻辑。
 """
 
 from __future__ import annotations
@@ -17,14 +16,14 @@ from ueaf.runtime.objects import RunRecord, TaskState
 
 T = TypeVar("T")
 
-# Re-export stable error codes used by repository conflicts.
+# 重新导出仓库冲突所用的稳定错误码。
 REVISION_CONFLICT = ERROR_CODES["REVISION_CONFLICT"]
 STALE_FENCING = ERROR_CODES["STALE_FENCING"]
 IDEMPOTENCY_CONFLICT = ERROR_CODES["IDEMPOTENCY_CONFLICT"]
 
 
 class RevisionConflict(RuntimeError):
-    """Raised when an optimistic CAS update fails."""
+    """当乐观 CAS 更新失败时抛出。"""
 
     code = REVISION_CONFLICT
 
@@ -36,7 +35,7 @@ class RevisionConflict(RuntimeError):
 
 
 class StaleFencing(RuntimeError):
-    """Raised when a write carries a fencing token below the current one."""
+    """当写入携带的 fencing token 低于当前值时抛出。"""
 
     code = STALE_FENCING
 
@@ -52,11 +51,11 @@ class Versioned(Protocol):
 
 
 class Repository[T]:
-    """Minimal CAS repository contract."""
+    """最小化的 CAS 仓库契约。"""
 
 
 class RunRecordRepository(Protocol):
-    """Common contract for in-memory and SQL RunRecord stores."""
+    """内存与 SQL RunRecord 存储的公共契约。"""
 
     async def get(self, run_id: str) -> RunRecord | None: ...
 
@@ -91,7 +90,7 @@ class AdmissionResultRepository(Protocol):
 
 @dataclass(slots=True)
 class InMemoryRunRecordRepository:
-    """Authoritative store for RunRecord with revision CAS."""
+    """带版本 CAS 的 RunRecord 权威存储。"""
 
     _records: dict[str, RunRecord] = field(default_factory=dict)
 
@@ -173,7 +172,7 @@ class InMemoryAdmissionResultRepository:
 
 @dataclass(slots=True)
 class Clock:
-    """Injected time source; tests may advance it deterministically."""
+    """注入的时间源；测试可确定性地推进它。"""
 
     now: datetime | None = None
 

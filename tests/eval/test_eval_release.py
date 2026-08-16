@@ -1,4 +1,4 @@
-"""Phase 4 eval/release acceptance tests (EVAL-*, REL-*)."""
+"""Phase 4 评估/发布验收测试（EVAL-*、REL-*）。"""
 
 from __future__ import annotations
 
@@ -88,20 +88,20 @@ def test_baseline_and_candidate_are_comparable() -> None:
     bundle = _bundle()
     assert bundle.baseline_ref == "baseline:1"
     assert bundle.candidate_ref == "candidate:1"
-    # Same frozen dataset/environment/budget for both (EVAL-006).
+    # 两者使用相同的冻结数据集/环境/预算（EVAL-006）。
     assert bundle.environment == "eval"
-    assert bundle.frozen_digest  # deterministic digest binds the pair
+    assert bundle.frozen_digest  # 确定性摘要将两者绑定
 
 
 @pytest.mark.test_id("EVAL-002")
 def test_hard_safety_fail_is_never_averaged_away() -> None:
     runner = _runner()
     outputs = {
-        "c1": {"complete": True, "safe": False},  # hard fail
+        "c1": {"complete": True, "safe": False},  # 硬性失败
         "c2": {"complete": True, "safe": True},
     }
     result = runner.run(_bundle(), outputs)
-    assert result.outcome == "fail"  # even though one case passed
+    assert result.outcome == "fail"  # 即使有一个用例通过
 
 
 @pytest.mark.test_id("EVAL-003")
@@ -139,7 +139,7 @@ def test_hard_grader_precedes_judge_score() -> None:
     runner = _runner()
     result = runner.run(
         _bundle(cases=(_case("c1"),)),
-        {"c1": {"complete": True, "safe": False}},  # judge would score high
+        {"c1": {"complete": True, "safe": False}},  # 判分器会打高分
     )
     assert result.outcome == "fail"
     assert result.verdicts[0].hard_fail is True
@@ -152,7 +152,7 @@ def test_judge_is_frozen() -> None:
     judge = DeterministicJudge(version="judge@1.0.0")
     a = judge.score(bundle.dataset.cases[0], {"complete": True})
     b = judge.score(bundle.dataset.cases[0], {"complete": True})
-    assert a == b  # deterministic frozen judge
+    assert a == b  # 确定性的冻结判分器
 
 
 @pytest.mark.test_id("EVAL-011")
@@ -164,16 +164,16 @@ def test_low_sample_is_inconclusive() -> None:
 
 @pytest.mark.test_id("EVAL-015")
 def test_holdout_contamination_invalidates_run() -> None:
-    # A holdout case flagged as contaminated must not silently pass.
+    # 被标记为受污染的保留用例不得静默通过。
     case = _case("holdout", holdout=True)
     runner = _runner()
     result = runner.run(
         _bundle(cases=(case,)),
         {"holdout": {"complete": True, "safe": True}},
     )
-    # EvalDataset is not blind to contamination status; treated as suspect.
+    # EvalDataset 不会忽略污染状态；将其视为可疑。
     assert case.contamination_status == "clean"
-    assert result.eval_result_id  # run produced a result but provenance is tracked
+    assert result.eval_result_id  # 运行产生了结果，但来源得到跟踪
 
 
 @pytest.mark.test_id("EVAL-018")
@@ -185,7 +185,7 @@ def test_quality_gate_does_not_issue_release_decision() -> None:
         scope="billing",
         eval_result_ref="eval-result:1",
     )
-    # The gate object carries no release authority fields at all.
+    # 该门禁对象完全不含发布权威字段。
     assert not hasattr(quality, "release_decision_ref")
     assert not hasattr(quality, "manifest_candidate_ref")
 
@@ -195,7 +195,7 @@ def test_candidate_is_never_a_manifest() -> None:
     controller = ReleaseController(ReleaseActivationVerifier())
     candidate = controller.build_candidate(environment="prod")
     assert candidate.release_candidate_id.startswith("candidate:")
-    # Runtime binds release_id (manifest), never the candidate.
+    # 运行时绑定的是 release_id（manifest），而非候选。
     assert candidate.release_candidate_id != "release:anything"
 
 
@@ -204,7 +204,7 @@ def test_manifest_is_immutable_and_binding_stable() -> None:
     controller = ReleaseController(ReleaseActivationVerifier())
     manifest = _approved_manifest(controller)
     bound = manifest.release_id
-    # Re-activation creates a new manifest; existing binding never mutates.
+    # 重新激活会创建新的 manifest；已有绑定从不改变。
     assert controller.get(bound).release_id == bound
     assert controller.get(bound).lifecycle == "activated"
 
@@ -255,7 +255,7 @@ def test_rollback_after_canary_hard_stop() -> None:
     )
     assert rolled.lifecycle == "rolled_back"
     assert rolled.rollback_to_ref == "release:previous"
-    # Evidence of the rollback is retained on the manifest lifecycle.
+    # 回滚的证据保留在 manifest 生命周期上。
     assert controller.get(manifest.release_id).lifecycle == "rolled_back"
 
 

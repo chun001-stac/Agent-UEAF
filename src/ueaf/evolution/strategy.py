@@ -1,8 +1,7 @@
-"""llm_guided_sparse_mutation strategy (STR-*).
+"""llm_guided_sparse_mutation 策略（STR-*）。
 
-V1 first strategy: single-candidate, sparse, bounded-input, deterministic in
-CI. Produces zero proposals when there is no new evidence or when the proposal
-would repeat a known failure (STR-002/003).
+V1 首个策略：单候选、稀疏、有界输入、在 CI 中确定。当没有新证据或 proposal
+会重复已知失败时，不产生任何 proposal（STR-002/003）。
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ from ueaf.evolution.objects import (
 
 @dataclass(frozen=True, slots=True)
 class ProposalDraft:
-    """Lightweight strategy output; the kernel materializes the canonical proposal."""
+    """轻量策略输出；kernel 负责物化规范 proposal。"""
 
     target_ref: str
     repair_level: MutationRepairLevel
@@ -30,7 +29,7 @@ class ProposalDraft:
 
 @dataclass(frozen=True, slots=True)
 class StrategyInput:
-    """Bounded read-only working set; never scans full history (STR-001)."""
+    """有界只读工作集；绝不扫描完整历史（STR-001）。"""
 
     trigger_ref: str
     run_ref: str
@@ -41,22 +40,22 @@ class StrategyInput:
 
 
 class SparseMutationStrategy:
-    """Deterministic sparse strategy yielding 0..1 proposals per call."""
+    """每次调用产出 0..1 个 proposal 的确定性稀疏策略。"""
 
     def __init__(self, *, profile: StrategyProfile) -> None:
         self._profile = profile
 
     def propose(self, inputs: StrategyInput) -> ProposalDraft | None:
-        # STR-002: zero candidate is a legal outcome.
+        # STR-002：零候选是合法结果。
         candidate_field = inputs.working_set.get("repair_field")
         if not candidate_field or not isinstance(candidate_field, str):
             return None
-        # STR-003: no evidence-free repeats of a known failed proposal.
+        # STR-003：不重复无证据的已知失败 proposal。
         proposal_fingerprint = f"{inputs.target_ref}:{candidate_field}"
         if proposal_fingerprint in inputs.known_failed_fingerprints:
             return None
         if inputs.symptom_code.startswith("governance"):
-            return None  # R5 governance never auto-mutates (REP-004)
+            return None  # R5 治理绝不自动变更（REP-004）
 
         changes = (
             MutationPatch(

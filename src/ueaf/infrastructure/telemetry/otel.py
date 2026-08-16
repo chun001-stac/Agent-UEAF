@@ -1,10 +1,9 @@
-"""OpenTelemetry-backed TelemetryPort implementation (EVD-005).
+"""基于 OpenTelemetry 的 TelemetryPort 实现（EVD-005）。
 
-Bridges the core ``TelemetryPort`` semantics to the OpenTelemetry SDK: traces
-become spans, metrics become counters, logs become OTel log records, and audit
-records become span events. The SDK is imported lazily so the module imports
-without ``opentelemetry`` installed; the collector is a no-op fallback when the
-dependency is missing so local/CI runs without OTel still succeed.
+将核心 ``TelemetryPort`` 语义桥接到 OpenTelemetry SDK：trace 变为 span，指标
+变为计数器，日志变为 OTel 日志记录，审计记录变为 span 事件。SDK 为懒导入，
+因此未安装 ``opentelemetry`` 时模块仍可导入；依赖缺失时收集器是 no-op 回退，
+使没有 OTel 的本地/CI 运行依然成功。
 """
 
 from __future__ import annotations
@@ -27,7 +26,7 @@ from ueaf.ports import (
 
 
 class OtelExporter(Protocol):
-    """Structural type for the exported OTel span (tracer API subset)."""
+    """导出的 OTel span 的结构化类型（tracer API 子集）。"""
 
     def start_as_current_span(self, name: str, **kwargs: Any) -> Any: ...
 
@@ -36,11 +35,10 @@ class OtelExporter(Protocol):
 
 @dataclass(slots=True)
 class OtelTelemetryCollector:
-    """TelemetryPort that forwards to an OpenTelemetry SDK tracer.
+    """转发到 OpenTelemetry SDK tracer 的 TelemetryPort。
 
-    ``tracer`` may be injected for tests; otherwise one is created lazily from
-    the OTel SDK. ``enabled`` is flipped to False when the SDK is unavailable so
-    callers get a successful no-op rather than a hard failure.
+    ``tracer`` 可注入以用于测试；否则会从 OTel SDK 懒创建。当 SDK 不可用时
+    ``enabled`` 被置为 False，使调用方得到成功的 no-op 而不是硬失败。
     """
 
     service_name: str = "ueaf-runtime"
@@ -75,8 +73,8 @@ class OtelTelemetryCollector:
     def EmitMetric(self, points: Sequence[MetricPoint]) -> PortResult[TelemetryAck]:
         if not self.enabled:
             return Success(TelemetryAck(accepted_count=len(points), observed_at=_now()))
-        # High-cardinality ids are never metric labels (EVD-002): only tenant
-        # and release are used as dimensions.
+        # 高基数 id 绝不用作指标标签（EVD-002）：仅 tenant
+        # 与 release 用作维度。
         for point in points:
             _emit_metric(self.tracer, point)
         return Success(TelemetryAck(accepted_count=len(points), observed_at=_now()))
@@ -124,7 +122,7 @@ def _now() -> datetime:
 
 
 def _import_tracer(service_name: str) -> Any | None:
-    """Build an OTel tracer, or ``None`` when the SDK is unavailable."""
+    """构建 OTel tracer，SDK 不可用时返回 ``None``。"""
     try:
         from opentelemetry import trace  # type: ignore[import-not-found]
         from opentelemetry.sdk.trace import (  # type: ignore[import-not-found]

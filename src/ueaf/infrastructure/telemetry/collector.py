@@ -1,7 +1,7 @@
-"""TelemetryPort reference implementation (EVD-005).
+"""TelemetryPort 参考实现（EVD-005）。
 
-Only the core ``EmitTrace/EmitMetric/EmitLog/EmitAudit`` semantics are exposed.
-High-cardinality ids are never used as metric labels (EVD-002).
+仅暴露核心的 ``EmitTrace/EmitMetric/EmitLog/EmitAudit`` 语义。
+高基数 id 绝不用作指标标签（EVD-002）。
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from ueaf.ports import (
 
 @dataclass(slots=True)
 class InMemoryTelemetryCollector:
-    """Collects telemetry in-memory for evidence mapping and audits."""
+    """在内存中收集遥测，用于证据映射与审计。"""
 
     traces: list[TraceRecord] = field(default_factory=list)
     metrics: list[MetricPoint] = field(default_factory=list)

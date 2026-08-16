@@ -1,4 +1,4 @@
-"""Canonical action identity: argument canonicalization + fingerprint (ACT-007/008)."""
+"""规范的动作身份：参数规范化 + 指纹（ACT-007/008）。"""
 
 from __future__ import annotations
 
@@ -12,8 +12,7 @@ from typing import Any
 
 from ueaf.common.identifiers import sha256_hex
 
-# Credential-like argument keys whose values must never enter the fingerprint
-# (ACT-017). Values are redacted before hashing.
+# 凭据类参数键，其值绝不允许进入指纹（ACT-017）。哈希前对值进行脱敏处理。
 _SECRET_KEY_PATTERN = re.compile(
     r"(password|passwd|secret|token|api[_-]?key|credential|"
     r"access[_-]?key|private[_-]?key|authorization|client[_-]?secret)",
@@ -22,7 +21,7 @@ _SECRET_KEY_PATTERN = re.compile(
 
 
 def _redact_secret_values(arguments: dict[str, Any]) -> dict[str, Any]:
-    """Replace values of credential-like keys with a stable placeholder."""
+    """将凭据类键的值替换为稳定的占位符。"""
     return {
         key: ("[REDACTED]" if _SECRET_KEY_PATTERN.search(key) else value)
         for key, value in arguments.items()
@@ -30,14 +29,13 @@ def _redact_secret_values(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def canonicalize_argument(value: Any) -> Any:
-    """Normalize an argument for stable fingerprinting (order/digits/tz/unicode)."""
+    """规范化参数以获得稳定的指纹（顺序/数字/时区/Unicode）。"""
     if value is None:
         return None
     if isinstance(value, bool):
         return value
     if isinstance(value, Decimal):
-        # Normalize trailing zeros and serialize as a stable string so the
-        # fingerprint is JSON-serializable and digit-stable (ACT-007).
+        # 规范化尾随零并序列化为稳定字符串，使指纹可 JSON 序列化且数字稳定（ACT-007）。
         return str(value.normalize())
     if isinstance(value, float):
         return float(value)
@@ -63,7 +61,7 @@ def canonicalize_argument(value: Any) -> Any:
 
 @dataclass(frozen=True, slots=True)
 class ActionFingerprint:
-    """Stable identity of a logical side effect (binds tenant/principal/capability)."""
+    """逻辑副作用的稳定身份（绑定租户/主体/能力）。"""
 
     tenant_id: str
     principal_id: str
@@ -80,7 +78,7 @@ class ActionFingerprint:
             str(k): canonicalize_argument(v)
             for k, v in sorted(self.arguments.items())
         }
-        # ACT-017: credential values never enter the fingerprint.
+        # ACT-017：凭据值绝不允许进入指纹。
         return _redact_secret_values(canonical)
 
     @property
@@ -102,5 +100,5 @@ class ActionFingerprint:
 
     @property
     def action_key(self) -> str:
-        """Stable idempotency identity for the logical side effect (ACT-002)."""
+        """逻辑副作用的稳定幂等身份（ACT-002）。"""
         return sha256_hex(f"action-key:{self.action_fingerprint}")

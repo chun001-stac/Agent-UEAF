@@ -1,7 +1,6 @@
-"""MutationValidator — machine validation before any Genome materialization.
+"""MutationValidator —— 任何 Genome 物化之前的机器校验。
 
-Rejects undeclared/frozen/out-of-range changes and enforces the effective
-mutation surface intersection (MUT-001..008).
+拒绝未声明/冻结/越界变更，并强制有效变更表面的交集（MUT-001..008）。
 """
 
 from __future__ import annotations
@@ -30,7 +29,7 @@ class MutationValidation:
 
 
 class MutationValidator:
-    """Validates proposals against the Subject Profile + Authority Policy."""
+    """依据 Subject Profile + Authority Policy 校验 proposal。"""
 
     def __init__(self, *, subject: SubjectProfile, authority: EvolutionAuthorityPolicy) -> None:
         self._subject = subject
@@ -40,14 +39,14 @@ class MutationValidator:
         if not self._authority.allow_mutation:
             return MutationValidation("rejected", ("mutation_disabled_by_policy",))
 
-        # MUT-006 sparse profile: single repair target and bounded patch fields.
+        # MUT-006 稀疏 profile：单一修复目标与有界 patch 字段。
         targets = {patch.target_ref for patch in proposal.changes}
         if len(targets) != 1:
             return MutationValidation("rejected", ("multiple_repair_targets",))
         if proposal.target_ref not in targets:
             return MutationValidation("rejected", ("patch_target_mismatch",))
 
-        # MUT-004 repair-level mismatch.
+        # MUT-004 repair-level 不匹配。
         if proposal.repair_level not in self._subject.allowed_repair_levels:
             return MutationValidation(
                 "rejected", (f"repair_level_not_allowed:{proposal.repair_level}",)
@@ -59,21 +58,21 @@ class MutationValidator:
             return MutationValidation("rejected", ("patch_too_wide",))
 
         for patch in proposal.changes:
-            # MUT-002 frozen / governance reject takes precedence over MUT-001.
+            # MUT-002 冻结/治理拒绝优先于 MUT-001。
             if patch.path in frozen:
                 return MutationValidation("rejected", (f"frozen_field:{patch.path}",))
             if self._authority.governance_kernel_frozen and patch.target_ref.startswith(
                 "governance"
             ):
                 return MutationValidation("rejected", ("governance_kernel_frozen",))
-            # MUT-001 undeclared field reject.
+            # MUT-001 未声明字段拒绝。
             if patch.path not in declared:
                 return MutationValidation("rejected", (f"undeclared_field:{patch.path}",))
-            # MUT-003 range reject: out-of-range values are rejected.
+            # MUT-003 范围拒绝：越界值会被拒绝。
             range_error = self._range_error(patch)
             if range_error:
                 return MutationValidation("rejected", (range_error,))
-            # MUT-008 patch shape.
+            # MUT-008 patch 形状。
             shape = self._shape_error(patch)
             if shape:
                 return MutationValidation("rejected", (shape,))

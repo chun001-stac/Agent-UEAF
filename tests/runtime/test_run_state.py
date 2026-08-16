@@ -1,4 +1,4 @@
-"""Phase 1 run-state acceptance tests (RUN-002..004, RUN-008, CON-013)."""
+"""阶段 1 run 状态验收测试（RUN-002..004、RUN-008、CON-013）。"""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ async def test_phase_and_disposition_are_orthogonal() -> None:
     coordinator, _, _, _ = _harness()
     running = await _create_and_admit(coordinator)
     assert running.phase == "running"
-    assert running.completion_disposition is None  # non-terminal disposition must be null
+    assert running.completion_disposition is None  # 非终态 disposition 必须为空
 
     terminal = await coordinator.commit_terminal(
         running.run_id,
@@ -77,18 +77,18 @@ async def test_stale_fencing_token_write_is_rejected() -> None:
     leased = await coordinator.acquire_lease(running.run_id, holder_id="worker-a")
     assert leased.lease.fencing_token == 1
 
-    # Same worker heartbeats successfully.
+    # 同一工作进程心跳成功。
     heartbeat = await coordinator.heartbeat(
         leased.run_id, lease_id=leased.lease.lease_id, fencing_token=1
     )
     assert heartbeat.revision > leased.revision
 
-    # A stale holder (older fencing token) must be rejected.
+    # 过期的持有者（较旧的 fencing token）必须被拒绝。
     with pytest.raises(ValueError, match="stale_fencing_token"):
         await coordinator.heartbeat(
             leased.run_id,
             lease_id=leased.lease.lease_id,
-            fencing_token=0,  # stale
+            fencing_token=0,  # 过期
         )
 
 
@@ -101,13 +101,13 @@ async def test_crash_recovery_does_not_double_commit_terminal() -> None:
     )
     assert first.phase == "terminal"
 
-    # Replaying the same terminal command is idempotent (returns current record).
+    # 重放相同的终态命令是幂等的（返回当前记录）。
     replay = await coordinator.commit_terminal(
         running.run_id, disposition="cancelled", reason_codes=("operator_cancel",)
     )
     assert replay.revision == first.revision
 
-    # A conflicting disposition on the terminal run is rejected.
+    # 对终态 run 提交冲突的 disposition 会被拒绝。
     with pytest.raises(StateMachineError, match="terminal_conflict"):
         await coordinator.commit_terminal(
             running.run_id, disposition="failed", reason_codes=("other",)
@@ -122,11 +122,11 @@ async def test_state_dependent_record_fields_lease_and_fencing() -> None:
     assert leased.lease.fencing_token == 1
     assert leased.lease.acquired_at <= leased.lease.heartbeat_at < leased.lease.expires_at
 
-    # Re-acquiring issues a strictly greater fencing token (monotonic).
+    # 重新获取会发放严格更大的 fencing token（单调递增）。
     renewed = await coordinator.acquire_lease(running.run_id, holder_id="worker-b")
     assert renewed.lease.fencing_token == 2
 
-    # Entering waiting clears the lease (execution rights released).
+    # 进入 waiting 会清除租约（释放执行权）。
     waiting = await coordinator.register_wait(
         running.run_id,
         wait_reason="tool_result",
@@ -148,8 +148,7 @@ async def test_authoritative_state_and_events_are_atomic_via_outbox() -> None:
         run.run_id, disposition="completed", reason_codes=("done",)
     )
     assert terminal.phase == "terminal"
-    # Every state change is mirrored by outbox entries; the bus consumes
-    # without loss and dedupes by event_id.
+    # 每次状态变更都会由 outbox 条目镜像；总线无损消费并按 event_id 去重。
     bus = InMemoryEventBus()
     published: list[str] = []
     for entry in await outbox.unpublished():
@@ -161,6 +160,6 @@ async def test_authoritative_state_and_events_are_atomic_via_outbox() -> None:
     assert run_events, "run lifecycle must produce authoritative events"
     assert "ueaf.run.created" in [e.event_name for e in run_events]
     assert "ueaf.run.terminal_committed" in [e.event_name for e in run_events]
-    # Idempotent redelivery does not double-publish (dedupe by event_id).
+    # 幂等重投不会重复发布（按 event_id 去重）。
     for entry in await outbox.unpublished():
         assert bus.publish(entry) is False

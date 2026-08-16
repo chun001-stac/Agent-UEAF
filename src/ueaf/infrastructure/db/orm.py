@@ -1,9 +1,9 @@
-"""SQLAlchemy ORM models for authoritative V1 objects (implementation spec 03).
+"""权威 V1 对象的 SQLAlchemy ORM 模型（实现规范 03）。
 
-The ORM rows are NOT the public contract: every row carries a ``payload`` JSON
-column that fully reconstructs the canonical object (including ``ContractMeta``).
-A few scalar columns (``tenant_id``, ``revision``, ``phase``, ``sequence``,
-``lease_fencing_token``) are split out for DB-level CAS, fencing and querying.
+ORM 行并非公开契约：每一行都带有 ``payload`` JSON 列，可完整重建规范对象
+（包括 ``ContractMeta``）。少数标量列（``tenant_id``、``revision``、``phase``、
+``sequence``、``lease_fencing_token``）被拆分出来，用于数据库级别的 CAS、
+fencing 与查询。
 """
 
 from __future__ import annotations

@@ -1,8 +1,7 @@
-"""Read-only Eval vertical slice (Phase 4, implementation spec 08 §8.1).
+"""只读评测垂直切片（阶段 4，实现规范 08 §8.1）。
 
-EvalResult is only produced from a frozen ``EvaluationBundle`` by an isolated
-runner — never by a production request. Quality/Security/Operational gates are
-separate from ``ReleaseDecision`` authority (EVAL-018).
+EvalResult 只能由隔离的运行器基于冻结的 ``EvaluationBundle`` 生成——绝不能由生产
+请求生成。质量/安全/运营门控与 ``ReleaseDecision`` 的权限相互独立（EVAL-018）。
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ _GATE_OUTCOMES: frozenset[str] = frozenset({"pass", "fail", "inconclusive"})
 
 @dataclass(frozen=True, slots=True)
 class EvalCase:
-    """A single evaluation case with provenance and sensitive status (EVAL-005)."""
+    """单个评测用例，带溯源与敏感状态（EVAL-005）。"""
 
     eval_case_id: str
     source_ref: str
@@ -58,7 +57,7 @@ class EvalConfig:
 
 @dataclass(frozen=True, slots=True)
 class EvaluationBundle:
-    """Frozen inputs for an isolated EvalRun (EVAL-004/006)."""
+    """隔离 EvalRun 的冻结输入（EVAL-004/006）。"""
 
     bundle_id: str
     config: EvalConfig
@@ -78,7 +77,7 @@ class EvaluationBundle:
 
 @dataclass(frozen=True, slots=True)
 class EvalRun:
-    """Isolated evaluation run; source of EvalResult (EVAL-004)."""
+    """隔离的评测运行；EvalResult 的来源（EVAL-004）。"""
 
     meta: ContractMeta
     eval_run_id: str
@@ -113,7 +112,7 @@ class EvalResult:
 
 @dataclass(frozen=True, slots=True)
 class QualityGateDecision:
-    """Quality gate only — never a ReleaseDecision (EVAL-018)."""
+    """仅限质量门控——绝不是 ReleaseDecision（EVAL-018）。"""
 
     meta: ContractMeta
     quality_gate_decision_id: str
@@ -161,14 +160,14 @@ class OperationalReadinessDecision:
 
 @dataclass(frozen=True, slots=True)
 class HardGraderResult:
-    """Deterministic hard grader: structural/safety checks before any judge."""
+    """确定性硬评分器：在任何评测之前进行的结构/安全检查。"""
 
     failed: bool
     reason_codes: tuple[str, ...] = ()
 
 
 class DeterministicHardGrader:
-    """Hard grader evaluated before judge scores (EVAL-002/007)."""
+    """在评测打分之前评估的硬评分器（EVAL-002/007）。"""
 
     def __init__(self, *, conditions: tuple[str, ...] = ()) -> None:
         self._conditions = conditions
@@ -186,20 +185,20 @@ class DeterministicHardGrader:
 
 
 class DeterministicJudge:
-    """Deterministic judge used in CI (frozen judge prompt/model/schema)."""
+    """用于 CI 的确定性评测器（冻结的评测提示/模型/模式）。"""
 
     def __init__(self, *, version: str, seed: int = 0) -> None:
         self._version = version
         self._seed = seed
 
     def score(self, case: EvalCase, candidate_output: Mapping[str, object]) -> float:
-        # Deterministic score: rubric-compliant outputs score higher.
+        # 确定性打分：符合评分标准（rubric）的输出得分更高。
         base = 1.0 if candidate_output.get("complete") else 0.0
         return base
 
 
 class EvalRunner:
-    """Isolated runner: frozen bundle -> per-case verdicts -> EvalResult."""
+    """隔离运行器：冻结的 bundle -> 各用例判定 -> EvalResult。"""
 
     def __init__(self, *, hard_grader: DeterministicHardGrader, judge: DeterministicJudge) -> None:
         self._hard = hard_grader

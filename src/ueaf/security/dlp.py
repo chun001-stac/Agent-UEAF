@@ -1,8 +1,7 @@
-"""DLP result minimization (SEC-015).
+"""DLP 结果最小化（SEC-015）。
 
-Tool/RAG output may contain sensitive fields beyond the request purpose.
-``DLPResultMinimizer`` trims or blocks those fields; a prompt or judge can
-never override the minimization decision.
+工具/RAG 输出可能包含超出请求目的范围的敏感字段。``DLPResultMinimizer`` 会裁剪或阻止
+这些字段；提示词或评测永远不能覆盖最小化决策。
 """
 
 from __future__ import annotations
@@ -19,7 +18,7 @@ class DLPDecision:
     trimmed_keys: tuple[str, ...] = ()
 
 
-# Sensitivity tiers: internal/confidential/restricted fields need a purpose.
+# 敏感级别：internal/confidential/restricted 字段需要目的说明。
 _PURPOSE_SENSITIVE: frozenset[str] = frozenset(
     {
         "ssn",
@@ -37,7 +36,7 @@ _PURPOSE_SENSITIVE: frozenset[str] = frozenset(
 
 
 class DLPResultMinimizer:
-    """Trims out-of-purpose sensitive fields from Tool/RAG results (SEC-015)."""
+    """从工具/RAG 结果中裁剪超出目的范围的敏感字段（SEC-015）。"""
 
     def __init__(self, *, sensitive_keys: frozenset[str] | None = None) -> None:
         self._sensitive = (
@@ -59,7 +58,7 @@ class DLPResultMinimizer:
     def trim(
         self, result: Mapping[str, Any], *, purpose: str, allowed_sensitive: tuple[str, ...] = ()
     ) -> tuple[dict[str, Any], DLPDecision]:
-        """Return the minimized payload (sensitive fields dropped)."""
+        """返回最小化后的载荷（丢弃敏感字段）。"""
         allowed = set(allowed_sensitive)
         minimized: dict[str, Any] = {}
         trimmed: list[str] = []

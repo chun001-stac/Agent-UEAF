@@ -1,1 +1,1 @@
-"""Admission boundary: principal, request/task/budget envelopes, run admission."""
+"""准入边界：主体、请求/任务/预算信封、运行准入。"""

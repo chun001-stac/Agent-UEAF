@@ -1,7 +1,6 @@
-"""PolicyDecisionPoint — the only owner of ``PolicyDecision`` (SEC-004/006/019).
+"""PolicyDecisionPoint — ``PolicyDecision`` 的唯一所有者（SEC-004/006/019）。
 
-Local rule snapshots must never become a second PDP; a runtime authorization
-is only expressed by a signed, valid ``PolicyDecision``.
+本地规则快照绝不允许成为第二个 PDP；运行时授权仅通过签名且有效的 ``PolicyDecision`` 表达。
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ _POLICY_OUTCOMES: frozenset[str] = frozenset({"allow", "deny", "require_approval
 
 @dataclass(frozen=True, slots=True)
 class PolicyDecision:
-    """Runtime principal-action-resource-environment authorization only."""
+    """仅表达运行时的主体-动作-资源-环境授权。"""
 
     meta: ContractMeta
     policy_decision_id: str
@@ -57,7 +56,7 @@ class PolicyDecision:
 
 @dataclass(frozen=True, slots=True)
 class PolicyRule:
-    """Immutable declarative rule evaluated by the PDP."""
+    """由 PDP 评估的不可变声明式规则。"""
 
     rule_id: str
     action: str
@@ -69,7 +68,7 @@ class PolicyRule:
 
 
 class PolicyDecisionPoint:
-    """Deny-by-default PDP; no allow without a matching rule."""
+    """默认拒绝的 PDP；没有匹配规则就不允许放行。"""
 
     def __init__(
         self, *, rules: tuple[PolicyRule, ...] = (), producer_version: str = "0.1.0"

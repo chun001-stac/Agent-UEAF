@@ -1,15 +1,15 @@
-"""Create P1 action/turn/memory persistence tables.
+"""创建 P1 action/turn/memory 持久化表。
 
 Revision ID: 20260816_0003
 Revises: 20260816_0002
 Create Date: 2026-08-16
 
-Tables: ``action_records``, ``action_receipts``, ``approval_requests``,
-``turn_records``, ``memory_records``.
+表：``action_records``、``action_receipts``、``approval_requests``、
+``turn_records``、``memory_records``。
 
-Follows the 0002 pattern: every row keeps a full ``payload`` JSON column to
-reconstruct the canonical object (including ``ContractMeta``); scalar columns
-enable DB-level CAS, fencing and tenant/run-scoped queries (impl spec 03 §5/§15).
+沿用 0002 模式：每行保留完整的 ``payload`` JSON 列，用于重建规范对象
+（包括 ``ContractMeta``）；标量列支持数据库级别的 CAS、fencing 及
+按租户/run 范围查询（实现规范 03 §5/§15）。
 """
 
 from collections.abc import Sequence

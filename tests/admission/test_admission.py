@@ -1,4 +1,4 @@
-"""Phase 1 admission acceptance tests (RUN-*)."""
+"""阶段 1 准入验收测试（RUN-*）。"""
 
 from __future__ import annotations
 
@@ -52,11 +52,11 @@ async def test_queued_cannot_skip_admitting() -> None:
     run = await _create_run(coordinator)
     assert run.phase == "queued"
 
-    # Direct queued -> running is rejected by the closed state machine.
+    # 封闭状态机拒绝直接由 queued 跳转到 running。
     with pytest.raises(StateMachineError):
         await coordinator.resume(run.run_id, to_phase="running", resume_signal_ref="sig")
 
-    # Correct path: queued -> admitting -> running (only after admitted).
+    # 正确路径：queued -> admitting -> running（仅在准入通过后）。
     admitting = await coordinator.begin_admission(run.run_id)
     assert admitting.phase == "admitting"
 
@@ -98,7 +98,7 @@ async def test_edge_reject_creates_no_run() -> None:
     edge = EdgePreValidator()
     result = edge.validate(rejected_request, observed_at=moment)
     assert result.accepted is False
-    # No RunRecord / RunAdmissionResult may exist for an edge-rejected request.
+    # 被边缘层拒绝的请求不应存在任何 RunRecord / RunAdmissionResult。
     assert await runs.get("run:any") is None
     assert await coordinator._admissions.get("run-admission:any:1") is None
 
@@ -107,7 +107,7 @@ async def test_edge_reject_creates_no_run() -> None:
 async def test_task_risk_enum_rejects_deprecated_aliases() -> None:
     coordinator, _, _ = _harness()
     with pytest.raises(ValueError, match="invalid risk_class"):
-        await _create_run(coordinator, risk_class="R3")  # deprecated alias rejected
+        await _create_run(coordinator, risk_class="R3")  # 已弃用的别名被拒绝
     with pytest.raises(ValueError, match="invalid risk_class"):
         TaskEnvelope(
             meta=ContractMeta(
@@ -142,7 +142,7 @@ async def test_adapter_binding_is_frozen_before_admission() -> None:
         admitting, support.task_envelope(), support.budget(), support.principal()
     )
     running = await coordinator.apply_admission(admitting.run_id, result)
-    # Admission validates the already-frozen binding; retry/recovery cannot reselect.
+    # 准入校验已冻结的绑定；重试/恢复不能重新选择。
     assert running.runtime_adapter_ref == frozen_adapter
     assert running.runtime_adapter_ref == "adapter:langgraph"
 
@@ -152,8 +152,8 @@ async def test_unsupported_capability_rejects_with_unsupported() -> None:
     coordinator, _, _ = _harness()
     run = await _create_run(coordinator)
     admitting = await coordinator.begin_admission(run.run_id)
-    # An adapter whose capability set does not satisfy the task is rejected at
-    # admission via the binding check (unsupported_capability reason code).
+    # 能力集合不满足任务的适配器会在准入时通过绑定检查被拒绝
+    # （reason code 为 unsupported_capability）。
     result = support.admission_controller(usable_release=False).evaluate(
         admitting, support.task_envelope(), support.budget(), support.principal()
     )

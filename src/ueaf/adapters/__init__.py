@@ -1,1 +1,1 @@
-"""Runtime / model / tool adapters. Adapters never bypass the whitelisted ports."""
+"""运行时 / 模型 / 工具适配器。适配器绝不绕过白名单端口。"""

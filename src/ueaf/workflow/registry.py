@@ -1,8 +1,7 @@
-"""Workflow Registry (functional module 06).
+"""工作流注册表（功能模块 06）。
 
-Manages workflow Definitions, schemas, owners, compatibility and publication.
-A run instance binds an immutable Definition version; a newer compatible
-definition never silently rewrites an in-flight run.
+管理工作流定义、模式、所有者、兼容性与发布。运行实例绑定不可变的定义版本；更新的兼容
+定义绝不静默改写正在运行中的 run。
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ class WorkflowCompatibility:
 
 @dataclass(slots=True)
 class WorkflowRegistry:
-    """Immutable registry of workflow definitions by (id, version)."""
+    """按 (id, version) 组织的工作流定义不可变注册表。"""
 
     _definitions: dict[tuple[str, str], WorkflowDefinition] = field(default_factory=dict)
 

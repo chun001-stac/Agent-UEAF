@@ -1,1 +1,1 @@
-"""Release domain: candidate, manifest, activation chain, rollback (REL-*)."""
+"""发版领域：候选、清单、激活链、回滚（REL-*）。"""

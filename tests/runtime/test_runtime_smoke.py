@@ -1,4 +1,4 @@
-"""Phase 2 runtime smoke: controlled non-Eval chain (ADP-*)."""
+"""阶段 2 运行时冒烟测试：受控的非 Eval 链路（ADP-*）。"""
 
 from __future__ import annotations
 
@@ -152,9 +152,8 @@ async def test_adapter_model_step_routes_through_model_gateway() -> None:
 
 @pytest.mark.test_id("ADP-002")
 async def test_tool_candidates_flow_through_tool_gateway() -> None:
-    # The deterministic adapter emits model decisions; tool candidates are
-    # only ever produced as ToolIntent via ToolIntentPort, never executed
-    # directly by the adapter.
+    # 确定性适配器产生模型决策；工具候选只能通过 ToolIntentPort 以 ToolIntent
+    # 形式产生，绝不会由适配器直接执行。
     run, ctx = await _execution_context(DeterministicFakeModel(), call_log=[])
     assert ctx.tool_intent_port is not None
     assert ctx.model_step_port is not None
@@ -171,7 +170,7 @@ def test_second_adapter_is_equivalent_for_read_only_agent() -> None:
     oai_caps = read_only.DescribeRuntime()
     assert lg_caps.supported_contract_versions == oai_caps.supported_contract_versions
     assert oai_caps.native_tool_calls is False
-    # Both adapters expose the same typed SPI surface (equivalence of semantics).
+    # 两个适配器暴露相同的类型化 SPI 接口（语义等价）。
     for name in ("DescribeRuntime", "StartRun", "AdvanceRun", "SuspendRun", "ResumeRun",
                  "CancelRun", "InspectRun"):
         assert callable(getattr(langgraph, name))
@@ -211,7 +210,7 @@ async def test_runtime_event_is_not_authoritative_event_envelope() -> None:
         )
     )
     events = await _drain(stream)
-    # Adapter events are RuntimeEvent; they must never impersonate ueaf.* EventEnvelope.
+    # 适配器事件是 RuntimeEvent；它们绝不能冒充 ueaf.* EventEnvelope。
     for event in events:
         assert event.event_type == "ueaf" or not event.event_type.startswith("ueaf.")
 

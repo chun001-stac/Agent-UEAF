@@ -1,4 +1,4 @@
-"""FastAPI control-plane tests: edge -> run -> admission -> commands."""
+"""FastAPI 控制面测试：edge -> run -> admission -> commands。"""
 
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ def test_api_edge_reject_returns_problem_and_no_run() -> None:
             "principal_ref": "principal:1",
         },
     )
-    # edge pre-validation accepts the queued channel -> 201
+    # 边缘层预校验接受 queue 通道 -> 201
     assert resp.status_code == 201
     assert resp.json()["status"] == "accepted"
 
@@ -124,7 +124,7 @@ def test_api_errors_are_problem_detail() -> None:
     assert payload["code"] == "not_found"
     assert payload["retryability"] == "never"
 
-    # Invalid state transition surfaces as a 409 ProblemDetail.
+    # 无效的状态转换以 409 ProblemDetail 形式返回。
     created = client.post("/v1/runs", json=_run_body()).json()
     conflict = client.post(
         f"/v1/runs/{created['run_id']}/commands",
@@ -140,7 +140,7 @@ def test_api_errors_are_problem_detail() -> None:
             "payload": {"disposition": "completed", "reason_codes": ["done"]},
         },
     )
-    # A queued run cannot go directly to terminal (must pass admission).
+    # queued 状态的 run 不能直接进入 terminal（必须先通过准入）。
     assert conflict.status_code == 409
     assert conflict.json()["code"] == "invalid_state_transition"
 

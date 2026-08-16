@@ -1,1 +1,1 @@
-"""Infrastructure integration primitives for the UEAF reference implementation."""
+"""UEAF 参考实现的基础设施集成原语。"""

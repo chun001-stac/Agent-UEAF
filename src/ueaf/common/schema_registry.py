@@ -114,7 +114,7 @@ def load_schema(path: Path) -> Schema:
 
 
 def register_canonical_id_field(contract_name: str, id_field: str) -> None:
-    """Register the explicit object-id field for a canonical contract."""
+    """为规范契约注册显式的 object-id 字段。"""
     current = _CANONICAL_ID_FIELDS.get(contract_name)
     if current is not None and current != id_field:
         raise ValueError(f"canonical id field already registered for {contract_name}: {current}")
@@ -122,7 +122,7 @@ def register_canonical_id_field(contract_name: str, id_field: str) -> None:
 
 
 def register_canonical_invariant(contract_name: str, invariant: CanonicalInvariant) -> None:
-    """Register an application-level invariant not expressible in JSON Schema."""
+    """注册无法用 JSON Schema 表达的应用级不变量。"""
     _CANONICAL_INVARIANTS[contract_name].append(invariant)
 
 
@@ -244,7 +244,7 @@ def _validate_schema_lock(schema_root: Path, documents: Mapping[str, tuple[Path,
 
 
 def validate_schema_lock_history(current_lock: Path, baseline_lock: Path) -> int:
-    """Require every baseline identity/version tuple and digest to remain unchanged."""
+    """要求每个基线 identity/version 元组及其摘要保持不变。"""
     _, current_index = _load_schema_lock_file(current_lock, required=True)
     baseline_entries, _ = _load_schema_lock_file(baseline_lock, required=True)
     for baseline_entry in baseline_entries:
@@ -316,7 +316,7 @@ def _parse_exact_rfc3339_instant(
     field: str,
     label: str,
 ) -> tuple[int, Decimal]:
-    """Return an exact UTC-second/fraction key without microsecond truncation."""
+    """返回精确的 UTC 秒/小数部分键，不做微秒截断。"""
     value = instance.get(field)
     if not isinstance(value, str):
         raise ValidationError(f"{label}.{field} must be an RFC 3339 timestamp")
@@ -362,11 +362,10 @@ def _parse_exact_rfc3339_instant(
 
 
 def _action_record_receipt_invariant(instance: Mapping[str, Any]) -> None:
-    """Validate only ActionRecord-local receipt shape, not referenced fact existence.
+    """仅校验 ActionRecord 本地的 receipt 形状，不校验被引用事实是否存在。
 
-    Passing this invariant is not proof that PolicyDecision, reservation, or receipt
-    references exist, remain active, or authorize a consumable side effect. Those
-    cross-object checks belong to the Phase 3 execution gate.
+    通过此不变量并不证明 PolicyDecision、reservation 或 receipt 引用存在、
+    仍然有效，或授权了可消费的副作用。这些跨对象检查属于 Phase 3 执行门。
     """
     receipt_refs = instance.get("receipt_refs")
     if not isinstance(receipt_refs, list):
@@ -429,7 +428,7 @@ def _action_record_receipt_invariant(instance: Mapping[str, Any]) -> None:
 
 
 def _run_record_lease_invariant(instance: Mapping[str, Any]) -> None:
-    """Validate RunLease internal ordering without asserting wall-clock freshness."""
+    """校验 RunLease 内部顺序，不断言墙钟时间的新鲜度。"""
     lease = instance.get("lease")
     if lease is None:
         return
@@ -574,7 +573,7 @@ def validate_schema_catalog(schema_root: Path) -> int:
 
 
 def update_schema_lock(schema_root: Path) -> tuple[int, int]:
-    """Append new schema identity/version tuples without rewriting existing tuples."""
+    """追加新的 schema identity/version 元组，不重写既有元组。"""
     documents = _load_schema_documents(schema_root)
     registry = _registry_from_documents(documents)
     _validate_local_refs(documents, registry)
@@ -654,11 +653,11 @@ def _validate_instance_from_catalog(
 
 
 def validate_instance(instance: Any, schema_path: Path, schema_root: Path) -> None:
-    """Validate one registered object, without resolving cross-object facts.
+    """校验单个已注册对象，不解析跨对象事实。
 
-    Success proves only that this instance satisfies its machine Schema and local
-    canonical invariants. It does not prove referenced Policy, Approval, Receipt,
-    reservation, Evidence, Gate, or Release facts exist or are consumable.
+    成功仅证明该实例满足其机器 Schema 与本地规范不变量。它不证明被引用的
+    Policy、Approval、Receipt、reservation、Evidence、Gate 或 Release 事实
+    存在或可消费。
     """
     documents = _load_schema_documents(schema_root)
     registry = _registry_from_documents(documents)
@@ -854,7 +853,7 @@ def _canonical_json_snapshot(
 
 
 def _fresh_verifier_copy(instance: Mapping[str, Any]) -> dict[str, Any]:
-    """Return a disposable JSON copy that a verifier may never use to mutate master state."""
+    """返回一次性 JSON 副本，验证器绝不能用它来变更主状态。"""
     copied = json.loads(
         json.dumps(
             instance,
@@ -960,13 +959,12 @@ def validate_release_activation(
     verifier: ReleaseActivationVerifier | None,
     now: datetime | None = None,
 ) -> None:
-    """Fail closed unless a trusted verifier accepts a complete activation chain.
+    """除非可信验证器接受完整的激活链，否则失败关闭（fail closed）。
 
-    ``verifier`` is a required Phase 4 integration dependency. This module only
-    defines and invokes that trust boundary; it does not implement production
-    integrity, authority, evidence, waiver, scope, or rollback resolution. Callers
-    must activate from a content-addressed immutable store or equivalent CAS. A
-    mutable caller object after return is never activation proof.
+    ``verifier`` 是必需的 Phase 4 集成依赖。本模块只定义并调用该信任边界；
+    不实现生产环境的完整性、权限、证据、豁免、范围或回滚解析。调用方必须从
+    内容寻址的不可变存储或等效 CAS 进行激活。返回后仍可变的调用方对象
+    绝不构成激活证明。
     """
     caller_contracts: tuple[tuple[str, Mapping[str, Any], Path], ...] = (
         (

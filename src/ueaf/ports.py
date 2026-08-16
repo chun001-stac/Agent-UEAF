@@ -3,7 +3,13 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
+
+if TYPE_CHECKING:
+    # 仅在类型注解中使用：ManifestSection/CompressionRecord 定义于 context 模块
+    # （模块内部派生对象），此处不产生运行时导入，避免循环依赖。
+    from ueaf.context.compression import CompressionRecord
+    from ueaf.context.context_build import ManifestSection
 
 Retryability = Literal["never", "safe", "conditional", "after_reconciliation"]
 Certainty = Literal["not_executed", "unknown"]
@@ -136,6 +142,17 @@ class ContextManifest:
     schema_ref: str
     evidence_pack_refs: tuple[str, ...]
     integrity_ref: str
+    # ---- 模块 04 Context Builder 的增量装配字段（仅由它构造，带默认值避免
+    #      破坏既有构造/测试）。----
+    sections: tuple[ManifestSection, ...] = ()
+    source_refs: tuple[str, ...] = ()
+    policy_snapshot_ref: str | None = None
+    budget_before: int | None = None
+    budget_after: int | None = None
+    selection_decisions: tuple[str, ...] = ()
+    omissions: tuple[str, ...] = ()
+    compression_records: tuple[CompressionRecord, ...] = ()
+    trust_labels: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,9 +1,8 @@
-"""Generic JSON codec for frozen canonical dataclasses.
+"""冻结规范 dataclass 的通用 JSON 编解码器。
 
-Stores full objects (including nested ``ContractMeta``) in a ``payload`` JSON
-column so the ORM row can always rebuild the canonical object without losing
-fields (implementation spec 03 §4). ``datetime`` -> ISO-8601 string, tuples ->
-JSON arrays (restored as tuples on decode).
+将完整对象（包括嵌套的 ``ContractMeta``）存入 ``payload`` JSON 列，使 ORM 行
+在不丢失字段的情况下始终能重建规范对象（实现规范 03 §4）。``datetime`` ->
+ISO-8601 字符串，元组 -> JSON 数组（解码时恢复为元组）。
 """
 
 from __future__ import annotations
@@ -42,7 +41,7 @@ _VALUE = "v"
 
 
 def encode_value(value: Any) -> Any:
-    """Encode a dataclass/container tree into a JSON-safe structure."""
+    """将 dataclass/容器树编码为 JSON 安全的结构。"""
     if isinstance(value, datetime):
         return {_DT: value.isoformat()}
     if isinstance(value, tuple):
@@ -65,7 +64,7 @@ def encode_value(value: Any) -> Any:
 
 
 def decode_value(value: Any) -> Any:
-    """Decode a JSON-safe structure back into the canonical dataclass tree."""
+    """将 JSON 安全的结构解码回规范 dataclass 树。"""
     if isinstance(value, dict):
         if _DT in value:
             parsed = datetime.fromisoformat(value[_DT])

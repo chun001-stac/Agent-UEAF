@@ -1,9 +1,8 @@
-"""CON/OBJ/MUT/REP/ETH gap tests: CON-010/012, OBJ-002/003, MUT-003, REP-003, ETH-003.
+"""CON/OBJ/MUT/REP/ETH 缺口测试：CON-010/012、OBJ-002/003、MUT-003、REP-003、ETH-003。
 
-Covers the remaining governance slices: plural version-set ReleaseManifest,
-implementation-detail-not-authority conformance, guardrail objective outcomes,
-evidence-confidence inconclusive, out-of-range mutation rejection, evidence-
-based escalation, and the R4 supply chain gate.
+覆盖其余治理切片：复数版本集合的 ReleaseManifest、实现细节不可成为权威的
+一致性、护栏目标结果、证据置信度不足判定不确定、越界修改拒绝、基于证据的
+升级，以及 R4 供应链门禁。
 """
 
 from __future__ import annotations
@@ -53,7 +52,7 @@ def test_release_manifest_uses_plural_version_sets() -> None:
         capability_versions=("cap@1.0.0",),
         adapter_versions=("adapter@1.0.0",),
     )
-    # Machine schema uses plural version-set fields, not a single-version field.
+    # 机器 schema 使用复数版本集合字段，而非单一版本字段。
     for field_name in (
         "agent_versions",
         "prompt_versions",
@@ -63,14 +62,14 @@ def test_release_manifest_uses_plural_version_sets() -> None:
         "adapter_versions",
     ):
         assert isinstance(getattr(manifest, field_name), tuple)
-    # No singular `version` field replaces the version sets.
+    # 没有任何单一的 `version` 字段取代版本集合。
     assert not hasattr(manifest, "version")
 
 
 @pytest.mark.test_id("CON-012")
 def test_implementation_detail_never_becomes_authority() -> None:
-    # Internal algorithm tiers / judgement words must not appear as authority
-    # object fields or public test IDs.
+    # 内部算法层级 / 判定措辞不得作为权威
+    # 对象字段或公开测试 ID 出现。
     authority_field_names = {
         "tier",
         "algorithm_step",
@@ -94,7 +93,7 @@ def test_implementation_detail_never_becomes_authority() -> None:
 @pytest.mark.test_id("OBJ-002")
 def test_guardrail_overrides_quality_gain() -> None:
     evaluator = ObjectiveEvaluator()
-    # Quality improved but latency exceeds guardrail -> not improved.
+    # 质量提升但延迟超过护栏 -> 判定为未改进。
     decision = evaluator.evaluate(
         quality_improved=True,
         cost_millis=50,
@@ -106,7 +105,7 @@ def test_guardrail_overrides_quality_gain() -> None:
     )
     assert decision.outcome == "not_improved"
     assert "guardrail_exceeded" in decision.reason_codes
-    # Within guardrails and improved -> improved.
+    # 在护栏内且质量提升 -> 判定为已改进。
     ok = evaluator.evaluate(
         quality_improved=True,
         cost_millis=50,
@@ -194,11 +193,11 @@ def test_out_of_range_values_are_rejected() -> None:
 @pytest.mark.test_id("REP-003")
 def test_escalation_requires_evidence() -> None:
     policy = EscalationPolicy()
-    # A failure alone never auto-widens scope.
+    # 仅凭失败绝不会自动扩大范围。
     bare = policy.escalate(current_scope="r1", failure="runtime_error", evidence_refs=())
     assert bare.escalated is False
     assert "escalation_requires_evidence" in bare.reason_codes
-    # With evidence the scope may escalate.
+    # 有证据时范围可以升级。
     with_evidence = policy.escalate(
         current_scope="r1", failure="runtime_error", evidence_refs=("evidence:1",)
     )
@@ -218,7 +217,7 @@ def test_r4_supply_chain_gate_requires_all_checks() -> None:
         security_checked=True,
     )
     assert complete.passed
-    # Any missing check fails the gate with the missing check named.
+    # 任何缺失的检查都会使门禁失败，并指明缺失的检查项。
     missing = gate.evaluate(
         static_checked=True,
         secret_checked=False,

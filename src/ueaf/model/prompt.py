@@ -1,4 +1,4 @@
-"""Prompt contract compilation (functional module 03, P0-SCH-002)."""
+"""提示词合约编译（功能模块 03，P0-SCH-002）。"""
 
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ from ueaf.common.meta import ContractMeta
 
 @dataclass(frozen=True, slots=True)
 class PromptContract:
-    """Instruction version + variable/output schemas + evidence/refusal rules.
+    """指令版本 + 变量/输出模式 + 证据/拒答规则。
 
-    The instruction text and schemas must be jointly reproducible.
+    指令文本与模式必须可共同复现。
     """
 
     meta: ContractMeta
@@ -40,7 +40,7 @@ class PromptContract:
 
 @dataclass(frozen=True, slots=True)
 class PromptCompileRequest:
-    """Request to compile a prompt for a specific run/turn (frozen before invoke)."""
+    """为特定 run/turn 编译提示词的请求（调用前冻结）。"""
 
     request_id: str
     tenant_id: str
@@ -51,8 +51,8 @@ class PromptCompileRequest:
     output_schema_ref: str
     variables: Mapping[str, Any] = field(default_factory=dict)
     max_prompt_tokens: int = 8192
-    # Reserves that input may never crowd out (PRM-005): output, capability,
-    # provider-wrapper and safety reserves are reserved for later stages.
+    # 输入绝不可挤占的预留（PRM-005）：输出、能力、提供方包装与安全预留
+    # 留给后续阶段使用。
     output_reserve_tokens: int = 0
     capability_reserve_tokens: int = 0
     provider_wrapper_reserve_tokens: int = 0
@@ -65,13 +65,13 @@ class PromptTokenBudgetExceeded(RuntimeError):
 
 
 def _estimate_tokens(variables: Mapping[str, Any]) -> int:
-    """Deterministic CI estimator: serialized variables / 4 + fixed overhead."""
+    """确定性 CI 估算器：序列化变量长度 / 4 + 固定开销。"""
     serialized = json.dumps(variables, sort_keys=True, ensure_ascii=False)
     return len(serialized) // 4 + 32
 
 
 class PromptCompiler:
-    """Compiles a prompt, enforcing instruction/data isolation and token budget."""
+    """编译提示词，强制执行指令/数据隔离与 token 预算。"""
 
     def __init__(self, *, instruction_text: str, producer_version: str = "0.1.0") -> None:
         self._instruction_text = instruction_text
@@ -87,7 +87,7 @@ class PromptCompiler:
             + request.provider_wrapper_reserve_tokens
             + request.safety_reserve_tokens
         )
-        # PRM-005: input may never crowd out output/capability/safety reserves.
+        # PRM-005：输入绝不可挤占输出/能力/安全预留。
         if estimated + total_reserve > request.max_prompt_tokens:
             raise PromptTokenBudgetExceeded(
                 "estimated {estimated + total_reserve} tokens (incl. reserves) "

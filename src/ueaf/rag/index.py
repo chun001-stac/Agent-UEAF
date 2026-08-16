@@ -1,12 +1,10 @@
-"""RAG indexing: reproducible projections, semantic chunk boundaries, deletion.
+"""RAG 索引：可复现投影、语义分块边界、删除。
 
-RAG-005 reproducible indexing metadata: the same source version plus parser /
-chunk / embedding / index policy yields traceably identical metadata; changing
-any of those versions produces a distinguishable projection.
-RAG-006 semantic chunk boundaries: heading/symbol/table-header/thread/page/span
-and record ids are preserved.
-RAG-008 deleted source disappears: after deletion, production retrieval never
-recalls the old chunks; historical snapshots are isolated to Eval/Replay.
+RAG-005 可复现索引元数据：相同来源版本加上 parser/chunk/embedding/index 策略会
+产生可追溯且相同的元数据；其中任一版本变化都会产生可区分的投影。
+RAG-006 语义分块边界：标题/符号/表格表头/线程/页面/跨度以及记录 ID 都会被保留。
+RAG-008 已删除来源消失：删除后，生产检索永远不会召回旧分块；历史快照仅隔离在
+Eval/Replay 中使用。
 """
 
 from __future__ import annotations
@@ -28,7 +26,7 @@ class Chunk:
 
 @dataclass(frozen=True, slots=True)
 class IndexPolicy:
-    """Deterministic policy versions that shape an index projection (RAG-005)."""
+    """塑造索引投影的确定性策略版本（RAG-005）。"""
 
     parser_version: str = "parser@1.0.0"
     chunk_version: str = "chunk@1.0.0"
@@ -38,7 +36,7 @@ class IndexPolicy:
 
 @dataclass(frozen=True, slots=True)
 class IndexProjection:
-    """Reproducible metadata for one source version under a fixed policy."""
+    """固定策略下某一来源版本的可复现元数据。"""
 
     source_ref: str
     source_version: str
@@ -65,11 +63,10 @@ class IndexProjection:
 
 
 def split_semantic_chunks(text: str, *, locator: str = "doc") -> tuple[Chunk, ...]:
-    """Deterministic chunking that respects semantic boundaries (RAG-006).
+    """遵循语义边界的确定性分块（RAG-006）。
 
-    Headings (``#``), code fences, table headers (``|`` rows), and blank-line
-    separators are preserved as locators; a chunk never splits a fenced code
-    block or a table header row.
+    标题（``#``）、代码围栏、表格表头（``|`` 行）和空行分隔符都会作为 locator 保留；
+    分块永远不会拆分围栏代码块或表格表头行。
     """
     chunks: list[Chunk] = []
     buffer: list[str] = []
@@ -97,7 +94,7 @@ def split_semantic_chunks(text: str, *, locator: str = "doc") -> tuple[Chunk, ..
 
 
 class RetrievalIndex:
-    """In-memory index honoring source deletion (RAG-008)."""
+    """遵循来源删除语义的内存索引（RAG-008）。"""
 
     def __init__(self) -> None:
         self._chunks: dict[str, Chunk] = {}
@@ -105,7 +102,7 @@ class RetrievalIndex:
 
     def add(self, chunk: Chunk) -> Chunk:
         if chunk.source_ref in self._deleted_sources:
-            return chunk  # a deleted source never re-enters production retrieval
+            return chunk  # 已删除的来源绝不会重新进入生产检索
         self._chunks[chunk.chunk_id] = chunk
         return chunk
 
@@ -116,7 +113,7 @@ class RetrievalIndex:
             del self._chunks[cid]
 
     def search(self, terms: tuple[str, ...], *, snapshot: str | None = None) -> tuple[Chunk, ...]:
-        # Historical snapshots are only served when explicitly requested (Eval/Replay).
+        # 历史快照仅在显式请求时才会提供（Eval/Replay）。
         if snapshot is not None:
             return ()
         return tuple(

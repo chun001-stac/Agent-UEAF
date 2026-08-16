@@ -1,9 +1,8 @@
-"""Generated code sandbox: fail-closed execution boundary (SEC-018).
+"""生成代码沙箱：默认失败的执行边界（SEC-018）。
 
-R4 generated code may attempt file escapes, outbound network, secret reads or
-process escape. ``GeneratedCodeSandbox`` models the checked operations and
-fails closed: any disallowed operation produces a Security evidence ref and a
-hard SecurityGate failure.
+R4 生成的代码可能尝试文件逃逸、外联网络、读取密钥或进程逃逸。``GeneratedCodeSandbox``
+对受检操作进行建模并默认失败：任何不允许的操作都会产生一条 Security 证据引用和一次
+硬性 SecurityGate 失败。
 """
 
 from __future__ import annotations
@@ -23,7 +22,7 @@ class SandboxCheck:
 
 @dataclass(slots=True)
 class GeneratedCodeSandbox:
-    """Fail-closed sandbox policy for generated code (SEC-018)."""
+    """生成代码的默认失败沙箱策略（SEC-018）。"""
 
     allowed_operations: frozenset[str] = field(
         default_factory=lambda: frozenset({"pure_compute", "append_output"})
@@ -41,7 +40,7 @@ class GeneratedCodeSandbox:
         return SandboxCheck(allowed=True, operation=operation)
 
     def security_gate_outcome(self, checks: list[SandboxCheck]) -> GateOutcome:
-        """Hard fail when any sandbox check is denied (fail closed)."""
+        """任一沙箱检查被拒绝时硬性失败（默认失败）。"""
         return "fail" if any(not c.allowed for c in checks) else "pass"
 
 

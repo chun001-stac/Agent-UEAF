@@ -1,10 +1,8 @@
-"""Workflow module tests (functional module 06).
+"""Workflow 模块测试（功能模块 06）。
 
-Covers the Workflow slices missing from the reference implementation:
-WorkflowRun/NodeRun/NodeAttempt objects, the Workflow Registry, and node
-orchestration (dependencies, scheduling, retry attempts). Mapped to registered
-core IDs: ADP-003 (definition registry) and CON-007 (core capability ports /
-handoff).
+覆盖参考实现中缺失的 Workflow 切片：WorkflowRun/NodeRun/NodeAttempt 对象、
+Workflow Registry，以及节点编排（依赖、调度、重试尝试）。映射到已注册的
+核心 ID：ADP-003（定义注册表）与 CON-007（核心能力端口 / 交接）。
 """
 
 from __future__ import annotations
@@ -53,13 +51,13 @@ def test_workflow_registry_binds_immutable_versions() -> None:
     definition = _definition()
     registry.register(definition)
     assert registry.require("workflow:1", "1.0.0").workflow_id == "workflow:1"
-    # A newer version is registered separately; the in-flight v1 stays bound.
+    # 新版本单独注册；进行中的 v1 保持绑定不变。
     registry.register(_definition(version="2.0.0"))
     assert registry.get("workflow:1", "1.0.0") is definition
-    # Duplicate (id, version) is rejected.
+    # 重复的 (id, version) 被拒绝。
     with pytest.raises(ValueError, match="already registered"):
         registry.register(_definition(version="1.0.0"))
-    # Compatibility: same workflow + schema + owner is compatible.
+    # 兼容性：相同 workflow + schema + owner 视为兼容。
     compat = registry.check_compatibility(definition, _definition(version="2.0.0"))
     assert isinstance(compat, WorkflowCompatibility)
     assert compat.compatible
@@ -73,17 +71,17 @@ def test_workflow_orchestrator_schedules_ready_nodes_by_dependency() -> None:
     assert isinstance(run, WorkflowRun)
     assert len(run.node_runs) == 3
 
-    # Only the root node (no dependencies) is ready initially.
+    # 初始只有根节点（无依赖）处于就绪状态。
     first = orchestrator.schedule_ready(run)
     assert first.node_run_ids == ("wfr:1:agent:research",)
     assert [nr.status for nr in run.node_runs] == ["running", "pending", "pending"]
 
-    # Completing the root unblocks the next node.
+    # 完成根节点会解锁下一个节点。
     orchestrator.complete_node(run, "agent:research")
     second = orchestrator.schedule_ready(run)
     assert second.node_run_ids == ("wfr:1:action:orders",)
 
-    # NodeRun kinds are preserved from the node id prefix.
+    # NodeRun 的 kind 由节点 id 前缀保留而来。
     kinds = {nr.node_id: nr.kind for nr in run.node_runs}
     assert kinds == {
         "agent:research": "agent",
@@ -97,7 +95,7 @@ def test_workflow_run_completion_and_failure() -> None:
     orchestrator = WorkflowOrchestrator(object(), max_attempts=2)
     run = orchestrator.instantiate(_definition(), workflow_run_id="wfr:2")
 
-    # Node attempts are recorded and preserved.
+    # 节点尝试会被记录并保留。
     orchestrator.record_attempt("wfr:2:action:orders", attempt=1, status="failed", result_ref="r:1")
     orchestrator.record_attempt(
         "wfr:2:action:orders", attempt=2, status="succeeded", result_ref="r:2"
@@ -105,7 +103,7 @@ def test_workflow_run_completion_and_failure() -> None:
     attempts = orchestrator.attempts_for("wfr:2:action:orders")
     assert [a.attempt for a in attempts] == [1, 2]
 
-    # Drive the run to completion.
+    # 驱动 run 至完成。
     orchestrator.schedule_ready(run)
     orchestrator.complete_node(run, "agent:research")
     orchestrator.schedule_ready(run)
@@ -114,7 +112,7 @@ def test_workflow_run_completion_and_failure() -> None:
     assert orchestrator.complete_node(run, "wait:approval") is True
     assert run.status == "completed"
 
-    # A failed node fails the run.
+    # 失败的节点会导致 run 失败。
     run2 = orchestrator.instantiate(_definition(), workflow_run_id="wfr:3")
     orchestrator.schedule_ready(run2)
     assert orchestrator.fail_node(run2, "agent:research") is False
@@ -165,7 +163,7 @@ def test_node_run_object_contract() -> None:
     )
     assert node.status == "pending"
     assert node.attempt == 0
-    # Invalid kind is rejected.
+    # 无效的 kind 被拒绝。
     with pytest.raises(ValueError, match="kind"):
         NodeRun(
             meta=_meta("NodeRun", "n:2"),

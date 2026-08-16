@@ -1,1 +1,1 @@
-"""Context domain: ContextManifest building (Module 04 is the only writer)."""
+"""上下文领域：ContextManifest 构建（模块 04 是唯一写入方）。"""

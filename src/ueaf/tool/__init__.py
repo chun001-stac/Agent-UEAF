@@ -1,1 +1,1 @@
-"""Tool / Action domain: action identity, lifecycle, receipts, reconciliation."""
+"""工具 / 动作领域：动作身份、生命周期、回执与对账。"""

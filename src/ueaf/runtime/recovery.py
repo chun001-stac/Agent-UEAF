@@ -1,9 +1,8 @@
-"""Checkpoint / recovery (core spec 01 §9.2, spec 02 §6.3).
+"""Checkpoint / 恢复（core spec 01 §9.2，spec 02 §6.3）。
 
-``RecoveryManager`` restores a run from authoritative persisted state after a
-process restart: reload the RunRecord, verify the frozen adapter binding is
-still valid, acquire a fresh lease/fencing token, and re-verify the frozen
-Principal/Policy/Release bindings. It never trusts old-process memory.
+进程重启后，``RecoveryManager`` 从权威持久化状态恢复运行：重新加载 RunRecord，
+校验冻结的 adapter 绑定仍然有效，获取全新的 lease/fencing token，并重新校验
+冻结的 Principal/Policy/Release 绑定。它绝不信任旧进程的内存。
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ class RecoveryResult:
 
 
 class InMemoryCheckpointStore:
-    """Checkpoint registry (recoverable positions are not external proof)."""
+    """Checkpoint 注册表（可恢复位置不构成外部证明）。"""
 
     def __init__(self) -> None:
         self._checkpoints: dict[str, Checkpoint] = {}
@@ -41,7 +40,7 @@ class InMemoryCheckpointStore:
 
 
 class RecoveryManager:
-    """Restores a run after restart using authoritative persisted state (RUN-004)."""
+    """重启后使用权威持久化状态恢复运行（RUN-004）。"""
 
     def __init__(self, coordinator: RunCoordinator, checkpoints: InMemoryCheckpointStore) -> None:
         self._coordinator = coordinator
@@ -61,20 +60,20 @@ class RecoveryManager:
         if record.phase == "terminal":
             return RecoveryResult(True, run_id, ("already_terminal",), record)
 
-        # Frozen adapter binding must survive restart (RUN-007).
+        # 冻结的 adapter 绑定必须能在重启后保留（RUN-007）。
         if (
             expected_runtime_adapter_ref is not None
             and record.runtime_adapter_ref != expected_runtime_adapter_ref
         ):
             return RecoveryResult(False, run_id, ("runtime_adapter_binding_changed",), record)
 
-        # A checkpoint, when provided, must exist and bind the same run.
+        # 若提供了 checkpoint，它必须存在并绑定同一 run。
         if checkpoint_ref is not None:
             checkpoint = self._checkpoints.get(checkpoint_ref)
             if checkpoint is None or checkpoint.run_id != run_id:
                 return RecoveryResult(False, run_id, ("checkpoint_invalid",), record)
 
-        # Acquire a fresh lease/fencing token (never reuse a stale one, RUN-003).
+        # 获取全新的 lease/fencing token（绝不复用过期的，RUN-003）。
         record = await self._coordinator.acquire_lease(run_id, holder_id=holder_id)
         return RecoveryResult(True, run_id, ("recovered",), record)
 

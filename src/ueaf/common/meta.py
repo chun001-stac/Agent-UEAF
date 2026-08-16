@@ -1,8 +1,7 @@
-"""UEAF canonical metadata for cross-module persisted objects.
+"""跨模块持久化对象的 UEAF 规范元数据。
 
-Implements ``ContractMeta`` (core spec 01 §5) as a frozen dataclass so every
-persisted canonical object can carry a complete, reconstructable metadata
-block without leaking ORM-internal fields into the wire contract.
+将 ``ContractMeta``（core spec 01 §5）实现为冻结 dataclass，使每个持久化的
+规范对象都能携带完整、可重建的元数据块，而不会将 ORM 内部字段泄漏到线上契约。
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ _PROVENANCE_SOURCE_TYPES = ("request", "task", "run", "evidence_pack", "external
 
 @dataclass(frozen=True, slots=True)
 class ProvenanceRef:
-    """A single origin or derivation link in ``ContractMeta.provenance``."""
+    """``ContractMeta.provenance`` 中的单个来源或派生链接。"""
 
     source_type: str
     source_ref: str
@@ -44,11 +43,10 @@ class ProvenanceRef:
 
 @dataclass(frozen=True, slots=True)
 class ContractMeta:
-    """Mandatory metadata block for every cross-module persisted object.
+    """每个跨模块持久化对象都必须携带的元数据块。
 
-    Field semantics follow core spec 01 §5. ``object_id`` must equal the
-    owning object's canonical id field and ``tenant_id`` must equal the
-    top-level tenant id of the owning object.
+    字段语义遵循 core spec 01 §5。``object_id`` 必须等于所属对象的规范 id 字段，
+    ``tenant_id`` 必须等于所属对象的顶层租户 id。
     """
 
     contract_name: str
@@ -97,7 +95,7 @@ class ContractMeta:
                 )
 
     def with_integrity(self, integrity_ref: str) -> ContractMeta:
-        """Return a copy with an integrity reference set (frozen object)."""
+        """返回设置了完整性引用的副本（冻结对象）。"""
         return ContractMeta(
             contract_name=self.contract_name,
             contract_version=self.contract_version,

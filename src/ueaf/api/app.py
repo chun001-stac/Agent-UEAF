@@ -1,9 +1,8 @@
-"""FastAPI control-plane for the V1 reference implementation.
+"""V1 参考实现的 FastAPI 控制平面。
 
-Endpoints follow the edge pre-validation -> run creation -> run admission ->
-command submission flow. All domain errors surface as ``ProblemDetail``.
-The app is constructed with an injected coordinator (in-memory or SQL-backed)
-plus ingress registries for the immutable task/budget envelopes.
+端点遵循「边界预校验 -> 运行创建 -> 运行准入 -> 命令提交」流程。所有领域错误
+都以 ``ProblemDetail`` 形式暴露。应用通过注入的协调器（内存或 SQL 后端）以及
+用于不可变任务/预算信封的入站注册表构造。
 """
 
 from __future__ import annotations
@@ -43,7 +42,7 @@ _PROBLEM_HEADER = "application/problem+json"
 
 @dataclass(slots=True)
 class ApiContext:
-    """Wiring for the API: coordinator + ingress registries."""
+    """API 的装配：协调器 + 入站注册表。"""
 
     coordinator: RunCoordinator
     edge: EdgePreValidator
@@ -198,7 +197,7 @@ async def _dispatch_command(
     raise ValueError(f"unsupported command {body.command_name!r}")
 
 
-# -- mappers ----------------------------------------------------------------
+# -- 映射器 ----------------------------------------------------------------
 
 
 def _meta(contract_name: str, object_id: str, tenant_id: str, moment: datetime) -> ContractMeta:

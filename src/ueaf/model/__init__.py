@@ -1,1 +1,1 @@
-"""Model domain: prompt contracts, compilation, model step port."""
+"""模型领域：提示词合约、编译、模型步骤端口。"""

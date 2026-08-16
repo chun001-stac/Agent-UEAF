@@ -1,11 +1,9 @@
-"""Formal failure-injection suite (P2-B).
+"""正式故障注入测试套件（P2-B）。
 
-Proves resilience properties under injected faults against the async SQL
-persistence layer: atomic rollback when an outbox append fails mid-transaction
-(CON-013), stale-fencing rejection after a crash/recovery (RUN-003),
-timeout-unknown -> reconciling with no blind retry (ACT-003), and at-least-once
-outbox redelivery after a publish failure (ACT-013). All tests are hermetically
-isolated via ``clean_authoritative_tables``.
+在注入故障的情况下，针对异步 SQL 持久化层验证韧性属性：outbox 追加在事务中途失败时的
+原子回滚（CON-013）、崩溃/恢复后的过期 fencing 拒绝（RUN-003）、超时未知 ->
+进入 reconciling 且不做盲目重试（ACT-003），以及发布失败后的 outbox
+至少一次投递（ACT-013）。所有测试通过 ``clean_authoritative_tables`` 完全隔离。
 """
 
 from __future__ import annotations
@@ -92,16 +90,16 @@ async def test_atomic_rollback_when_outbox_append_fails() -> None:
     outbox = cast(OutboxStore, FailingOutboxStore(SqlOutboxStore(database), injector))
     coordinator = _sql_coordinator(database, outbox=outbox)
 
-    # The injected outbox fault propagates...
+    # 注入的 outbox 故障向外传播...
     with pytest.raises(RuntimeError, match="injected outbox append failure"):
         await _create_run(coordinator)
     assert "outbox.append" in injector.triggered
 
-    # ...and the whole transaction rolled back: no RunRecord persisted.
+    # ...并且整个事务回滚：没有持久化任何 RunRecord。
     repo = SqlRunRecordRepository(database)
     async with database.async_session_context():
         assert await repo.get("run:1") is None or True  # get by generated id
-    # TaskState must NOT have been committed either.
+    # TaskState 同样不得被提交。
     from ueaf.infrastructure.db.orm import TaskStateORM
 
     async with database.async_session_context() as session:
@@ -125,16 +123,16 @@ async def test_stale_lease_holder_rejected_after_recovery() -> None:
     )
     running = await coordinator.apply_admission(admitting.run_id, result)
 
-    # Worker A holds lease with fencing token 1.
+    # 工作进程 A 持有 fencing token 为 1 的租约。
     with_worker_a = await coordinator.acquire_lease(running.run_id, holder_id="worker-a")
     assert with_worker_a.lease.fencing_token == 1
 
-    # A crash/restart: worker B recovers and acquires a fresh, higher token.
+    # 崩溃/重启：工作进程 B 恢复并获得更新的、更高的 token。
     with_worker_b = await coordinator.acquire_lease(running.run_id, holder_id="worker-b")
     assert with_worker_b.lease.fencing_token == 2
 
-    # Worker A (stale) tries to write with its old token -> rejected, even with
-    # the current revision (the fault is the stale fencing token, not revision).
+    # 过期的工作进程 A 尝试用旧 token 写入 -> 被拒绝，即使携带当前 revision 也一样
+    # （故障在于过期的 fencing token，而非 revision）。
     repo = SqlRunRecordRepository(database)
     async with database.async_session_context():
         current = await repo.require(running.run_id)
@@ -187,8 +185,8 @@ async def test_timeout_unknown_enters_reconciling_without_blind_retry() -> None:
     action = ac.authorize(action, decision)
     action = ac.begin_execution(action, fencing_token=1)
 
-    # A timeout yields an "unknown" receipt: the action moves to reconciling,
-    # and there is no blind second write (ACT-003).
+    # 超时产生 "unknown" 回执：action 进入 reconciling，
+    # 且不会盲目地再次写入（ACT-003）。
     from ueaf.tool.action import ActionReceipt
 
     receipt = ActionReceipt(
@@ -205,9 +203,9 @@ async def test_timeout_unknown_enters_reconciling_without_blind_retry() -> None:
     assert reconciling.phase == "reconciling"
     assert reconciling.reconciliation_state is not None
     assert reconciling.reconciliation_state["status"] == "unknown"
-    assert reconciling.attempt == 1  # no blind retry increment
+    assert reconciling.attempt == 1  # 不递增盲目重试次数
 
-    # Persist + reload to confirm the reconciling state is durable.
+    # 持久化并重新加载，以确认 reconciling 状态是可持久化的。
     async with database.async_session_context():
         await action_repo.create(reconciling)
     async with database.async_session_context():
@@ -222,7 +220,7 @@ async def test_timeout_unknown_enters_reconciling_without_blind_retry() -> None:
 async def test_outbox_redelivers_after_publish_failure() -> None:
     database = await _make_database()
     coordinator = _sql_coordinator(database)
-    await _create_run(coordinator)  # creates 1 outbox event (ueaf.run.created)
+    await _create_run(coordinator)  # 创建 1 个 outbox 事件（ueaf.run.created）
 
     outbox = SqlOutboxStore(database)
 
@@ -252,7 +250,7 @@ async def test_outbox_redelivers_after_publish_failure() -> None:
     with pytest.raises(RuntimeError, match="injected broker failure"):
         await flaky.drain(outbox)
 
-    # The entry was NOT marked published, so it is redelivered on retry.
+    # 该条目未被标记为已发布，因此会在重试时被重新投递。
     async with database.async_session_context():
         still_unpublished = await outbox.unpublished()
     assert len(still_unpublished) == 1

@@ -1,7 +1,7 @@
-"""Agent / capability definitions registry (core spec 01 §8.1-8.2).
+"""Agent / 能力定义注册表（核心规范 01 §8.1-8.2）。
 
-``AgentDefinition`` and ``CapabilityDescriptor`` are immutable versioned
-definitions; a capability being discoverable never grants authorization.
+``AgentDefinition`` 与 ``CapabilityDescriptor`` 是不可变的版本化定义；能力可被发现
+绝不等于已获授权。
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ RiskClass = Literal["compute_only", "read_only", "reversible_write", "high_risk_
 
 @dataclass(frozen=True, slots=True)
 class AgentDefinition:
-    """Immutable agent definition; any behavior change bumps the version."""
+    """不可变的 agent 定义；任何行为变更都会提升版本号。"""
 
     meta: ContractMeta
     agent_id: str
@@ -43,7 +43,7 @@ class AgentDefinition:
 
 @dataclass(frozen=True, slots=True)
 class CapabilityDescriptor:
-    """Discoverable capability; never carries a per-call authorization result."""
+    """可被发现的能力；绝不携带单次调用的授权结果。"""
 
     meta: ContractMeta
     capability_id: str
@@ -65,7 +65,7 @@ class CapabilityDescriptor:
 
 @dataclass(slots=True)
 class DefinitionRegistry:
-    """Immutable registry of agent/capability definitions."""
+    """agent/能力定义的不可变注册表。"""
 
     _agents: dict[tuple[str, str], AgentDefinition] = field(default_factory=dict)
     _capabilities: dict[tuple[str, str], CapabilityDescriptor] = field(default_factory=dict)
@@ -93,7 +93,7 @@ class DefinitionRegistry:
         return self._capabilities.get((capability_id, capability_version))
 
     def requires_capabilities(self, agent: AgentDefinition) -> list[CapabilityDescriptor]:
-        """Resolve the capability set an agent needs (missing -> [])."""
+        """解析 agent 所需的能力集合（缺失 -> []）。"""
         resolved: list[CapabilityDescriptor] = []
         for ref in agent.capability_refs:
             cid, _, cver = ref.partition("@")

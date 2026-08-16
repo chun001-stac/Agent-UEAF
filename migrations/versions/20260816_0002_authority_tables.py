@@ -1,13 +1,12 @@
-"""Create V1 authoritative persistence tables.
+"""创建 V1 权威持久化表。
 
 Revision ID: 20260816_0002
 Revises: 20260815_0001
 Create Date: 2026-08-16
 
-Tables: ``run_records``, ``task_states``, ``run_admission_results``, ``outbox``.
-Each row keeps a full ``payload`` JSON column to reconstruct the canonical
-object (including ContractMeta); scalar columns enable DB-level CAS, fencing
-and tenant-scoped queries (implementation spec 03 §5/§15).
+表：``run_records``、``task_states``、``run_admission_results``、``outbox``。
+每行保留完整的 ``payload`` JSON 列，用于重建规范对象（包括 ContractMeta）；
+标量列支持数据库级别的 CAS、fencing 及按租户范围查询（实现规范 03 §5/§15）。
 """
 
 from collections.abc import Sequence

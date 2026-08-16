@@ -1,1 +1,1 @@
-"""Security domain: policy decisions, deny-by-default (PDP is the only owner)."""
+"""安全领域：策略判定、默认拒绝（PDP 是唯一所有者）。"""

@@ -1,5 +1,4 @@
-"""Operations module: run-summary projections and operational views.
+"""运营模块：运行摘要投影与运营视图。
 
-Projections are derived from authoritative events; they never accept state
-commands or decide terminal states (implementation spec 03 §1/§6).
+投影由权威事件推导而来；它们绝不接受状态命令或决定终态（实现规范 03 §1/§6）。
 """

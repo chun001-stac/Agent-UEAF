@@ -1,7 +1,7 @@
-"""Command / Event envelope contracts (core spec 03).
+"""Command / Event envelope 契约（core spec 03）。
 
-There is exactly one public ``EventEnvelope`` and one ``CommandEnvelope`` in
-V1; no reduced variants may be created.
+V1 中恰好各有一个公开的 ``EventEnvelope`` 和 ``CommandEnvelope``；
+不允许创建精简变体。
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ SEMVER_PATTERN = re.compile(
 
 @dataclass(frozen=True, slots=True)
 class CommandEnvelope:
-    """A command targeting a canonical aggregate."""
+    """面向规范聚合的命令。"""
 
     command_id: str
     command_name: str
@@ -65,7 +65,7 @@ class CommandEnvelope:
 
 @dataclass(frozen=True, slots=True)
 class EventEnvelope:
-    """The single public event envelope; consumers dedupe on ``event_id``."""
+    """唯一的公开事件信封；消费者按 ``event_id`` 去重。"""
 
     event_id: str
     event_name: str
@@ -114,7 +114,7 @@ class EventCatalogEntry:
 
 @dataclass(frozen=True, slots=True)
 class EventCatalog:
-    """The registered public event set; it is not a second semantic owner."""
+    """已注册的公开事件集合；它不是第二个语义所有者。"""
 
     catalog_version: str
     entries: tuple[EventCatalogEntry, ...] = field(default_factory=tuple)
