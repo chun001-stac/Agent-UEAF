@@ -49,7 +49,22 @@ services:
       retries: 10
       start_period: 5s
 
+  qdrant:
+    image: qdrant/qdrant:v1.13.6
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333 && printf \"GET /readyz HTTP/1.1\\nHost: localhost\\nConnection: close\\n\\n\" >&3 && grep -q \"200 OK\" <&3'"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
 volumes:
   postgres-data:
   nats-data:
   minio-data:
+  qdrant-data:

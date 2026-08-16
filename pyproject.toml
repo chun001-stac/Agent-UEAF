@@ -22,6 +22,15 @@ dependencies = [
   "boto3>=1.40,<2",
   "jsonschema[format]>=4.25,<5",
   "referencing>=0.36,<1",
+  # qdrant-client pinned to 1.13.x to match the docker-compose/CI qdrant server
+  # (v1.13.6). Newer clients (>=1.14) drop the ``search`` method in favour of
+  # ``query_points``, whose endpoint the v1.13 server does not support.
+  "qdrant-client>=1.13,<1.14",
+  # Local embeddings (BAAI/bge-small-zh-v1.5) are a RAG core capability: the
+  # model runs fully local with no external API key, so sentence-transformers is
+  # a runtime dependency (not just dev). It is heavy (pulls torch); keep it in
+  # main because RAG retrieval depends on it in production.
+  "sentence-transformers>=3,<5",
 ]
 
 [project.optional-dependencies]
